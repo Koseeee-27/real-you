@@ -16,7 +16,8 @@ CREATE TABLE game_logs (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   game_type INT NOT NULL CHECK (game_type IN (1, 2, 3)),
   raw_data JSONB NOT NULL,
-  played_at TIMESTAMP DEFAULT NOW()
+  played_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, game_type)
 );
 
 -- インデックス
