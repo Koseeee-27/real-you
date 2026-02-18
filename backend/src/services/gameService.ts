@@ -19,6 +19,12 @@ export const gameService = {
             throw { status: 400, code: 'invalid_user_id', message: 'User not found' };
         }
 
+        // 重複送信チェック
+        const alreadySubmitted = await gameRepository.existsLog(userId, gameType);
+        if (alreadySubmitted) {
+            throw { status: 409, code: 'duplicate_submission', message: `Game ${gameType} is already submitted` };
+        }
+
         // 保存
         await gameRepository.saveLog(userId, gameType, data);
     }

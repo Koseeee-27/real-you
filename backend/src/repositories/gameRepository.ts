@@ -23,5 +23,16 @@ export const gameRepository = {
 
         if (error) throw error;
         return data || [];
+    },
+
+    async existsLog(userId: string, gameType: GameType): Promise<boolean> {
+        const { data } = await supabase
+            .from('game_logs')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('game_type', gameType)
+            .limit(1);
+
+        return (data?.length ?? 0) > 0;
     }
 };
