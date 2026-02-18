@@ -1,10 +1,10 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { gameService } from '../services/gameService';
-import { SubmitGameRequest, SubmitGameResponse, ApiError } from '../types';
+import { SubmitGameRequest, SubmitGameResponse } from '../types';
 
 const router = Router();
 
-router.post('/submit', async (req: Request, res: Response) => {
+router.post('/submit', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { user_id, game_type, data } = req.body as SubmitGameRequest;
         await gameService.submitGame(user_id, game_type, data);
@@ -14,14 +14,8 @@ router.post('/submit', async (req: Request, res: Response) => {
             message: `Game ${game_type} data saved`,
         };
         res.json(response);
-    } catch (error: any) {
-        console.error('Game Submit Error:', error);
-        const apiError: ApiError = {
-            status: 'error',
-            error: error.code || 'server_error',
-            message: error.message || 'Internal server error',
-        };
-        res.status(error.status || 500).json(apiError);
+    } catch (error) {
+        next(error);
     }
 });
 
