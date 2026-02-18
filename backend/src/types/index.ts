@@ -45,6 +45,12 @@ export interface GameBreakdown {
   game_3?: Partial<BaselineScores>;
 }
 
+export interface PhaseSummaries {
+  phase_1: string; // 利用規約での行動サマリー
+  phase_2: string; // カスタマーサポートでの行動サマリー
+  phase_3: string; // グループチャットでの行動サマリー
+}
+
 export interface ResultResponse {
   user_id: string;
   self_mbti: string | null;
@@ -53,6 +59,8 @@ export interface ResultResponse {
   gaps: BaselineScores; // 差分
   game_breakdown: GameBreakdown;
   feedback: DiagnosisFeedback;
+  accuracy_score: number; // 自己認識精度（0-100）
+  phase_summaries: PhaseSummaries; // 各フェーズの振り返りテキスト
 }
 
 export interface ApiError {
