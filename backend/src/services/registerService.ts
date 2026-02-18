@@ -9,9 +9,17 @@ export const registerService = {
             throw { status: 400, code: 'invalid_request', message: 'baseline_scores is required' };
         }
 
+        const requiredKeys = ['caution', 'calmness', 'logic', 'cooperativeness', 'positivity'];
+        const providedKeys = Object.keys(baselineScores);
+        const missingKeys = requiredKeys.filter(k => !providedKeys.includes(k));
+
+        if (missingKeys.length > 0) {
+            throw { status: 400, code: 'invalid_request', message: `Missing baseline_scores keys: ${missingKeys.join(', ')}` };
+        }
+
         const scores = Object.values(baselineScores);
         if (scores.some(s => s < 0 || s > 100)) {
-            throw { status: 400, code: 'invalid_scores', message: 'スコアは0-100の範囲である必要があります' };
+            throw { status: 400, code: 'invalid_scores', message: 'Scores must be between 0 and 100' };
         }
 
         const userId = uuidv4();

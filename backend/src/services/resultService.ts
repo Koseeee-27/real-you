@@ -10,7 +10,7 @@ export const resultService = {
         // ユーザー取得
         const user = await userRepository.findById(userId);
         if (!user) {
-            throw { status: 404, code: 'user_not_found', message: 'ユーザーが見つかりません' };
+            throw { status: 404, code: 'user_not_found', message: 'User not found' };
         }
 
         // ゲームログ取得
