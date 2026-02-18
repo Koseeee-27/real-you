@@ -2,6 +2,7 @@ import { userRepository } from '../repositories/userRepository';
 import { gameRepository } from '../repositories/gameRepository';
 import { calculateGame1Scores, calculateGame2Scores, combineScores } from '../analysis/scoreCalculator';
 import { generateFeedback } from '../analysis/feedbackGenerator';
+import { buildPhaseSummaries } from '../analysis/phaseSummaryBuilder';
 import { BaselineScores, ResultResponse, GameBreakdown } from '../types';
 
 export const resultService = {
@@ -21,6 +22,7 @@ export const resultService = {
         // 分析（analysis/ に委譲）
         const game1Data = gameLogs.find(log => log.game_type === 1);
         const game2Data = gameLogs.find(log => log.game_type === 2);
+        const game3Data = gameLogs.find(log => log.game_type === 3);
 
         const game1Scores = game1Data ? calculateGame1Scores(game1Data.raw_data) : {};
         const game2Scores = game2Data ? calculateGame2Scores(game2Data.raw_data) : {};
@@ -44,6 +46,18 @@ export const resultService = {
             positivity: scores.positivity - baseline_scores.positivity,
         };
 
+        // 自己認識精度スコア（全5軸のギャップ絶対値の平均を100から引く）
+        const gapValues = Object.values(gaps).map(v => Math.abs(v));
+        const avgGap = gapValues.reduce((sum, v) => sum + v, 0) / gapValues.length;
+        const accuracy_score = Math.max(0, Math.round(100 - avgGap));
+
+        // フェーズ別サマリー（analysis/ に委譲）
+        const phase_summaries = buildPhaseSummaries(
+            game1Data?.raw_data,
+            game2Data?.raw_data,
+            game3Data?.raw_data,
+        );
+
         // フィードバック生成（analysis/ に委譲）
         const feedback = generateFeedback(scores, gaps);
 
@@ -60,6 +74,8 @@ export const resultService = {
             gaps,
             game_breakdown,
             feedback,
+            accuracy_score,
+            phase_summaries,
         };
     }
 };
