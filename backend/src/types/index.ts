@@ -10,9 +10,19 @@ export interface BaselineScores {
   positivity: number;
 }
 
+export type YesNo = 'yes' | 'no';
+
+export interface BaselineAnswers {
+  q1_caution: YesNo;
+  q2_calmness: YesNo;
+  q3_logic: YesNo;
+  q4_cooperativeness: YesNo;
+  q5_positivity: YesNo;
+}
+
 export interface RegisterRequest {
   mbti?: string | null; // オプショナル
-  baseline_scores: BaselineScores; // 必須
+  baseline_answers: BaselineAnswers; // 必須
 }
 
 export interface RegisterResponse {

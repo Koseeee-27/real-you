@@ -1,26 +1,42 @@
 import { v4 as uuidv4 } from 'uuid';
 import { userRepository } from '../repositories/userRepository';
-import { BaselineScores } from '../types';
+import { BaselineAnswers, BaselineScores } from '../types';
+
+// yes/no → 数値変換
+function convertAnswersToScores(answers: BaselineAnswers): BaselineScores {
+    const convert = (value: string): number => value === 'yes' ? 100 : 0;
+    return {
+        caution: convert(answers.q1_caution),
+        calmness: convert(answers.q2_calmness),
+        logic: convert(answers.q3_logic),
+        cooperativeness: convert(answers.q4_cooperativeness),
+        positivity: convert(answers.q5_positivity),
+    };
+}
 
 export const registerService = {
-    async registerUser(mbti: string | null | undefined, baselineScores: BaselineScores) {
+    async registerUser(mbti: string | null | undefined, baselineAnswers: BaselineAnswers) {
         // バリデーション
-        if (!baselineScores) {
-            throw { status: 400, code: 'invalid_request', message: 'baseline_scores is required' };
+        if (!baselineAnswers) {
+            throw { status: 400, code: 'invalid_request', message: 'baseline_answers is required' };
         }
 
-        const requiredKeys = ['caution', 'calmness', 'logic', 'cooperativeness', 'positivity'];
-        const providedKeys = Object.keys(baselineScores);
+        const requiredKeys = ['q1_caution', 'q2_calmness', 'q3_logic', 'q4_cooperativeness', 'q5_positivity'];
+        const providedKeys = Object.keys(baselineAnswers);
         const missingKeys = requiredKeys.filter(k => !providedKeys.includes(k));
 
         if (missingKeys.length > 0) {
-            throw { status: 400, code: 'invalid_request', message: `Missing baseline_scores keys: ${missingKeys.join(', ')}` };
+            throw { status: 400, code: 'invalid_request', message: `Missing baseline_answers keys: ${missingKeys.join(', ')}` };
         }
 
-        const scores = Object.values(baselineScores);
-        if (scores.some(s => s < 0 || s > 100)) {
-            throw { status: 400, code: 'invalid_scores', message: 'Scores must be between 0 and 100' };
+        const validValues = ['yes', 'no'];
+        const invalidKeys = requiredKeys.filter(k => !validValues.includes((baselineAnswers as any)[k]));
+        if (invalidKeys.length > 0) {
+            throw { status: 400, code: 'invalid_answers', message: `Answers must be "yes" or "no". Invalid: ${invalidKeys.join(', ')}` };
         }
+
+        // yes/no → 数値に変換
+        const baselineScores = convertAnswersToScores(baselineAnswers);
 
         const userId = uuidv4();
         await userRepository.create(userId, mbti || null, baselineScores);
