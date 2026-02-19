@@ -1,5 +1,6 @@
 import { userRepository } from '../repositories/userRepository';
 import { gameRepository } from '../repositories/gameRepository';
+import { analysisResultRepository, AnalysisResultRow } from '../repositories/analysisResultRepository';
 import { calculateGame1Scores, calculateGame2Scores, combineScores } from '../analysis/scoreCalculator';
 import { generateFeedback } from '../analysis/feedbackGenerator';
 import { buildPhaseSummaries } from '../analysis/phaseSummaryBuilder';
@@ -13,9 +14,24 @@ export const resultService = {
             throw { status: 404, code: 'user_not_found', message: 'User not found' };
         }
 
-        // ゲームログ取得
+        // ベースラインスコア組み立て（キャッシュ有無に関わらず必要）
+        const baseline_scores: BaselineScores = {
+            caution: user.baseline_caution,
+            calmness: user.baseline_calmness,
+            logic: user.baseline_logic,
+            cooperativeness: user.baseline_coop,
+            positivity: user.baseline_positive,
+        };
+
+        // キャッシュ確認：analysis_results にあればそこから返す
+        const cached = await analysisResultRepository.findByUserId(userId);
+        if (cached) {
+            return this.buildResponseFromCache(userId, user.self_mbti, baseline_scores, cached);
+        }
+
+        // キャッシュなし → ゲームログから計算
         const gameLogs = await gameRepository.findLogsByUserId(userId);
-        if (gameLogs.length < 2) {
+        if (gameLogs.length < 3) {
             throw { status: 400, code: 'incomplete_games', message: 'All games must be completed' };
         }
 
@@ -27,15 +43,6 @@ export const resultService = {
         const game1Scores = game1Data ? calculateGame1Scores(game1Data.raw_data) : {};
         const game2Scores = game2Data ? calculateGame2Scores(game2Data.raw_data) : {};
         const scores = combineScores(game1Scores, game2Scores);
-
-        // ベースラインスコア組み立て
-        const baseline_scores: BaselineScores = {
-            caution: user.baseline_caution,
-            calmness: user.baseline_calmness,
-            logic: user.baseline_logic,
-            cooperativeness: user.baseline_coop,
-            positivity: user.baseline_positive,
-        };
 
         // ギャップ計算
         const gaps: BaselineScores = {
@@ -66,6 +73,34 @@ export const resultService = {
             game_2: game2Scores,
         };
 
+        // analysis_results にキャッシュとして保存
+        const cacheRow: AnalysisResultRow = {
+            user_id: userId,
+            score_caution: scores.caution,
+            score_calmness: scores.calmness,
+            score_logic: scores.logic,
+            score_coop: scores.cooperativeness,
+            score_positive: scores.positivity,
+            mbti_caution: null,
+            mbti_calmness: null,
+            mbti_logic: null,
+            mbti_coop: null,
+            mbti_positive: null,
+            gap_caution: gaps.caution,
+            gap_calmness: gaps.calmness,
+            gap_logic: gaps.logic,
+            gap_coop: gaps.cooperativeness,
+            gap_positive: gaps.positivity,
+            feedback_title: feedback.title,
+            feedback_description: feedback.description,
+            feedback_gap_point: feedback.gap_point,
+            game_contributions: game_breakdown,
+            accuracy_score,
+            phase_summaries,
+        };
+
+        await analysisResultRepository.save(cacheRow);
+
         return {
             user_id: userId,
             self_mbti: user.self_mbti,
@@ -77,5 +112,44 @@ export const resultService = {
             accuracy_score,
             phase_summaries,
         };
-    }
+    },
+
+    /**
+     * キャッシュ済みデータからレスポンスを組み立てる
+     */
+    buildResponseFromCache(
+        userId: string,
+        selfMbti: string | null,
+        baselineScores: BaselineScores,
+        cached: AnalysisResultRow,
+    ): ResultResponse {
+        return {
+            user_id: userId,
+            self_mbti: selfMbti,
+            scores: {
+                caution: cached.score_caution,
+                calmness: cached.score_calmness,
+                logic: cached.score_logic,
+                cooperativeness: cached.score_coop,
+                positivity: cached.score_positive,
+            },
+            baseline_scores: baselineScores,
+            gaps: {
+                caution: cached.gap_caution,
+                calmness: cached.gap_calmness,
+                logic: cached.gap_logic,
+                cooperativeness: cached.gap_coop,
+                positivity: cached.gap_positive,
+            },
+            game_breakdown: cached.game_contributions,
+            feedback: {
+                title: cached.feedback_title,
+                description: cached.feedback_description,
+                gap_point: cached.feedback_gap_point,
+            },
+            accuracy_score: cached.accuracy_score,
+            phase_summaries: cached.phase_summaries,
+        };
+    },
 };
+

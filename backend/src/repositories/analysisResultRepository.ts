@@ -1,5 +1,5 @@
 import { supabase } from '../db/client';
-import { BaselineScores, DiagnosisFeedback, GameBreakdown, PhaseSummaries } from '../types';
+import { GameBreakdown, PhaseSummaries } from '../types';
 
 export interface AnalysisResultRow {
     user_id: string;
