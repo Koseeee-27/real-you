@@ -47,6 +47,8 @@ CREATE TABLE analysis_results (
   feedback_gap_point VARCHAR(50) NOT NULL,
   -- その他
   game_contributions JSONB NOT NULL,
+  accuracy_score INT NOT NULL CHECK (accuracy_score BETWEEN 0 AND 100),
+  phase_summaries JSONB NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
