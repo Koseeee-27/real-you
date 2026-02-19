@@ -5,10 +5,14 @@ const router = Router();
 
 router.post('/respond', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { message, scenario_type } = req.body;
-        const responseText = await voiceService.generateAiResponse(message, scenario_type);
+        const { user_id, message, conversation_history } = req.body;
+        const result = await voiceService.generateAiResponse(message, conversation_history);
 
-        res.json({ status: 'success', response: responseText });
+        res.json({
+            response: result.response,
+            emotion: result.emotion,
+            confidence: result.confidence,
+        });
     } catch (error) {
         next(error);
     }
