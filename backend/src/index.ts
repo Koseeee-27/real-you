@@ -7,6 +7,7 @@ import registerRouter from './routes/register';
 import gamesRouter from './routes/games';
 import resultsRouter from './routes/results';
 import voiceRouter from './routes/voice';
+import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,6 +26,8 @@ app.use('/api/voice', voiceRouter);
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
