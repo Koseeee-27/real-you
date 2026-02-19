@@ -5,8 +5,12 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    paths:
+      - "frontend/**"
   pull_request:
     branches: [main, develop]
+    paths:
+      - "frontend/**"
 
 defaults:
   run:
