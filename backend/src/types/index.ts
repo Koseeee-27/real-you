@@ -54,6 +54,7 @@ export interface PhaseSummaries {
 export interface ResultResponse {
   user_id: string;
   self_mbti: string | null;
+  mbti_scores: BaselineScores | null; // MBTI理論値スコア（スキップ時はnull）
   scores: BaselineScores; // 実測スコア
   baseline_scores: BaselineScores; // 自己申告スコア
   gaps: BaselineScores; // 差分
