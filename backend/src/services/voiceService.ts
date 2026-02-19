@@ -113,7 +113,7 @@ export const voiceService = {
                 }
             }
         }
-        throw { status: 500, code: 'ai_failed', message: 'All AI models failed or quota exceeded' };
+        throw { status: 500, code: 'ai_generation_failed', message: 'All AI models failed or quota exceeded' };
     }
 };
 
