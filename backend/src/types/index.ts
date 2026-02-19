@@ -113,11 +113,11 @@ export const GAME_TYPES = {
 } as const;
 
 export const SCORE_KEYS = {
-  CAUTION: "caution",
-  CALMNESS: "calmness",
-  LOGIC: "logic",
-  COOPERATIVENESS: "cooperativeness",
-  POSITIVITY: "positivity",
+  CAUTION: 'caution',
+  CALMNESS: 'calmness',
+  LOGIC: 'logic',
+  COOPERATIVENESS: 'cooperativeness',
+  POSITIVITY: 'positivity',
 } as const;
 
 export type ScoreKey = typeof SCORE_KEYS[keyof typeof SCORE_KEYS];
