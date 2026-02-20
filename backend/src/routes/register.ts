@@ -6,8 +6,8 @@ const router = Router();
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { mbti, baseline_scores } = req.body as RegisterRequest;
-        const userId = await registerService.registerUser(mbti, baseline_scores);
+        const { mbti, baseline_answers } = req.body as RegisterRequest;
+        const userId = await registerService.registerUser(mbti, baseline_answers);
 
         const response: RegisterResponse = { user_id: userId, status: 'success' };
         res.status(201).json(response);
