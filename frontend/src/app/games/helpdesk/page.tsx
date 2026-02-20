@@ -1,3 +1,5 @@
+import HelpdeskGameFlow from '@/features/games/helpdesk/components/HelpdeskGameFlow';
+
 export default function HelpdeskGamePage() {
-  return <h1>Game2: AIカスタマーサポート</h1>;
+  return <HelpdeskGameFlow />;
 }
