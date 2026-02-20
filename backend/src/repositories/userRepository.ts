@@ -1,13 +1,8 @@
 import { supabase } from '../db/client';
+import { BaselineScores } from '../types';
 
 export const userRepository = {
-    async create(id: string, mbti: string | null, baselineScores: {
-        caution: number;
-        calmness: number;
-        logic: number;
-        cooperativeness: number;
-        positivity: number;
-    }) {
+    async create(id: string, mbti: string | null, baselineScores: BaselineScores) {
         const { error } = await supabase
             .from('users')
             .insert({
@@ -30,6 +25,8 @@ export const userRepository = {
             .eq('id', userId)
             .single();
 
+        // PGRST116 = 行が見つからない → null を返す（エラーではない）
+        if (error && error.code === 'PGRST116') return null;
         if (error) throw error;
         return data;
     },

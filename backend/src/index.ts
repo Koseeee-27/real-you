@@ -7,6 +7,7 @@ import registerRouter from './routes/register';
 import gamesRouter from './routes/games';
 import resultsRouter from './routes/results';
 import voiceRouter from './routes/voice';
+import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,9 +23,30 @@ app.use('/api/results', resultsRouter);
 app.use('/api/voice', voiceRouter);
 
 // Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
+app.get('/health', async (req, res) => {
+    try {
+        const { supabase } = await import('./db/client');
+        const { error } = await supabase.from('users').select('id').limit(1);
+
+        if (error) throw error;
+
+        res.status(200).json({
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            database: 'connected',
+            uptime: Math.round(process.uptime()),
+        });
+    } catch (err) {
+        res.status(503).json({
+            status: 'error',
+            timestamp: new Date().toISOString(),
+            database: 'disconnected',
+            uptime: Math.round(process.uptime()),
+        });
+    }
 });
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
