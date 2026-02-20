@@ -21,12 +21,12 @@ echo
 echo -e "${text_bold}1. Registering User...${text_reset}"
 REGISTER_PAYLOAD='{
   "mbti": "INTJ",
-  "baseline_scores": {
-    "caution": 60,
-    "calmness": 70,
-    "logic": 80,
-    "cooperativeness": 40,
-    "positivity": 50
+  "baseline_answers": {
+    "q1_caution": "yes",
+    "q2_calmness": "no",
+    "q3_logic": "yes",
+    "q4_cooperativeness": "no",
+    "q5_positivity": "yes"
   }
 }'
 
@@ -45,16 +45,27 @@ else
     echo -e "${text_green}✅ User Registered with ID: $USER_ID${text_reset}"
 fi
 
-# 2. Submit Game 1 (Tap Game)
+# 2. Submit Game 1 (Terms of Service)
 echo 
-echo -e "${text_bold}2. Submitting Game 1 (Tap Game)...${text_reset}"
+echo -e "${text_bold}2. Submitting Game 1 (Terms of Service)...${text_reset}"
 GAME1_PAYLOAD='{
   "user_id": "'"$USER_ID"'",
   "game_type": 1,
   "data": {
-    "score": 100,
-    "tap_count": 50,
-    "miss_count": 2
+    "totalTime": 120,
+    "finalAction": "agree",
+    "reachedBottom": true,
+    "scrollEvents": [
+      {"position": 0, "timestamp": 0},
+      {"position": 5000, "timestamp": 15000}
+    ],
+    "hiddenInput": "確認済み",
+    "checkboxStates": {
+      "readConfirm": {"checked": true, "changed": true},
+      "mailMagazine": {"checked": false, "changed": true},
+      "thirdPartyShare": {"checked": false, "changed": true}
+    },
+    "popupStats": {"timeToClose": 1200, "clickCount": 1}
   }
 }'
 
@@ -69,18 +80,37 @@ if [ "$STATUS1" == "success" ]; then
     echo -e "${text_green}✅ Game 1 Submitted.${text_reset}"
 else
     echo -e "${text_red}❌ Game 1 Submission Failed.${text_reset}"
-    # Continue anyway to test others
 fi
 
-# 3. Submit Game 2 (Choice Game)
+# 3. Submit Game 2 (AI Chat)
 echo 
-echo -e "${text_bold}3. Submitting Game 2 (Choice Game)...${text_reset}"
+echo -e "${text_bold}3. Submitting Game 2 (AI Chat)...${text_reset}"
 GAME2_PAYLOAD='{
   "user_id": "'"$USER_ID"'",
   "game_type": 2,
   "data": {
-    "choice_history": ["A", "B", "A"],
-    "reaction_times": [300, 450, 320]
+    "inputMethod": "voice",
+    "turnCount": 2,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "inputMethod": "voice",
+        "reactionTimeMs": 1200,
+        "speechDurationMs": 8500,
+        "silenceDurationMs": 500,
+        "volumeDb": -25.3,
+        "transcribedText": "パスワードを入力しても弾かれます"
+      },
+      {
+        "turnIndex": 2,
+        "inputMethod": "text",
+        "reactionTimeMs": null,
+        "speechDurationMs": null,
+        "silenceDurationMs": null,
+        "volumeDb": null,
+        "transcribedText": "別の方法を試します"
+      }
+    ]
   }
 }'
 
@@ -97,9 +127,40 @@ else
     echo -e "${text_red}❌ Game 2 Submission Failed.${text_reset}"
 fi
 
-# 4. Get Results
+# 4. Submit Game 3 (Group Chat)
 echo 
-echo -e "${text_bold}4. Getting Results...${text_reset}"
+echo -e "${text_bold}4. Submitting Game 3 (Group Chat)...${text_reset}"
+GAME3_PAYLOAD='{
+  "user_id": "'"$USER_ID"'",
+  "game_type": 3,
+  "data": {
+    "tutorialViewTime": 5200,
+    "stages": [
+      {"stageId": 1, "selectedOptionId": 2, "reactionTime": 3400, "isTimeout": false},
+      {"stageId": 2, "selectedOptionId": 1, "reactionTime": 1800, "isTimeout": false},
+      {"stageId": 3, "selectedOptionId": 3, "reactionTime": 4500, "isTimeout": false},
+      {"stageId": 4, "selectedOptionId": 0, "reactionTime": 10000, "isTimeout": true},
+      {"stageId": 5, "selectedOptionId": 1, "reactionTime": 2200, "isTimeout": false}
+    ]
+  }
+}'
+
+GAME3_RESPONSE=$(curl -s -X POST "$BASE_URL/games/submit" \
+  -H "Content-Type: application/json" \
+  -d "$GAME3_PAYLOAD")
+
+echo "Response: $GAME3_RESPONSE"
+STATUS3=$(echo $GAME3_RESPONSE | jq -r '.status')
+
+if [ "$STATUS3" == "success" ]; then
+    echo -e "${text_green}✅ Game 3 Submitted.${text_reset}"
+else
+    echo -e "${text_red}❌ Game 3 Submission Failed.${text_reset}"
+fi
+
+# 5. Get Results
+echo 
+echo -e "${text_bold}5. Getting Results...${text_reset}"
 RESULT_RESPONSE=$(curl -s -X GET "$BASE_URL/results/$USER_ID")
 
 echo "Response: $RESULT_RESPONSE"
@@ -111,12 +172,12 @@ else
      echo -e "${text_red}❌ Failed to retrieve valid results.${text_reset}"
 fi
 
-# 5. Test Voice (Gemini)
+# 6. Test Voice (Gemini)
 echo 
-echo -e "${text_bold}5. Testing Voice (Gemini)...${text_reset}"
+echo -e "${text_bold}6. Testing Voice (Gemini)...${text_reset}"
 VOICE_PAYLOAD='{
-  "message": "テストです。こんにちは。",
-  "scenario_type": "normal"
+  "user_id": "'"$USER_ID"'",
+  "message": "テストです。パスワードを忘れました。"
 }'
 
 VOICE_RESPONSE=$(curl -s -X POST "$BASE_URL/voice/respond" \
@@ -124,10 +185,9 @@ VOICE_RESPONSE=$(curl -s -X POST "$BASE_URL/voice/respond" \
   -d "$VOICE_PAYLOAD")
 
 echo "Response: $VOICE_RESPONSE"
-VOICE_STATUS=$(echo $VOICE_RESPONSE | jq -r '.status')
 RESPONSE_TEXT=$(echo $VOICE_RESPONSE | jq -r '.response // "null"')
 
-if [ "$VOICE_STATUS" == "success" ] && [ "$RESPONSE_TEXT" != "null" ]; then
+if [ "$RESPONSE_TEXT" != "null" ]; then
     echo -e "${text_green}✅ Voice API Success. Response: $RESPONSE_TEXT${text_reset}"
 else
     echo -e "${text_red}❌ Voice API Failed.${text_reset}"

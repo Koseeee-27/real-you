@@ -36,6 +36,9 @@ src/
 ├── routes/          # HTTPリクエストの受け口（Controller層）
 ├── services/        # ビジネスロジックの組み立て（Service層）
 ├── repositories/    # DB操作のみ（Repository層）
+│   ├── userRepository.ts
+│   ├── gameRepository.ts
+│   └── analysisResultRepository.ts  ← 結果キャッシュ用
 ├── analysis/        # 分析・スコア計算ロジック
 ├── db/              # Supabase接続クライアント
 ├── types/           # 型定義（FE/BE共通）
@@ -86,12 +89,12 @@ src/
 // Request
 {
   "mbti": "ENTP",
-  "baseline_scores": {
-    "caution": 80,
-    "calmness": 60,
-    "logic": 70,
-    "cooperativeness": 50,
-    "positivity": 90
+  "baseline_answers": {
+    "q1_caution": "no",
+    "q2_calmness": "yes",
+    "q3_logic": "yes",
+    "q4_cooperativeness": "no",
+    "q5_positivity": "yes"
   }
 }
 
@@ -122,49 +125,46 @@ src/
 ```json
 // Request
 {
-  "message": "ダッシュボードが表示されません",
-  "scenario_type": "unhelpful"
+  "user_id": "uuid-xxxx",
+  "message": "パスワードを忘れました",
+  "conversation_history": [
+    {"role": "user", "content": "ログインできません"},
+    {"role": "assistant", "content": "どのような問題でしょうか？"}
+  ]
 }
 
 // Response (200)
-{ "status": "success", "response": "マニュアルをご確認ください。" }
+{
+  "response": "パスワードリセットは設定画面から行えます！（多分）",
+  "emotion": "confused",
+  "confidence": 0.6
+}
 ```
 </details>
 
 ---
 
-## 分析ロジックの拡張方法
+## 分析ロジック
 
-ゲーム3のスコア計算を追加する場合：
+ゲーム3のスコア計算の配線は **実装済み** です。
+分析担当は `calculateGame3Scores()` の中身を実装するだけでOK。
 
-**1. `analysis/scoreCalculator.ts` に関数を追加：**
+**実装済みの配線：**
+- `calculateGame3Scores()` のスタブが存在（空 `{}` を返す）
+- `combineScores(game1, game2, game3)` に game3 引数が追加済み
+- `resultService.ts` で game3 の呼び出しと `game_breakdown.game_3` への格納が済み
 
-```typescript
-export function calculateGame3Scores(rawData: any): Partial<BaselineScores> {
-  // rawData はフロントが送ってくる game_type: 3 の data
-  return {
-    cooperativeness: /* 計算結果 */,
-    positivity: /* 計算結果 */,
-  };
-}
-```
+**分析担当が実装するファイル：**
+- `analysis/scoreCalculator.ts` — 各ゲームのスコア計算ロジック
+- `analysis/feedbackGenerator.ts` — フィードバック文生成
+- `analysis/phaseSummaryBuilder.ts` — 行動要約テキスト生成
 
-**2. `combineScores()` にゲーム3を追加：**
+詳細は [ANALYSIS_GUIDE.md](docs/ANALYSIS_GUIDE.md) を参照。
 
-```typescript
-export function combineScores(
-  game1Scores: Partial<BaselineScores>,
-  game2Scores: Partial<BaselineScores>,
-  game3Scores: Partial<BaselineScores>,  // 追加
-): BaselineScores { ... }
-```
+### 結果キャッシュ（analysis_results テーブル）
 
-**3. `services/resultService.ts` でゲーム3を呼び出す：**
-
-```typescript
-const game3Scores = game3Data ? calculateGame3Scores(game3Data.raw_data) : {};
-const scores = combineScores(game1Scores, game2Scores, game3Scores);
-```
+初回の `GET /api/results/:user_id` で計算→ `analysis_results` に保存。  
+2回目以降はキャッシュから返却。`analysisResultRepository.ts` が CRUD を提供。
 
 ---
 
