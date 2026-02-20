@@ -110,11 +110,9 @@ export default function GroupChatGameFlow() {
               場面{currentStageIndex + 1}
             </p>
             <p className="mt-2 text-lg font-bold tracking-widest text-amber-300">
-              {
-                (['First', 'Second', 'Third', 'Fourth', 'Final'][
-                  currentStageIndex
-                ] ?? 'Unknown')
-              }{' '}
+              {['First', 'Second', 'Third', 'Fourth', 'Final'][
+                currentStageIndex
+              ] ?? 'Unknown'}{' '}
               Situation!
             </p>
           </div>
@@ -158,7 +156,10 @@ export default function GroupChatGameFlow() {
 
             {chatMessages.map((msg, i) =>
               msg.type === 'bot' ? (
-                <div key={`s${currentStageIndex}-${i}-${msg.botId}`} className="flex items-start gap-2">
+                <div
+                  key={`s${currentStageIndex}-${i}-${msg.botId}`}
+                  className="flex items-start gap-2"
+                >
                   {(() => {
                     const bot = getBotByBotId(msg.botId);
                     return (
@@ -181,7 +182,10 @@ export default function GroupChatGameFlow() {
                   </div>
                 </div>
               ) : (
-                <div key={`s${currentStageIndex}-${i}-user`} className="flex justify-end">
+                <div
+                  key={`s${currentStageIndex}-${i}-user`}
+                  className="flex justify-end"
+                >
                   <div className="max-w-[70%] rounded-lg rounded-tr-none bg-green-400 px-3 py-2 text-sm text-white shadow-sm">
                     {msg.text}
                   </div>
