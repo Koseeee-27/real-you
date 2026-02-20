@@ -14,12 +14,9 @@ import { getKeywordFallback } from './fallbackService';
 const GEMINI_TIMEOUT_MS = 5000;
 
 // プロンプトは短く・速く
-const SYSTEM_PROMPT = `あなたはカスタマーサポート担当です。知識が中途半端で時々ずれた答えをします。自信満々ですが曖昧な話し言葉で答えてください。50文字以内で返してください。`;
+const SYSTEM_PROMPT = `あなたはカスタマーサポート担当です。少し知識が中途半端で、ピントのずれた回答をします。回答は必ず「～かもしれません」「～だと思います」といった曖昧な文章で終わらせてください。短く、1〜2文（50文字程度）で返答してください。`;
 
-const MODELS = [
-    'gemini-2.0-flash-lite',
-    'gemini-flash-latest',
-];
+const PRIMARY_MODEL = 'gemini-2.0-flash-lite';
 
 interface ConversationMessage {
     role: 'user' | 'assistant';
@@ -60,7 +57,7 @@ async function requestToModel(
             systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
             generationConfig: {
                 maxOutputTokens: 80,
-                temperature: 0.9,
+                temperature: 0.7, // ランダム性を少し抑えて文章崩壊を防ぐ
             },
         }),
     });
@@ -80,10 +77,9 @@ async function requestToModel(
 }
 
 /**
- * 複数モデルに並列リクエストして一番早く成功したものを返す（Promise.any）
- * 全モデル失敗 or タイムアウトで reject
+ * 単独モデルにリクエストし、タイムアウトで弾く
  */
-async function callGeminiParallel(
+async function callGeminiSequential(
     message: string,
     conversationHistory: ConversationMessage[],
     apiKey: string,
@@ -99,20 +95,18 @@ async function callGeminiParallel(
     }
     contents.push({ role: 'user', parts: [{ text: message }] });
 
-    // 全モデル共通のタイムアウト用 AbortController
+    // タイムアウト用 AbortController
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
     try {
-        // 全モデルに同時リクエスト → 一番早く成功したものを返す
-        const result = await Promise.any(
-            MODELS.map(model => requestToModel(model, contents, apiKey, controller.signal))
-        );
+        const result = await requestToModel(PRIMARY_MODEL, contents, apiKey, controller.signal);
         clearTimeout(timer);
-        console.log('[voiceService] Gemini parallel OK');
+        console.log(`[voiceService] Gemini (${PRIMARY_MODEL}) OK`);
         return result;
     } catch (err: any) {
         clearTimeout(timer);
+        console.error(`[voiceService] Gemini failed. Inner error:`, err.errors || err.message);
         throw err;
     }
 }
@@ -139,7 +133,7 @@ export const voiceService = {
         }
 
         try {
-            return await callGeminiParallel(message, conversationHistory ?? [], apiKey);
+            return await callGeminiSequential(message, conversationHistory ?? [], apiKey);
         } catch (err: any) {
             const reason = err?.name === 'AbortError' ? 'timeout(5s)' : 'all models failed';
             console.warn(`[voiceService] Gemini failed (${reason}). Using keyword fallback.`);
