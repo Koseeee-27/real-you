@@ -49,3 +49,41 @@ export interface Game1Data {
   // 「同意する」ボタンにホバーしてからクリックするまでの時間（ms）
   agreeButtonHoverTimeMs: number;
 }
+
+// ========================================
+// Game 2: カスタマーサポートチャット
+// ========================================
+
+export interface Game2Turn {
+  turnIndex: number;
+  inputMethod: 'voice' | 'text';
+  reactionTimeMs: number | null;
+  speechDurationMs: number | null;
+  silenceDurationMs: number | null;
+  volumeDb: number | null;
+  transcribedText: string;
+}
+
+export interface TextInputMetrics {
+  typingIntervalVariance: number;
+}
+
+export interface Game2Data {
+  inputMethod: 'voice' | 'text';
+  turnCount: number;
+  turns: Game2Turn[];
+  textInputMetrics: TextInputMetrics | null;
+}
+
+// Game 2: AI返答生成API (POST /api/voice/respond)
+export interface VoiceRespondRequest {
+  user_id: string;
+  message: string;
+  conversation_history?: { role: 'user' | 'assistant'; content: string }[];
+}
+
+export interface VoiceRespondResponse {
+  response: string;
+  emotion: string;
+  confidence: number;
+}
