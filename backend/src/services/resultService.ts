@@ -3,6 +3,7 @@ import { gameRepository } from '../repositories/gameRepository';
 import { calculateGame1Scores, calculateGame2Scores, combineScores } from '../analysis/scoreCalculator';
 import { generateFeedback } from '../analysis/feedbackGenerator';
 import { buildPhaseSummaries } from '../analysis/phaseSummaryBuilder';
+import { getMbtiScores } from '../analysis/mbtiScoreTable';
 import { BaselineScores, ResultResponse, GameBreakdown } from '../types';
 
 export const resultService = {
@@ -66,9 +67,13 @@ export const resultService = {
             game_2: game2Scores,
         };
 
+        // MBTI理論値スコア
+        const mbti_scores = user.self_mbti ? getMbtiScores(user.self_mbti) : null;
+
         return {
             user_id: userId,
             self_mbti: user.self_mbti,
+            mbti_scores,
             scores,
             baseline_scores,
             gaps,
