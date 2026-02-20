@@ -72,6 +72,7 @@ export interface ResultResponse {
   feedback: DiagnosisFeedback;
   accuracy_score: number; // 自己認識精度（0-100）
   phase_summaries: PhaseSummaries; // 各フェーズの振り返りテキスト
+  details: any; // 各ゲームごとの詳細メトリクスと特徴スコア
 }
 
 export interface ApiError {
