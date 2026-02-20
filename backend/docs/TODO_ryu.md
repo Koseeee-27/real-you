@@ -19,7 +19,7 @@
 ## 🟡 優先度中
 
 ### バリデーション強化
-- [ ] MBTI 形式バリデーション（`invalid_mbti` エラー対応）
+- [x] MBTI 形式バリデーション（`invalid_mbti` エラー対応）
 - [x] `incomplete_games` エラーを3ゲーム全完了チェックに修正（現在は `< 2`）
 - [ ] game_type ごとの raw_data 構造チェック（任意）
 
