@@ -53,7 +53,6 @@ curl -X POST http://localhost:3001/api/register \
 curl -X POST http://localhost:3001/api/register \
   -H "Content-Type: application/json" \
   -d '{
-  -d '{
     "baseline_answers": {
       "q1_caution": "Z",
       "q2_calmness": "A",

@@ -24,10 +24,10 @@
 - [ ] game_type ごとの raw_data 構造チェック（任意）
 
 ### テスト・ドキュメント整備
-- [ ] `run_api_tests.sh` を `baseline_answers` 形式に更新
-- [ ] `kc3-backend.postman_collection.json` を更新
-- [ ] `API_TEST_GUIDE.md` を最新仕様に合わせて更新
-- [ ] `BACKEND.md` を最新の実装状況に合わせて更新
+- [x] `run_api_tests.sh` を `baseline_answers` 形式に更新
+- [x] `kc3-backend.postman_collection.json` を更新
+- [x] `API_TEST_GUIDE.md` を最新仕様に合わせて更新
+- [x] `BACKEND.md` を最新の実装状況に合わせて更新
 
 ---
 
