@@ -197,14 +197,17 @@ export function useGroupChatGame(options: {
 
     // メッセージがないステージ（現状は該当なし）の場合は即座に選択肢表示
     if (stageMessages.length === 0) {
-      if (currentStage.trackTypingIndicator) {
-        typingIndicatorShownAtRef.current = Date.now();
-        setIsTypingIndicatorVisible(true);
-      }
-      optionsShownAtRef.current = Date.now();
-      setRemainingTimeMs(STAGE_TIME_LIMIT_MS);
-      setGamePhase('waiting-input');
-      return;
+      const id = setTimeout(() => {
+        if (currentStage.trackTypingIndicator) {
+          typingIndicatorShownAtRef.current = Date.now();
+          setIsTypingIndicatorVisible(true);
+        }
+        optionsShownAtRef.current = Date.now();
+        setRemainingTimeMs(STAGE_TIME_LIMIT_MS);
+        setGamePhase('waiting-input');
+      }, 0);
+      timeoutsRef.current.push(id);
+      return () => clearTimeout(id);
     }
 
     let mounted = true;
@@ -340,7 +343,9 @@ export function useGroupChatGame(options: {
       typingIndicatorReactTimeMs: stage3TypingReactRef.current,
     };
     onComplete(game3Data);
-    setGamePhase('completed');
+    const id = setTimeout(() => setGamePhase('completed'), 0);
+    timeoutsRef.current.push(id);
+    return () => clearTimeout(id);
   }, [gamePhase, onComplete]);
 
   // =========================================================
