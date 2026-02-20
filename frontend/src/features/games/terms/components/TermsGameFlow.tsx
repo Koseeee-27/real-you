@@ -32,7 +32,7 @@ export default function TermsGameFlow() {
 
   // --- 以下は再レンダリング不要なデータをrefで管理 ---
   // ゲーム開始時刻（totalTime算出用）
-  const startTimeRef = useRef(Date.now());
+  const startTimeRef = useRef(0);
   // スクロール位置+経過時間のログ配列
   const scrollEventsRef = useRef<ScrollEvent[]>([]);
   // 最下部到達フラグ
@@ -41,8 +41,8 @@ export default function TermsGameFlow() {
   const lastScrollRecordRef = useRef(0);
   // スクロール領域のDOM参照
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  // ポップアップが表示された時刻（timeToClose算出用）
-  const popupAppearedAtRef = useRef(0);
+  // ポップアップが表示された時刻（timeToClose算出用）。レンダー時にJSXへ渡すためstateで管理
+  const [popupAppearedAt, setPopupAppearedAt] = useState(0);
   // ポップアップへの対応データ
   const popupStatsRef = useRef({ timeToClose: 0, clickCount: 0, mouseJitter: 0 });
   // 「同意する」ボタンにホバーし始めた時刻
@@ -55,6 +55,7 @@ export default function TermsGameFlow() {
   });
 
   useEffect(() => {
+    startTimeRef.current = Date.now();
     scrollEventsRef.current.push({
       position: 0,
       timestamp: 0,
@@ -63,7 +64,7 @@ export default function TermsGameFlow() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      popupAppearedAtRef.current = Date.now();
+      setPopupAppearedAt(Date.now());
       setShowPopup(true);
     }, POPUP_DELAY_MS);
     return () => clearTimeout(timer);
@@ -227,7 +228,7 @@ export default function TermsGameFlow() {
       {showPopup && (
         <PopupAd
           onClose={handlePopupClose}
-          appearedAt={popupAppearedAtRef.current}
+          appearedAt={popupAppearedAt}
         />
       )}
     </div>
