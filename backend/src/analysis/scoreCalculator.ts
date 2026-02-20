@@ -98,16 +98,29 @@ export function calculateGame2Scores(rawData: any): Partial<BaselineScores> {
     return scores;
 }
 
+// ゲーム3のデータからスコアを算出
+// TODO: 分析ロジック担当が実装する
+export function calculateGame3Scores(rawData: any): Partial<BaselineScores> {
+    const scores: Partial<BaselineScores> = {};
+
+    // ゲーム3は協調性・積極性を測定する
+    // 実装はanalytics担当に委譲
+    // rawData の構造: { tutorialViewTime, stages: [{ stageId, selectedOptionId, reactionTime, isTimeout }] }
+
+    return scores;
+}
+
 // 複数ゲームのスコアを統合
 export function combineScores(
     game1Scores: Partial<BaselineScores>,
-    game2Scores: Partial<BaselineScores>
+    game2Scores: Partial<BaselineScores>,
+    game3Scores: Partial<BaselineScores> = {},
 ): BaselineScores {
     return {
-        caution: game1Scores.caution || 50,
-        calmness: game2Scores.calmness || 50,
-        logic: Math.round(((game1Scores.logic || 0) + (game2Scores.logic || 0)) / 2),
-        cooperativeness: 50, // ゲーム3未実装時はデフォルト
-        positivity: game2Scores.positivity || 50
+        caution: game1Scores.caution ?? 50,
+        calmness: game2Scores.calmness ?? 50,
+        logic: Math.round(((game1Scores.logic ?? 0) + (game2Scores.logic ?? 0)) / 2),
+        cooperativeness: game3Scores.cooperativeness ?? 50,
+        positivity: game2Scores.positivity ?? game3Scores.positivity ?? 50,
     };
 }

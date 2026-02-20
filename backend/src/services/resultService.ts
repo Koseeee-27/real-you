@@ -1,7 +1,8 @@
 import { userRepository } from '../repositories/userRepository';
 import { gameRepository } from '../repositories/gameRepository';
+import { calculateGame1Scores, calculateGame2Scores, calculateGame3Scores, combineScores } from '../analysis/scoreCalculator';
 import { analysisResultRepository, AnalysisResultRow } from '../repositories/analysisResultRepository';
-import { calculateGame1Scores, calculateGame2Scores, combineScores } from '../analysis/scoreCalculator';
+
 import { generateFeedback } from '../analysis/feedbackGenerator';
 import { buildPhaseSummaries } from '../analysis/phaseSummaryBuilder';
 import { getMbtiScores } from '../analysis/mbtiScoreTable';
@@ -43,7 +44,8 @@ export const resultService = {
 
         const game1Scores = game1Data ? calculateGame1Scores(game1Data.raw_data) : {};
         const game2Scores = game2Data ? calculateGame2Scores(game2Data.raw_data) : {};
-        const scores = combineScores(game1Scores, game2Scores);
+        const game3Scores = game3Data ? calculateGame3Scores(game3Data.raw_data) : {};
+        const scores = combineScores(game1Scores, game2Scores, game3Scores);
 
         // ギャップ計算
         const gaps: BaselineScores = {
@@ -72,6 +74,7 @@ export const resultService = {
         const game_breakdown: GameBreakdown = {
             game_1: game1Scores,
             game_2: game2Scores,
+            game_3: game3Scores,
         };
 
         // MBTI理論値スコア
