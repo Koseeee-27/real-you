@@ -1,126 +1,354 @@
 import { BaselineScores } from '../types';
+import { generateFeedback } from './feedbackGenerator';
+import { buildPhaseSummaries } from "./phaseSummaryBuilder";
 
-// ゲーム1のデータからスコアを算出
-export function calculateGame1Scores(rawData: any): Partial<BaselineScores> {
-    const scores: Partial<BaselineScores> = {};
+/**
+ * 作成日: 2026-02-20
+ * 作成者: たまちゃ
+ * 説明:
+ * 3ゲームの行動データから5軸特性を連続値(0-100)で算出する統合分析ロジック。
+ *
+ * ▼評価軸定義
+ * 慎重さ(caution):
+ *   情報確認・迷い時間・再確認行動の多さから算出。
+ *
+ * 冷静さ(calmness):
+ *   マウスのブレ、無駄操作、音量安定性、打鍵安定性から算出。
+ *
+ * 論理性(logic):
+ *   再確認行動、論理接続詞使用、不要語の少なさから算出。
+ *
+ * 協調性(cooperativeness):
+ *   同調率、譲り待機時間、本音葛藤行動から算出。
+ *
+ * 積極性(positivity):
+ *   反応速度、発話量、即応性から算出。
+ */
 
-    // 慎重さの計算
-    let cautionScore = 0;
+//共通ユーティリティ
+const safeScore = (v: number) =>
+  Math.min(100, Math.max(0, Math.round(v)));
 
-    // スクロール到達度
-    if (rawData.scrollData?.reachedBottom) {
-        cautionScore += 30;
-    } else if (rawData.scrollData?.maxPosition) {
-        const scrollPercent = rawData.scrollData.maxPosition / 5000; // 仮の総高さ
-        cautionScore += scrollPercent * 30;
-    }
+const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
-    // 滞在時間
-    if (rawData.totalTime > 60) {
-        cautionScore += 20;
-    } else {
-        cautionScore += (rawData.totalTime / 60) * 20;
-    }
+const linear = (val: number, min: number, max: number) =>
+  clamp(((val - min) / (max - min)) * 100);
 
-    // チェックボックス
-    if (rawData.checkboxes?.followedInstruction) {
-        cautionScore += 20;
-    }
+const linearInv = (val: number, best: number, worst: number) =>
+  clamp(100 - ((val - best) / (worst - best)) * 100);
 
-    // スクロール速度指示
-    if (rawData.slowReadInstruction?.checkboxChecked) {
-        cautionScore += 15;
-    }
-    if (rawData.slowReadInstruction?.slowedDown) {
-        cautionScore += 15;
-    }
+const logNorm = (val: number, min: number, max: number) => {
+  const safe = Math.max(min, Math.min(max, val));
+  const num = Math.log(safe + 1) - Math.log(min + 1);
+  const den = Math.log(max + 1) - Math.log(min + 1);
+  return den === 0 ? 0 : clamp((num / den) * 100);
+};
 
-    scores.caution = Math.min(100, Math.round(cautionScore));
+const sigmoidInv = (val: number, c: number, k = 0.4) =>
+  clamp(100 - (100 / (1 + Math.exp(-k * (val - c)))));
 
-    // 論理性の計算
-    let logicScore = 0;
+//Game1 利用規約ゲーム
+//慎重さ・論理性・冷静さを評価
 
-    if (rawData.hiddenTask?.completed) {
-        logicScore += 40;
-    }
-    if (rawData.checkboxes?.followedInstruction) {
-        logicScore += 30;
-    }
-    if (rawData.slowReadInstruction?.checkboxChecked) {
-        logicScore += 30;
-    }
+function calculateGame1(data: any) {
+  if (!data) return { caution: 50, logic: 50, calmness: 50 };
 
-    scores.logic = Math.min(100, Math.round(logicScore));
+  const totalTimeMs = (data.totalTime || 0) * 1000;
 
-    return scores;
+  const scrollEvents = data.scrollEvents || [];
+  let totalDistance = 0;
+  let reversalCount = 0;
+
+  for (let i = 1; i < scrollEvents.length; i++) {
+    const diff = scrollEvents[i].position - scrollEvents[i - 1].position;
+    totalDistance += Math.abs(diff);
+    if (diff < 0) reversalCount++;
+  }
+
+  const duration =
+    (scrollEvents.at(-1)?.timestamp || 1) -
+    (scrollEvents[0]?.timestamp || 0);
+
+  const speed = duration > 0 ? (totalDistance / duration) * 1000 : 0;
+
+  const checkboxChanged = Object.values(data.checkboxStates || {})
+    .filter((c: any) => c.changed).length;
+
+  //慎重さ: 滞在時間・スクロール速度・迷い時間・チェック変更
+  const sTime = logNorm(totalTimeMs, 2000, 30000);
+  const sScroll = linearInv(speed, 800, 4000);
+  const sHover = logNorm(data.agreeButtonHoverTimeMs || 0, 100, 3000);
+  const sCheckbox = linear(checkboxChanged, 0, 3);
+
+  const caution = Math.round(
+    sTime * 0.3 +
+    sScroll * 0.25 +
+    sHover * 0.25 +
+    sCheckbox * 0.2
+  );
+
+  //論理性: 再確認行動・逆行スクロール・ポップアップ処理
+  const hiddenMatch =
+    data.hiddenInput === "確認済み" ? 1 :
+    data.hiddenInput ? 0.5 : 0;
+
+  const sHidden = linear(hiddenMatch, 0, 1);
+  const sReversal = linear(reversalCount, 0, 5);
+  const sPopupDelay = logNorm(data.popupStats?.timeToClose || 0, 0, 2000);
+
+  const logic = Math.round(
+    sHidden * 0.4 +
+    sReversal * 0.3 +
+    sPopupDelay * 0.3
+  );
+
+  //冷静さ: マウスブレ・無駄クリック
+  const sJitter = linearInv(data.popupStats?.mouseJitter || 0, 10, 200);
+  const sClick = linearInv(data.popupStats?.clickCount || 1, 1, 5);
+
+  const calmness = Math.round(
+    sJitter * 0.6 +
+    sClick * 0.4
+  );
+
+  return { caution, logic, calmness, changedCount: checkboxChanged };
 }
 
-// ゲーム2のデータからスコアを算出
-export function calculateGame2Scores(rawData: any): Partial<BaselineScores> {
-    const scores: Partial<BaselineScores> = {};
+//Game2 AIチャット
+//積極性・冷静さ・論理性を評価
 
-    // 積極性
-    let positivityScore = 0;
+function calculateGame2(data: any) {
+  if (!data) return { positivity: 50, calmness: 50, logic: 50 };
 
-    if (rawData.inputMethod === 'voice') {
-        positivityScore += 30; // 音声を選んだ
-    }
+  const turns = data.turns || [];
 
-    const avgResponseTime = rawData.voiceTurns?.reduce((sum: number, turn: any) =>
-        sum + turn.timeToStartSpeaking, 0) / (rawData.voiceTurns?.length || 1);
+  const avgReact =
+    turns.reduce((a: number, t: any) => a + (t.reactionTimeMs || 0), 0) /
+    (turns.length || 1);
 
-    if (avgResponseTime < 1) {
-        positivityScore += 30; // すぐ喋り始める
-    }
+  const totalSpeech =
+    turns.reduce((a: number, t: any) => a + (t.speechDurationMs || 0), 0);
 
-    const avgSpeechDuration = rawData.voiceTurns?.reduce((sum: number, turn: any) =>
-        sum + turn.speechDuration, 0) / (rawData.voiceTurns?.length || 1);
+  const avgVolume =
+    turns.reduce((a: number, t: any) => a + (t.volumeDb ?? -30), 0) /
+    (turns.length || 1);
 
-    if (avgSpeechDuration > 15) {
-        positivityScore += 20; // 長く喋る
-    }
+  const silence =
+    turns.reduce((a: number, t: any) => a + (t.silenceDurationMs || 0), 0);
 
-    if (rawData.turnCount >= 5) {
-        positivityScore += 20; // 多くのターン
-    }
+  const silenceRate =
+    totalSpeech > 0 ? silence / totalSpeech : 0;
 
-    scores.positivity = Math.min(100, Math.round(positivityScore));
+  const fullText =
+    turns.map((t: any) => t.transcribedText || "").join(" ");
 
-    // 論理性
-    scores.logic = Math.min(100, rawData.languageAnalysis?.logicalWords * 10 || 0);
+  //積極性: 反応速度・発話量・音声使用
+  const sReact = linearInv(avgReact, 200, 4000);
+  const sSpeech = logNorm(totalSpeech, 2000, 20000);
+  const sVoice = data.inputMethod === "voice" ? 100 : 0;
 
-    // 冷静さ
-    let calmnessScore = 100;
-    calmnessScore -= (rawData.languageAnalysis?.emotionalWords || 0) * 20;
-    calmnessScore -= (rawData.languageAnalysis?.exclamationMarks || 0) * 10;
-    scores.calmness = Math.max(0, Math.round(calmnessScore));
+  const positivity = Math.round(
+    sReact * 0.4 +
+    sSpeech * 0.4 +
+    sVoice * 0.2
+  );
 
-    return scores;
+  //冷静さ: 音量安定・沈黙率・打鍵安定
+  const sVolume = sigmoidInv(avgVolume, -15, 0.5);
+  const sSilence = linearInv(silenceRate, 0.05, 0.5);
+  const sTyping = linearInv(
+    data.textInputMetrics?.typingIntervalVariance || 200,
+    50,
+    500
+  );
+
+  const calmness = Math.round(
+    sVolume * 0.4 +
+    sSilence * 0.3 +
+    sTyping * 0.3
+  );
+
+  //論理性: 論理接続詞・不要語
+  const logicWords =
+    (fullText.match(/なぜなら|つまり|しかし|なので|というのも/g) || []).length;
+
+  const filler =
+    (fullText.match(/えー|あの|その/g) || []).length;
+
+  const sLogicWords = linear(logicWords, 0, 4);
+  const sFiller = linearInv(filler, 0, 4);
+
+  const logic = Math.round(
+    sLogicWords * 0.6 +
+    sFiller * 0.4
+  );
+
+  return { positivity, calmness, logic, avgReact, totalSpeech, avgVolume, logicWordsCount: logicWords };
 }
 
-// ゲーム3のデータからスコアを算出
-// TODO: 分析ロジック担当が実装する
-export function calculateGame3Scores(rawData: any): Partial<BaselineScores> {
-    const scores: Partial<BaselineScores> = {};
+//Game3 空気読みチャット
+//協調性・積極性・慎重さを評価
 
-    // ゲーム3は協調性・積極性を測定する
-    // 実装はanalytics担当に委譲
-    // rawData の構造: { tutorialViewTime, stages: [{ stageId, selectedOptionId, reactionTime, isTimeout }] }
+function calculateGame3(data: any) {
+  if (!data) return { cooperativeness: 50, positivity: 50, caution: 50 };
 
-    return scores;
+  const stages = data.stages || [];
+
+  const conformCount = stages.filter(
+    (s: any) => s.selectedOptionId === 1 || s.selectedOptionId === 2
+  ).length;
+
+  const conformRate =
+    conformCount / (stages.length || 1);
+
+  const avgReact =
+    stages.reduce((a: number, s: any) => a + s.reactionTimeMs, 0) /
+    (stages.length || 1);
+
+  const reactionVariance =
+    stages.reduce((a: number, s: any) =>
+      a + Math.pow(s.reactionTimeMs - avgReact, 2), 0) /
+    (stages.length || 1);
+
+  //協調性: 同調率・譲り待機・本音葛藤
+  const sConform = linear(conformRate, 0, 1);
+  const sWait = logNorm(data.typingIndicatorReactTimeMs || 0, 0, 5000);
+
+  const hoverCount = Array.isArray(data.hoveredOptions)
+    ? data.hoveredOptions.length
+    : (data.hoveredOptions || 0);
+
+  const sHover = linear(hoverCount, 0, 5);
+
+  const cooperativeness = Math.round(
+    sConform * 0.5 +
+    sWait * 0.3 +
+    sHover * 0.2
+  );
+
+  //積極性: 即応性
+  const positivity = Math.round(
+    linearInv(avgReact, 1000, 8000)
+  );
+
+  //慎重さ: チュートリアル確認・反応安定
+  const sTutorial = logNorm(data.tutorialViewTime || 0, 1000, 15000);
+  const sVariance = linearInv(reactionVariance, 500, 5000);
+
+  const caution = Math.round(
+    sTutorial * 0.5 +
+    sVariance * 0.5
+  );
+
+  return { cooperativeness, positivity, caution, conformCount, avgReact };
 }
 
-// 複数ゲームのスコアを統合
-export function combineScores(
-    game1Scores: Partial<BaselineScores>,
-    game2Scores: Partial<BaselineScores>,
-    game3Scores: Partial<BaselineScores> = {},
-): BaselineScores {
-    return {
-        caution: game1Scores.caution ?? 50,
-        calmness: game2Scores.calmness ?? 50,
-        logic: Math.round(((game1Scores.logic ?? 0) + (game2Scores.logic ?? 0)) / 2),
-        cooperativeness: game3Scores.cooperativeness ?? 50,
-        positivity: game2Scores.positivity ?? game3Scores.positivity ?? 50,
-    };
+//統合生成
+
+export function generateAnalysisResult(
+  userId: string,
+  selfMbti: string | undefined,
+  game1Raw: any,
+  game2Raw: any,
+  game3Raw: any,
+  baseline_scores: BaselineScores
+) {
+  const g1 = calculateGame1(game1Raw);
+  const g2 = calculateGame2(game2Raw);
+  const g3 = calculateGame3(game3Raw);
+
+  const phaseSummaries = buildPhaseSummaries(
+    game1Raw,
+    game2Raw,
+    game3Raw
+  );
+
+  const scores = {
+  caution: safeScore((g1.caution + g3.caution) / 2),
+  calmness: safeScore((g1.calmness + g2.calmness) / 2),
+  logic: safeScore((g1.logic + g2.logic) / 2),
+  cooperativeness: safeScore(g3.cooperativeness),
+  positivity: safeScore((g2.positivity + g3.positivity) / 2)
+};
+
+  const gaps = {
+    caution: scores.caution - baseline_scores.caution,
+    calmness: scores.calmness - baseline_scores.calmness,
+    logic: scores.logic - baseline_scores.logic,
+    cooperativeness: scores.cooperativeness - baseline_scores.cooperativeness,
+    positivity: scores.positivity - baseline_scores.positivity
+  };
+
+  const avgGap =
+    (Math.abs(gaps.caution) +
+     Math.abs(gaps.calmness) +
+     Math.abs(gaps.logic) +
+     Math.abs(gaps.cooperativeness) +
+     Math.abs(gaps.positivity)) / 5;
+
+  const accuracy_score = safeScore(100 - avgGap);
+const feedback = generateFeedback(scores, gaps);
+
+  return {
+    user_id: userId,
+    self_mbti: selfMbti,
+    scores: scores,
+    baseline_scores: baseline_scores,
+    gaps: gaps,
+    game_breakdown: {
+      game_1: { caution: g1.caution, logic: g1.logic, calmness: g1.calmness },
+      game_2: { positivity: g2.positivity, calmness: g2.calmness, logic: g2.logic },
+      game_3: { cooperativeness: g3.cooperativeness, positivity: g3.positivity, caution: g3.caution }
+    },
+    accuracy_score: accuracy_score,
+    feedback: feedback,
+    phase_summaries: phaseSummaries, // buildPhaseSummaries関数で作ったテキストを渡す
+    
+    details: {
+      game_1: {
+        title: "利用規約ゲーム",
+        feature_scores: [
+          { axis: "caution", name: "慎重さ", score: g1.caution },
+          { axis: "logic", name: "論理性", score: g1.logic },
+          { axis: "calmness", name: "冷静さ", score: g1.calmness }
+        ],
+        metrics: [
+          { label: "読了速度(px/s)", user: game1Raw?.scrollMetrics?.averageSpeed || 0, average: 800, category: "scroll" },
+          { label: "総滞在時間(秒)", user: Number(((game1Raw?.totalTime || 0) / 1000).toFixed(1)), average: 15.0, category: "time" },
+          { label: "決断前迷い(ms)", user: game1Raw?.agreeButtonHoverTimeMs || 0, average: 1200, category: "mouse" },
+          { label: "チェック変更(回)", user: g1.changedCount, average: 3.2, category: "input" },
+          { label: "逆行確認(回)", user: game1Raw?.scrollMetrics?.reversalCount || 0, average: 2.1, category: "scroll" },
+          { label: "マウスブレ(px)", user: game1Raw?.popupStats?.mouseJitter || 0, average: 12.0, category: "mouse" },
+          { label: "無駄クリック(回)", user: game1Raw?.popupStats?.clickCount || 0, average: 1.5, category: "mouse" }
+        ]
+      },
+      game_2: {
+        title: "AIカスタマーサポート",
+        feature_scores: [
+          { axis: "positivity", name: "積極性", score: g2.positivity },
+          { axis: "calmness", name: "冷静さ", score: g2.calmness },
+          { axis: "logic", name: "論理性", score: g2.logic }
+        ],
+        metrics: [
+          { label: "反応潜時(ms)", user: Math.round(g2.avgReact ?? 0), average: 2500, category: "time" },
+          { label: "発話時間(秒)", user: Number((g2.totalSpeech / 1000).toFixed(1)), average: 4.2, category: "time" },
+          { label: "平均音量(dB)", user: Number((g2.avgVolume ?? 0).toFixed(1)), average: -25.0, category: "voice" },
+          { label: "論理的接続詞(回)", user: g2.logicWordsCount, average: 0.5, category: "logic" }
+        ]
+      },
+      game_3: {
+        title: "空気読みグループチャット",
+        feature_scores: [
+          { axis: "cooperativeness", name: "協調性", score: g3.cooperativeness },
+          { axis: "positivity", name: "積極性", score: g3.positivity }
+        ],
+        metrics: [
+          { label: "同調率(%)", user: Math.round((g3.conformCount / (game3Raw?.stages?.length || 1)) * 100), average: 75, category: "social" },
+          { label: "反応潜時(ms)", user: Math.round(g3.avgReact ?? 0), average: 3500, category: "time" },
+          { label: "本音ホバー(回)", user: game3Raw?.hoveredOptions || 0, average: 2.4, category: "mouse" },
+          { label: "譲り合い待機(ms)", user: game3Raw?.typingIndicatorReactTimeMs || 0, average: 2000, category: "time" }
+        ]
+      }
+    }
+};
 }
