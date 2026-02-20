@@ -25,9 +25,7 @@ export default function MbtiSelect() {
   return (
     <div className="flex w-full max-w-md flex-col gap-6">
       <h1 className="text-2xl font-bold">あなたのMBTIタイプは？</h1>
-      <p className="text-sm text-gray-500">
-        わからない場合はスキップできます
-      </p>
+      <p className="text-sm text-gray-500">わからない場合はスキップできます</p>
 
       <div className="flex flex-col gap-4">
         {MBTI_GROUPS.map((group) => (

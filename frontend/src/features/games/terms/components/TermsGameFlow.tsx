@@ -44,7 +44,11 @@ export default function TermsGameFlow() {
   // ポップアップが表示された時刻（timeToClose算出用）。レンダー時にJSXへ渡すためstateで管理
   const [popupAppearedAt, setPopupAppearedAt] = useState(0);
   // ポップアップへの対応データ
-  const popupStatsRef = useRef({ timeToClose: 0, clickCount: 0, mouseJitter: 0 });
+  const popupStatsRef = useRef({
+    timeToClose: 0,
+    clickCount: 0,
+    mouseJitter: 0,
+  });
   // 「同意する」ボタンにホバーし始めた時刻
   const agreeHoverStartRef = useRef(0);
   // 各チェックボックスがユーザーによって変更されたかの追跡
@@ -91,7 +95,10 @@ export default function TermsGameFlow() {
   }, []);
 
   const handleCheckboxChange = useCallback(
-    (key: 'readConfirm' | 'mailMagazine' | 'thirdPartyShare', checked: boolean) => {
+    (
+      key: 'readConfirm' | 'mailMagazine' | 'thirdPartyShare',
+      checked: boolean
+    ) => {
       checkboxChangedRef.current[key] = true;
       setCheckboxStates((prev) => ({ ...prev, [key]: checked }));
     },
@@ -123,9 +130,7 @@ export default function TermsGameFlow() {
 
   const buildGame1Data = useCallback(
     (action: 'agree' | 'disagree'): Game1Data => {
-      const totalTime = Math.round(
-        (Date.now() - startTimeRef.current) / 1000
-      );
+      const totalTime = Math.round((Date.now() - startTimeRef.current) / 1000);
 
       return {
         totalTime,
@@ -226,10 +231,7 @@ export default function TermsGameFlow() {
       </div>
 
       {showPopup && (
-        <PopupAd
-          onClose={handlePopupClose}
-          appearedAt={popupAppearedAt}
-        />
+        <PopupAd onClose={handlePopupClose} appearedAt={popupAppearedAt} />
       )}
     </div>
   );
