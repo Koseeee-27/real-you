@@ -22,7 +22,6 @@ export default function HelpdeskGameFlow() {
   );
 
   const {
-    gameTopic,
     instructionText,
     inputMethod,
     chatHistory,

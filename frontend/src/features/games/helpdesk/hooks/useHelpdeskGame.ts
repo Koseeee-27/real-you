@@ -95,6 +95,11 @@ export function useHelpdeskGame(options: {
       if (nextTurn >= MAX_TURNS) {
         setGamePhase('submitting');
       } else {
+        const supportText = SUPPORT_RESPONSES[nextTurn];
+        setChatHistory((prevChat) => [
+          ...prevChat,
+          { role: 'support', text: supportText },
+        ]);
         setGamePhase('support-speaking');
         setRemainingTimeMs(TURN_TIME_LIMIT_MS);
       }
@@ -152,45 +157,53 @@ export function useHelpdeskGame(options: {
   const speech = useSpeechRecognition({
     onResult: handleVoiceResult,
   });
+  // エフェクトの依存配列で speech.xxx を使うと lint が speech 全体を要求するため展開
+  const speechStart = speech.start;
+  const speechStop = speech.stop;
+  const speechAbort = speech.abort;
 
   // =========================================================
   // ゲーム終了 → Game2Data 組み立て
   // =========================================================
 
+  // turns の最新値をエフェクト外から参照するための ref
+  const turnsRef = useRef(turns);
+  useEffect(() => {
+    turnsRef.current = turns;
+  }, [turns]);
+
   /**
    * 全ターンのデータを Game2Data にまとめて onComplete へ渡す。
-   * setTurns のコールバック内で最新の turns を参照することで、
-   * setState の非同期性による欠落を防いでいる。
+   * onComplete は副作用なのでアップデータ関数の外で呼ぶ
+   * （Strict Mode でアップデータが2回呼ばれても副作用は1回だけにする）。
    */
   const buildAndSubmit = useCallback(() => {
-    setTurns((currentTurns) => {
-      const hasTextTurn = currentTurns.some((t) => t.inputMethod === 'text');
-      const textInputMetrics: TextInputMetrics | null = hasTextTurn
-        ? {
-            typingIntervalVariance:
-              typingVariancesRef.current.length > 0
-                ? typingVariancesRef.current.reduce((a, b) => a + b, 0) /
-                  typingVariancesRef.current.length
-                : 0,
-          }
-        : null;
-      const game2Data: Game2Data = {
-        inputMethod: initialInputMethodRef.current,
-        turnCount: currentTurns.length,
-        turns: currentTurns,
-        textInputMetrics,
-      };
-      onComplete(game2Data);
-      setGamePhase('completed');
-      return currentTurns;
-    });
+    const currentTurns = turnsRef.current;
+    const hasTextTurn = currentTurns.some((t) => t.inputMethod === 'text');
+    const textInputMetrics: TextInputMetrics | null = hasTextTurn
+      ? {
+          typingIntervalVariance:
+            typingVariancesRef.current.length > 0
+              ? typingVariancesRef.current.reduce((a, b) => a + b, 0) /
+                typingVariancesRef.current.length
+              : 0,
+        }
+      : null;
+    const game2Data: Game2Data = {
+      inputMethod: initialInputMethodRef.current,
+      turnCount: currentTurns.length,
+      turns: currentTurns,
+      textInputMetrics,
+    };
+    onComplete(game2Data);
+    setGamePhase('completed');
   }, [onComplete]);
 
   /** gamePhase が submitting になったら一度だけ buildAndSubmit を実行 */
   useEffect(() => {
     if (gamePhase === 'submitting' && !submittedRef.current) {
       submittedRef.current = true;
-      buildAndSubmit();
+      queueMicrotask(buildAndSubmit);
     }
   }, [gamePhase, buildAndSubmit]);
 
@@ -200,63 +213,57 @@ export function useHelpdeskGame(options: {
 
   useEffect(() => {
     return () => {
-      // タイマー停止
       if (timerIdRef.current) {
         clearInterval(timerIdRef.current);
         timerIdRef.current = null;
       }
-      // 音声認識を強制停止
-      speech.abort();
-      // 録音停止 & マイク解放
+      speechAbort();
       stopRecording();
-      // TTS 停止
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
     };
-  }, [speech.abort, stopRecording]);
+  }, [speechAbort, stopRecording]);
 
   // =========================================================
-  // サポート担当の発言を表示 → user-input へ遷移
+  // サポート担当の TTS 読み上げ → user-input へ遷移
   // =========================================================
 
+  // チャット履歴への追加は advanceAfterUserTurn / startGame 側で実施済み。
+  // このエフェクトは TTS（外部システム）へのサブスクリプションのみ行う。
+  //
   // TODO: バックエンド接続時に POST /api/voice/respond を呼び出し、
   // ユーザー発言 + 会話履歴を送信して AI 生成応答を取得する。
   // 現在は SUPPORT_RESPONSES のハードコードで代替。
-  //
-  // サポート担当のテキストを TTS（Web Speech Synthesis）で読み上げ、
-  // 読み終わってから user-input へ遷移する。
   useEffect(() => {
     if (gamePhase !== 'support-speaking') return;
     const supportText = SUPPORT_RESPONSES[currentTurn];
-    setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
 
     let cancelled = false;
+    let fallbackId = 0;
+
+    const transitionToInput = () => {
+      if (!cancelled) {
+        setGamePhase('user-input');
+        setRemainingTimeMs(TURN_TIME_LIMIT_MS);
+      }
+    };
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       const utterance = new SpeechSynthesisUtterance(supportText);
       utterance.lang = 'ja-JP';
       utterance.rate = 1.1;
-      utterance.onend = () => {
-        if (!cancelled) {
-          setGamePhase('user-input');
-          setRemainingTimeMs(TURN_TIME_LIMIT_MS);
-        }
-      };
-      utterance.onerror = () => {
-        if (!cancelled) {
-          setGamePhase('user-input');
-          setRemainingTimeMs(TURN_TIME_LIMIT_MS);
-        }
-      };
+      utterance.onend = transitionToInput;
+      utterance.onerror = transitionToInput;
       window.speechSynthesis.speak(utterance);
     } else {
-      setGamePhase('user-input');
-      setRemainingTimeMs(TURN_TIME_LIMIT_MS);
+      // TTS 非対応: 次フレームで非同期遷移
+      fallbackId = requestAnimationFrame(transitionToInput);
     }
 
     return () => {
       cancelled = true;
+      cancelAnimationFrame(fallbackId);
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
@@ -275,57 +282,54 @@ export function useHelpdeskGame(options: {
    *   4. 録音停止 → speech.onend → handleVoiceResult でターン記録
    *
    * テキストモードの場合:
-   *   タイマー表示のみ。時間切れでもラリーは終了しない（送信ボタンで終了）。
+   *   タイマー不要（自動終了なし）。
    */
   useEffect(() => {
     if (gamePhase !== 'user-input') return;
-    if (inputMethod === 'voice') {
-      const run = async () => {
-        const ok = await startRecording();
-        if (ok) {
-          speech.start();
-        } else {
-          setInputMethod('text');
-        }
-      };
-      run();
+    if (inputMethod !== 'voice') return;
 
-      // 20秒カウントダウン（音声のみ時間切れで自動終了）
-      const start = Date.now();
-      timerIdRef.current = setInterval(() => {
-        const elapsed = Date.now() - start;
-        const remaining = Math.max(0, TURN_TIME_LIMIT_MS - elapsed);
-        setRemainingTimeMs(remaining);
-        if (remaining <= 0 && timerIdRef.current) {
-          clearInterval(timerIdRef.current);
-          timerIdRef.current = null;
-          // 時間切れ → 録音停止（メトリクスを保存、speech.onend → handleVoiceResult へ）
-          speech.stop();
-          pendingAudioMetricsRef.current = stopRecording();
-        }
-      }, 100);
+    const run = async () => {
+      const ok = await startRecording();
+      if (ok) {
+        speechStart();
+      } else {
+        setInputMethod('text');
+      }
+    };
+    run();
 
-      // クリーンアップ: フェーズが変わったらタイマー・録音・認識をすべて停止
-      return () => {
-        if (timerIdRef.current) {
-          clearInterval(timerIdRef.current);
-          timerIdRef.current = null;
-        }
-        speech.abort();
-        stopRecording();
-      };
-    }
-    // テキストモード: タイマーをリセットするだけ（自動終了なし）
-    setRemainingTimeMs(TURN_TIME_LIMIT_MS);
-    return undefined;
+    // 20秒カウントダウン（音声のみ時間切れで自動終了）
+    const start = Date.now();
+    timerIdRef.current = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, TURN_TIME_LIMIT_MS - elapsed);
+      setRemainingTimeMs(remaining);
+      if (remaining <= 0 && timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
+        // 時間切れ → 録音停止（メトリクスを保存、speech.onend → handleVoiceResult へ）
+        speechStop();
+        pendingAudioMetricsRef.current = stopRecording();
+      }
+    }, 100);
+
+    // クリーンアップ: フェーズが変わったらタイマー・録音・認識をすべて停止
+    return () => {
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
+      }
+      speechAbort();
+      stopRecording();
+    };
   }, [
     gamePhase,
     inputMethod,
     startRecording,
     stopRecording,
-    speech.start,
-    speech.stop,
-    speech.abort,
+    speechStart,
+    speechStop,
+    speechAbort,
   ]);
 
   // =========================================================
@@ -338,9 +342,9 @@ export function useHelpdeskGame(options: {
       clearInterval(timerIdRef.current);
       timerIdRef.current = null;
     }
-    speech.stop();
+    speechStop();
     pendingAudioMetricsRef.current = stopRecording();
-  }, [speech, stopRecording]);
+  }, [speechStop, stopRecording]);
 
   /**
    * テキスト入力のターンを送信する。
@@ -376,9 +380,10 @@ export function useHelpdeskGame(options: {
 
   /** 指示ポップアップから「相談を始める」を押したとき */
   const startGame = useCallback(() => {
-    if (gamePhase === 'instruction') {
-      setGamePhase('support-speaking');
-    }
+    if (gamePhase !== 'instruction') return;
+    const supportText = SUPPORT_RESPONSES[0];
+    setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
+    setGamePhase('support-speaking');
   }, [gamePhase]);
 
   /**
@@ -393,11 +398,11 @@ export function useHelpdeskGame(options: {
         clearInterval(timerIdRef.current);
         timerIdRef.current = null;
       }
-      speech.stop();
+      speechStop();
       pendingAudioMetricsRef.current = stopRecording();
     }
     setInputMethod('text');
-  }, [inputMethod, gamePhase, speech, stopRecording]);
+  }, [inputMethod, gamePhase, speech.isListening, speechStop, stopRecording]);
 
   // =========================================================
   // 外部に公開する値・関数
