@@ -4,6 +4,7 @@ import { analysisResultRepository, AnalysisResultRow } from '../repositories/ana
 import { calculateGame1Scores, calculateGame2Scores, combineScores } from '../analysis/scoreCalculator';
 import { generateFeedback } from '../analysis/feedbackGenerator';
 import { buildPhaseSummaries } from '../analysis/phaseSummaryBuilder';
+import { getMbtiScores } from '../analysis/mbtiScoreTable';
 import { BaselineScores, ResultResponse, GameBreakdown } from '../types';
 
 export const resultService = {
@@ -73,6 +74,9 @@ export const resultService = {
             game_2: game2Scores,
         };
 
+        // MBTI理論値スコア
+        const mbti_scores = user.self_mbti ? getMbtiScores(user.self_mbti) : null;
+
         // analysis_results にキャッシュとして保存
         const cacheRow: AnalysisResultRow = {
             user_id: userId,
@@ -81,11 +85,11 @@ export const resultService = {
             score_logic: scores.logic,
             score_coop: scores.cooperativeness,
             score_positive: scores.positivity,
-            mbti_caution: null,
-            mbti_calmness: null,
-            mbti_logic: null,
-            mbti_coop: null,
-            mbti_positive: null,
+            mbti_caution: mbti_scores?.caution ?? null,
+            mbti_calmness: mbti_scores?.calmness ?? null,
+            mbti_logic: mbti_scores?.logic ?? null,
+            mbti_coop: mbti_scores?.cooperativeness ?? null,
+            mbti_positive: mbti_scores?.positivity ?? null,
             gap_caution: gaps.caution,
             gap_calmness: gaps.calmness,
             gap_logic: gaps.logic,
@@ -104,6 +108,7 @@ export const resultService = {
         return {
             user_id: userId,
             self_mbti: user.self_mbti,
+            mbti_scores,
             scores,
             baseline_scores,
             gaps,
@@ -126,6 +131,13 @@ export const resultService = {
         return {
             user_id: userId,
             self_mbti: selfMbti,
+            mbti_scores: (cached.mbti_caution !== null) ? {
+                caution: cached.mbti_caution,
+                calmness: cached.mbti_calmness!,
+                logic: cached.mbti_logic!,
+                cooperativeness: cached.mbti_coop!,
+                positivity: cached.mbti_positive!,
+            } : null,
             scores: {
                 caution: cached.score_caution,
                 calmness: cached.score_calmness,
