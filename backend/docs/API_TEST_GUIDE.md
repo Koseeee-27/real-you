@@ -19,11 +19,11 @@ curl -X POST http://localhost:3001/api/register \
   -d '{
     "mbti": "INTJ",
     "baseline_answers": {
-      "q1_caution": "yes",
-      "q2_calmness": "no",
-      "q3_logic": "yes",
-      "q4_cooperativeness": "no",
-      "q5_positivity": "yes"
+      "q1_caution": "A",
+      "q2_calmness": "D",
+      "q3_logic": "B",
+      "q4_cooperativeness": "C",
+      "q5_positivity": "A"
     }
   }'
 ```
@@ -42,7 +42,7 @@ curl -X POST http://localhost:3001/api/register \
   -d '{
     "mbti": "INTJ",
     "baseline_answers": {
-      "q1_caution": "yes"
+      "q1_caution": "A"
     }
   }'
 ```
@@ -53,16 +53,17 @@ curl -X POST http://localhost:3001/api/register \
 curl -X POST http://localhost:3001/api/register \
   -H "Content-Type: application/json" \
   -d '{
+  -d '{
     "baseline_answers": {
-      "q1_caution": "maybe",
-      "q2_calmness": "yes",
-      "q3_logic": "yes",
-      "q4_cooperativeness": "no",
-      "q5_positivity": "yes"
+      "q1_caution": "Z",
+      "q2_calmness": "A",
+      "q3_logic": "B",
+      "q4_cooperativeness": "C",
+      "q5_positivity": "D"
     }
   }'
 ```
-**期待されるレスポンス:** 400 Bad Request (`invalid_answers`)
+**期待されるレスポンス:** 400 Bad Request (`invalid_answers` - "Answers must be one of [A, B, C, D]...")
 
 ---
 
