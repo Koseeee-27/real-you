@@ -29,6 +29,7 @@ export interface AnalysisResultRow {
     game_contributions: GameBreakdown;
     accuracy_score: number;
     phase_summaries: PhaseSummaries;
+    details: any; // JSONB カラム
     created_at?: string;
 }
 
