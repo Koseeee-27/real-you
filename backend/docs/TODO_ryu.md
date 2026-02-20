@@ -37,6 +37,10 @@
 - [ ] `gameService.ts` のバリデーション（`[1, 2, 3]`）を `GAME_TYPES` 定数に置き換える（マジックナンバー排除）
 - [ ] （既存タスク重複）`registerService.ts` に MBTI の形式バリデーションを追加する
 - [ ] 廃止された音声テキスト変換API（`voiceRouter.ts`, `voiceService.ts` 等の名残）を完全に削除する
+- [ ] CORS設定の厳格化（現在は全て許可 `app.use(cors())` になっているため）
+- [ ] エラーメッセージの日本語統一（現在 "User not found" など英語が混在）
+- [ ] `/health` エンドポイントの改善（空テーブルでのエラー回避のため `select('count')` に変更）
+- [ ] 環境変数の型安全性チェック（`src/config.ts` での集中管理と起動時チェック）
 
 ### AI返答レスポンス高速化（パフォチュー）
 - [ ] Gemini API のレスポンス速度改善
