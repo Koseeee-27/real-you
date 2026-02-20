@@ -22,11 +22,11 @@ echo -e "${text_bold}1. Registering User...${text_reset}"
 REGISTER_PAYLOAD='{
   "mbti": "INTJ",
   "baseline_answers": {
-    "q1_caution": "yes",
-    "q2_calmness": "no",
-    "q3_logic": "yes",
-    "q4_cooperativeness": "no",
-    "q5_positivity": "yes"
+    "q1_caution": "A",
+    "q2_calmness": "D",
+    "q3_logic": "A",
+    "q4_cooperativeness": "C",
+    "q5_positivity": "B"
   }
 }'
 
