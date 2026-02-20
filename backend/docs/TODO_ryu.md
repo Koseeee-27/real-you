@@ -3,16 +3,16 @@
 ## 🔴 優先度高
 
 ### PR マージ
-- [ ] `ryu/fix-register-baseline-answers` — マージ
-- [ ] `ryu/add-analysis-results-table` — マージ
-- [ ] `ryu/add-mbti-scores` — マージ
-- [ ] `ryu/fix-voice-api-spec` — マージ
-- [ ] `ryu/fix-health-check` — マージ
+- [x] `ryu/fix-register-baseline-answers` — マージ
+- [x] `ryu/add-analysis-results-table` — マージ
+- [x] `ryu/add-mbti-scores` — マージ
+- [x] `ryu/fix-voice-api-spec` — マージ
+- [x] `ryu/fix-health-check` — マージ
 
 ### analysis_results テーブル活用
-- [ ] `analysisResultRepository.ts` 新規作成（CRUD）
-- [ ] 全ゲーム完了時に analysis_results へ保存する処理を実装
-- [ ] `resultService` を analysis_results からの読み取り方式に変更（毎回計算 → キャッシュ）
+- [x] `analysisResultRepository.ts` 新規作成（CRUD）
+- [x] 全ゲーム完了時に analysis_results へ保存する処理を実装
+- [x] `resultService` を analysis_results からの読み取り方式に変更（毎回計算 → キャッシュ）
 
 ---
 
@@ -20,7 +20,7 @@
 
 ### バリデーション強化
 - [ ] MBTI 形式バリデーション（`invalid_mbti` エラー対応）
-- [ ] `incomplete_games` エラーを3ゲーム全完了チェックに修正（現在は `< 2`）
+- [x] `incomplete_games` エラーを3ゲーム全完了チェックに修正（現在は `< 2`）
 - [ ] game_type ごとの raw_data 構造チェック（任意）
 
 ### テスト・ドキュメント整備
