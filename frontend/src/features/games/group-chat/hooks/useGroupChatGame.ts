@@ -73,7 +73,8 @@ export function useGroupChatGame(options: {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [remainingTimeMs, setRemainingTimeMs] = useState(STAGE_TIME_LIMIT_MS);
   const [visibleMessageCount, setVisibleMessageCount] = useState(0);
-  const [isTypingIndicatorVisible, setIsTypingIndicatorVisible] = useState(false);
+  const [isTypingIndicatorVisible, setIsTypingIndicatorVisible] =
+    useState(false);
 
   // =========================================================
   // 再レンダリング不要な計測データをrefで管理
@@ -102,7 +103,7 @@ export function useGroupChatGame(options: {
   /** ステージ3,5で「○○が返信中」表示に使うBot名 */
   const typingBotName =
     currentStage?.trackTypingIndicator && currentStage.typingBotId
-      ? BOTS.find((b) => b.id === currentStage.typingBotId)?.name ?? null
+      ? (BOTS.find((b) => b.id === currentStage.typingBotId)?.name ?? null)
       : null;
 
   // =========================================================
@@ -117,7 +118,12 @@ export function useGroupChatGame(options: {
   // ステージ進行: 操作ログを記録して次ステージ or 完了へ
   // =========================================================
   const recordStageAndAdvance = useCallback(
-    (selectedOptionId: number | null, reactionTimeMs: number, isTimeout: boolean, typingIndicatorReactTimeMs?: number | null) => {
+    (
+      selectedOptionId: number | null,
+      reactionTimeMs: number,
+      isTimeout: boolean,
+      typingIndicatorReactTimeMs?: number | null
+    ) => {
       const stage = STAGES[currentStageIndex];
       const log: Game3StageLog = {
         stageId: stage.stageId,
@@ -240,7 +246,10 @@ export function useGroupChatGame(options: {
 
       // メッセージを1件追加して次をスケジュール
       const msg = stageMessages[nextIndex];
-      setChatMessages((prev) => [...prev, { type: 'bot', botId: msg.botId, text: msg.text }]);
+      setChatMessages((prev) => [
+        ...prev,
+        { type: 'bot', botId: msg.botId, text: msg.text },
+      ]);
       setVisibleMessageCount((c) => c + 1);
       nextIndex += 1;
       const id = setTimeout(scheduleNext, MESSAGE_REVEAL_DELAY_MS);
@@ -317,7 +326,12 @@ export function useGroupChatGame(options: {
       const optionText = opt ? `${opt.emoji} ${opt.label}` : '';
       setChatMessages((prev) => [...prev, { type: 'user', text: optionText }]);
 
-      recordStageAndAdvance(optionId, reactionTimeMs, false, typingIndicatorReactTimeMs);
+      recordStageAndAdvance(
+        optionId,
+        reactionTimeMs,
+        false,
+        typingIndicatorReactTimeMs
+      );
     },
     [gamePhase, currentStage, recordStageAndAdvance]
   );

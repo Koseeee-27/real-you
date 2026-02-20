@@ -69,7 +69,11 @@ export default function GroupChatGameFlow() {
 
   const timerRatio = remainingTimeMs / stageTimeLimitMs;
   const timerColorClass =
-    timerRatio > 0.5 ? 'bg-green-500' : timerRatio > 0.2 ? 'bg-amber-500' : 'bg-red-500';
+    timerRatio > 0.5
+      ? 'bg-green-500'
+      : timerRatio > 0.2
+        ? 'bg-amber-500'
+        : 'bg-red-500';
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 p-4">
@@ -79,7 +83,9 @@ export default function GroupChatGameFlow() {
           role="button"
           tabIndex={0}
           onClick={startGame}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') startGame(); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') startGame();
+          }}
           className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-black/30"
         >
           <div className="animate-[fadeInUp_0.4s_ease-out] px-6 text-center">
@@ -104,14 +110,20 @@ export default function GroupChatGameFlow() {
               場面{currentStageIndex + 1}
             </p>
             <p className="mt-2 text-lg font-bold tracking-widest text-amber-300">
-              {['First', 'Second', 'Third', 'Fourth', 'Final'][currentStageIndex]} Situation!
+              {
+                ['First', 'Second', 'Third', 'Fourth', 'Final'][
+                  currentStageIndex
+                ]
+              }{' '}
+              Situation!
             </p>
           </div>
         </div>
       )}
 
       {/* --- スマホフレーム --- */}
-      <div className="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border-2 border-gray-800 bg-white shadow-2xl"
+      <div
+        className="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border-2 border-gray-800 bg-white shadow-2xl"
         style={{ height: 'min(90vh, 700px)' }}
       >
         {/* ヘッダー: LINE風 */}
@@ -158,7 +170,9 @@ export default function GroupChatGameFlow() {
                         >
                           {bot?.avatarLabel ?? '?'}
                         </div>
-                        <span className="text-[9px] text-gray-500">{bot?.name}</span>
+                        <span className="text-[9px] text-gray-500">
+                          {bot?.name}
+                        </span>
                       </div>
                     );
                   })()}
@@ -180,8 +194,14 @@ export default function GroupChatGameFlow() {
               <div className="flex items-center justify-center gap-2 rounded-full bg-white/80 px-4 py-1.5 shadow-sm mx-auto w-fit">
                 <span className="inline-flex gap-0.5">
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500" style={{ animationDelay: '0.15s' }} />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500" style={{ animationDelay: '0.3s' }} />
+                  <span
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500"
+                    style={{ animationDelay: '0.15s' }}
+                  />
+                  <span
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500"
+                    style={{ animationDelay: '0.3s' }}
+                  />
                 </span>
                 <span className="text-sm font-medium text-gray-600">
                   {typingBotName}が返信中

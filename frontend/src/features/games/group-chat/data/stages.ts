@@ -18,9 +18,24 @@ export interface BotCharacter {
 }
 
 export const BOTS: BotCharacter[] = [
-  { id: 'boss', name: '部長', avatarLabel: '部', color: 'bg-red-500 text-white' },
-  { id: 'senpai', name: '先輩', avatarLabel: '先', color: 'bg-blue-500 text-white' },
-  { id: 'colleague', name: '同期', avatarLabel: '同', color: 'bg-green-500 text-white' },
+  {
+    id: 'boss',
+    name: '部長',
+    avatarLabel: '部',
+    color: 'bg-red-500 text-white',
+  },
+  {
+    id: 'senpai',
+    name: '先輩',
+    avatarLabel: '先',
+    color: 'bg-blue-500 text-white',
+  },
+  {
+    id: 'colleague',
+    name: '同期',
+    avatarLabel: '同',
+    color: 'bg-green-500 text-white',
+  },
 ];
 
 export interface ChatMessageItem {
@@ -54,13 +69,16 @@ export const STAGES: StageDefinition[] = [
     theme: '沈黙',
     dayLabel: 'DAY 1',
     messages: [
-      { botId: 'boss', text: 'お疲れ様！来週の親睦会の幹事なんだけど、誰か頼めるかな？👀' },
+      {
+        botId: 'boss',
+        text: 'お疲れ様！来週の親睦会の幹事なんだけど、誰か頼めるかな？👀',
+      },
     ],
     options: [
-      { emoji: '🙋', label: 'やります！' },          // 協調: 場の空気に応えて引き受ける
-      { emoji: '👀', label: '（様子を見る）' },        // 協調: 波風立てず待つ
-      { emoji: '👉', label: '○○さんどう？' },         // 独自: 自分から他者を指名
-      { emoji: '😑', label: '既読スルー' },            // 独自: 関わらない
+      { emoji: '🙋', label: 'やります！' }, // 協調: 場の空気に応えて引き受ける
+      { emoji: '👀', label: '（様子を見る）' }, // 協調: 波風立てず待つ
+      { emoji: '👉', label: '○○さんどう？' }, // 独自: 自分から他者を指名
+      { emoji: '😑', label: '既読スルー' }, // 独自: 関わらない
     ],
     trackTypingIndicator: false,
     typingBotId: null,
@@ -75,10 +93,10 @@ export const STAGES: StageDefinition[] = [
       { botId: 'colleague', text: '🎉' },
     ],
     options: [
-      { emoji: '🎉', label: '' },  // 協調: みんなと同じスタンプ
-      { emoji: '🎊', label: '' },  // 協調: 祝賀の同系統スタンプ
-      { emoji: '👍', label: '' },  // 独自: 雰囲気と違うスタンプ
-      { emoji: '😑', label: '' },  // 独自: 既読スルー
+      { emoji: '🎉', label: '' }, // 協調: みんなと同じスタンプ
+      { emoji: '🎊', label: '' }, // 協調: 祝賀の同系統スタンプ
+      { emoji: '👍', label: '' }, // 独自: 雰囲気と違うスタンプ
+      { emoji: '😑', label: '' }, // 独自: 既読スルー
     ],
     trackTypingIndicator: false,
     typingBotId: null,
@@ -91,10 +109,10 @@ export const STAGES: StageDefinition[] = [
       { botId: 'boss', text: '次のプロジェクトの方針、みんなどう思う？' },
     ],
     options: [
-      { emoji: '🤝', label: '先輩の意見を聞きたいです' },   // 協調: 相手を立てる返信
-      { emoji: '👀', label: '自分もそう思います' },        // 協調: 同調する返信
-      { emoji: '💬', label: '自分はこう思います！' },      // 独自: 自分の意見を主張する返信
-      { emoji: '🤔', label: 'そもそも方針って必要？' },    // 独自: 場の流れに逆らう返信
+      { emoji: '🤝', label: '先輩の意見を聞きたいです' }, // 協調: 相手を立てる返信
+      { emoji: '👀', label: '自分もそう思います' }, // 協調: 同調する返信
+      { emoji: '💬', label: '自分はこう思います！' }, // 独自: 自分の意見を主張する返信
+      { emoji: '🤔', label: 'そもそも方針って必要？' }, // 独自: 場の流れに逆らう返信
     ],
     trackTypingIndicator: true,
     typingBotId: 'senpai',
@@ -109,10 +127,10 @@ export const STAGES: StageDefinition[] = [
       { botId: 'boss', text: '俺もカレーで！' },
     ],
     options: [
-      { emoji: '🍛', label: 'カレーで！' },               // 協調: みんなと同じ
-      { emoji: '😊', label: 'なんでもいいです！' },          // 協調: 合わせる姿勢
-      { emoji: '🍜', label: 'ラーメンで！' },              // 独自: 自分の好み
-      { emoji: '🍝', label: 'パスタで！' },                // 独自: 自分の好み
+      { emoji: '🍛', label: 'カレーで！' }, // 協調: みんなと同じ
+      { emoji: '😊', label: 'なんでもいいです！' }, // 協調: 合わせる姿勢
+      { emoji: '🍜', label: 'ラーメンで！' }, // 独自: 自分の好み
+      { emoji: '🍝', label: 'パスタで！' }, // 独自: 自分の好み
     ],
     trackTypingIndicator: false,
     typingBotId: null,
@@ -126,10 +144,10 @@ export const STAGES: StageDefinition[] = [
       { botId: 'senpai', text: 'お疲れ様でした！' },
     ],
     options: [
-      { emoji: '👋', label: 'すぐ「お疲れ様」を送る' },  // 協調: 流れに合わせてすぐ返す
-      { emoji: '⏳', label: '少し待ってから送る' },       // 協調: タイミングを見て合わせる
-      { emoji: '🚪', label: '無言で退室する' },           // 独自: 挨拶なしで抜ける
-      { emoji: '🙄', label: 'スルーして別の話をする' },   // 独自: 空気を読まない
+      { emoji: '👋', label: 'すぐ「お疲れ様」を送る' }, // 協調: 流れに合わせてすぐ返す
+      { emoji: '⏳', label: '少し待ってから送る' }, // 協調: タイミングを見て合わせる
+      { emoji: '🚪', label: '無言で退室する' }, // 独自: 挨拶なしで抜ける
+      { emoji: '🙄', label: 'スルーして別の話をする' }, // 独自: 空気を読まない
     ],
     trackTypingIndicator: true,
     typingBotId: 'colleague',
