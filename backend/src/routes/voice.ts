@@ -1,24 +1,33 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { voiceService } from '../services/voiceService';
-import { ApiError } from '../types';
+import { userRepository } from '../repositories/userRepository';
 
 const router = Router();
 
-router.post('/respond', async (req: Request, res: Response) => {
+router.post('/respond', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { message, scenario_type } = req.body;
-        const responseText = await voiceService.generateAiResponse(message, scenario_type);
+        const { user_id, message, conversation_history } = req.body;
 
-        res.json({ status: 'success', response: responseText });
-    } catch (error: any) {
-        console.error('Voice Error:', error);
-        const apiError: ApiError = {
-            status: 'error',
-            error: error.code || 'ai_failed',
-            message: error.message || 'Failed to generate response',
-        };
-        res.status(error.status || 500).json(apiError);
+        if (!user_id) {
+            throw { status: 400, code: 'invalid_request', message: 'user_id is required' };
+        }
+
+        const exists = await userRepository.exists(user_id);
+        if (!exists) {
+            throw { status: 400, code: 'invalid_user_id', message: 'ユーザーIDが存在しません' };
+        }
+
+        const result = await voiceService.generateAiResponse(message, conversation_history);
+
+        res.json({
+            response: result.response,
+            emotion: result.emotion,
+            confidence: result.confidence,
+        });
+    } catch (error) {
+        next(error);
     }
 });
 
 export default router;
+

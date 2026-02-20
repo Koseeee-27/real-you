@@ -9,6 +9,10 @@ export const gameService = {
             throw { status: 400, code: 'invalid_request', message: 'user_id, game_type, and data are required' };
         }
 
+        if (Object.keys(data).length === 0) {
+            throw { status: 400, code: 'invalid_request', message: 'data cannot be empty' };
+        }
+
         if (![1, 2, 3].includes(gameType)) {
             throw { status: 400, code: 'invalid_game_type', message: 'game_type must be 1, 2, or 3' };
         }
