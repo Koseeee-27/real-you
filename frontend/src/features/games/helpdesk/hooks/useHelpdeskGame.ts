@@ -66,7 +66,7 @@ export function useHelpdeskGame(options: {
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
 
   // --- 再レンダリング不要なデータを ref で管理 ---
-  const initialInputMethodRef = useRef<'voice' | 'text'>('voice'); // Game2Data.inputMethod 用
+  const inputMethodRef = useRef(inputMethod);
   const timerIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingAudioMetricsRef = useRef<AudioMetricsResult | null>(null); // 録音停止〜onResult の間に一時保持
   const typingVariancesRef = useRef<number[]>([]); // テキスト入力ターンごとの分散を蓄積
@@ -166,11 +166,14 @@ export function useHelpdeskGame(options: {
   // ゲーム終了 → Game2Data 組み立て
   // =========================================================
 
-  // turns の最新値をエフェクト外から参照するための ref
+  // ステートの最新値をエフェクト外から参照するための ref
   const turnsRef = useRef(turns);
   useEffect(() => {
     turnsRef.current = turns;
   }, [turns]);
+  useEffect(() => {
+    inputMethodRef.current = inputMethod;
+  }, [inputMethod]);
 
   /**
    * 全ターンのデータを Game2Data にまとめて onComplete へ渡す。
@@ -190,7 +193,7 @@ export function useHelpdeskGame(options: {
         }
       : null;
     const game2Data: Game2Data = {
-      inputMethod: initialInputMethodRef.current,
+      inputMethod: inputMethodRef.current,
       turnCount: currentTurns.length,
       turns: currentTurns,
       textInputMetrics,
