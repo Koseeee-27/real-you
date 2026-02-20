@@ -16,7 +16,7 @@
     ↓
 POST /api/games/submit → game_logs テーブルに raw_data（JSON）として保存
     ↓
-全ゲーム終了後、フロントが結果を取得
+全ゲーム終了後（3ゲーム全て）、フロントが結果を取得
     ↓
 GET /api/results/:user_id
     ↓
@@ -24,8 +24,11 @@ GET /api/results/:user_id
     ↓
 ★ ここであなたの関数が呼ばれる ★
     ↓
-analysis/scoreCalculator.ts  → ゲームデータ → 5軸スコア(0-100)に変換
+analysis/scoreCalculator.ts   → ゲームデータ → 5軸スコア(0-100)に変換
 analysis/feedbackGenerator.ts → スコア + ギャップ → フィードバック文を生成
+analysis/phaseSummaryBuilder.ts → raw_data → 行動要約テキストを生成
+    ↓
+analysis_results テーブルにキャッシュとして保存
     ↓
 フロントに返却 → 結果画面に表示
 ```
@@ -36,8 +39,10 @@ analysis/feedbackGenerator.ts → スコア + ギャップ → フィードバ�
 
 ```
 src/analysis/
-├── scoreCalculator.ts     ← ゲームデータ → スコア変換（メイン作業）
-└── feedbackGenerator.ts   ← スコア → フィードバック文生成
+├── scoreCalculator.ts      ← ゲームデータ → スコア変換（メイン作業）
+├── feedbackGenerator.ts    ← スコア → フィードバック文生成
+├── phaseSummaryBuilder.ts  ← raw_data → 行動要約テキスト生成
+└── mbtiScoreTable.ts       ← MBTI→理論値変換（実装済み、触らなくてOK）
 ```
 
 **依存するファイル（読むだけ、編集不要）：**
@@ -55,101 +60,142 @@ src/analysis/
 
 ### ゲーム1（利用規約ゲーム）の rawData
 
-```typescript
-// フロントが送ってくる想定のデータ
+```json
 {
-  // スクロール行動
-  scrollData: {
-    reachedBottom: boolean,   // 最下部まで到達したか
-    maxPosition: number,      // 最大スクロール位置（px）
+  "totalTime": 120,
+  "finalAction": "agree",
+  "reachedBottom": true,
+  "scrollEvents": [
+    { "position": 0, "timestamp": 0 },
+    { "position": 1200, "timestamp": 3500 },
+    { "position": 3000, "timestamp": 8000 },
+    { "position": 5000, "timestamp": 15000 }
+  ],
+  "hiddenInput": "確認済み",
+  "checkboxStates": {
+    "readConfirm": { "checked": true, "changed": true },
+    "mailMagazine": { "checked": false, "changed": true },
+    "thirdPartyShare": { "checked": false, "changed": true }
   },
-  totalTime: number,          // 画面にいた合計時間（秒）
-
-  // 隠しタスク（利用規約の途中にある指示）
-  hiddenTask: {
-    completed: boolean,       // 隠しタスクにに気づいて実行したか
-  },
-
-  // チェックボックス系
-  checkboxes: {
-    followedInstruction: boolean,  // 指示通りにチェックしたか
-  },
-  slowReadInstruction: {
-    checkboxChecked: boolean, // ゆっくり読む指示のチェック
-    slowedDown: boolean,      // 実際にスクロール速度を落としたか
+  "popupStats": {
+    "timeToClose": 1200,
+    "clickCount": 1
   }
 }
 ```
 
+**フィールド説明：**
+- `totalTime` (number): 滞在時間（秒）
+- `finalAction` ("agree" | "disagree"): 同意 or 拒否
+- `reachedBottom` (boolean): 最下部まで到達したか
+- `scrollEvents` (array): スクロール位置と時刻のログ（速度計算用）
+- `hiddenInput` (string | null): 隠し指示の入力欄に打った文字列（未入力なら null）
+- `checkboxStates` (object): 各チェックボックスの最終状態
+  - `readConfirm`: 第5条「読みました」チェックボックス
+  - `mailMagazine`: 第8条「メルマガ受信」チェックボックス（初期値ON）
+  - `thirdPartyShare`: 第8条「第三者提供」チェックボックス（初期値ON）
+- `popupStats` (object): ポップアップ広告への対応データ
+
 **このデータで測りたいもの：**
-- 🟦 **慎重さ** — ちゃんと読んだか、時間をかけたか
-- 🟦 **論理性** — 隠しタスクに気づいたか、指示に従ったか
+- � **慎重さ** — `reachedBottom`, `totalTime`, `checkboxStates`（不要チェックを外したか）
+- � **論理性** — `hiddenInput`（隠し指示を発見・実行したか）
+- 🔹 **冷静さ** — `popupStats`（短時間・少クリックで閉じたか）, `scrollEvents`の速度安定性
 
 ---
 
 ### ゲーム2（AIカスタマーサポート）の rawData
 
-```typescript
+```json
 {
-  inputMethod: "voice" | "text",  // 音声 or テキストどちらを選んだか
-  turnCount: number,               // AIとのやり取り回数
-
-  // 音声データ（各ターン）
-  voiceTurns: [
+  "inputMethod": "voice",
+  "turnCount": 3,
+  "turns": [
     {
-      turnNumber: number,
-      timeToStartSpeaking: number,  // 録音開始から喋り始めまで（秒）
-      speechDuration: number,       // 喋った時間（秒）
-      silenceDuration: number,      // 無音の時間（秒）
-      transcribedText: string,      // 音声→テキスト変換結果
+      "turnIndex": 1,
+      "inputMethod": "voice",
+      "reactionTimeMs": 1200,
+      "speechDurationMs": 8500,
+      "silenceDurationMs": 500,
+      "volumeDb": -25.3,
+      "transcribedText": "ログイン画面でパスワードを入力しても弾かれます"
+    },
+    {
+      "turnIndex": 2,
+      "inputMethod": "voice",
+      "reactionTimeMs": 800,
+      "speechDurationMs": 12000,
+      "silenceDurationMs": 300,
+      "volumeDb": -22.1,
+      "transcribedText": "いや、それは違います。なぜならパスワードリセットのリンクが表示されないんです"
+    },
+    {
+      "turnIndex": 3,
+      "inputMethod": "text",
+      "reactionTimeMs": null,
+      "speechDurationMs": null,
+      "silenceDurationMs": null,
+      "volumeDb": null,
+      "transcribedText": "もういいです、別の方法を試します"
     }
-  ],
-
-  // チャット履歴
-  messages: [
-    { sender: "ai" | "user", content: string }
-  ],
-
-  // 言語分析 ← ★ これは現在未実装。あなたが計算する or フロントが送る
-  languageAnalysis: {
-    logicalWords: number,      // 論理的な言葉の数（なぜなら、つまり等）
-    emotionalWords: number,    // 感情的な言葉の数（最悪、ムカつく等）
-    fillerWords: number,       // フィラーワードの数（えーと、あの等）
-    exclamationMarks: number,  // 感嘆符の数
-  }
+  ]
 }
 ```
 
+**フィールド説明：**
+- `inputMethod` ("voice" | "text"): 最初に選択した入力方式
+- `turnCount` (number): やり取りの総回数
+- `turns` (array): 各ターンの操作ログ
+  - `turnIndex` (number): ターン番号（1始まり）
+  - `inputMethod` ("voice" | "text"): そのターンの入力方式
+  - `reactionTimeMs` (number | null): 録音開始から喋り出すまでの時間（ms）。テキスト入力時は null
+  - `speechDurationMs` (number | null): 発話時間（ms）。テキスト入力時は null
+  - `silenceDurationMs` (number | null): 発話中の沈黙合計時間（ms）。テキスト入力時は null
+  - `volumeDb` (number | null): 平均音量（デシベル）。テキスト入力時は null
+  - `transcribedText` (string): Web Speech API で変換されたテキスト or テキスト入力
+
 **このデータで測りたいもの：**
-- 🟩 **積極性** — すぐ喋り始めるか、音声を選んだか、発話時間が長いか
-- 🟦 **論理性** — 論理的な言葉の割合、順序立てた説明
-- 🟨 **冷静さ** — 感情的な言葉が少ないか、理不尽な対応にも冷静か
+- � **積極性** — `inputMethod`（音声を選んだか）, `reactionTimeMs`（反応速度）, `speechDurationMs`（発話時間）
+- � **論理性** — `transcribedText`（接続詞の使用・具体的指摘・フィラーの少なさ）
+- � **冷静さ** — `volumeDb`（音量の安定性）, `silenceDurationMs`（沈黙の多さ）
 
 ---
 
-### ゲーム3（グループチャット）の rawData — ★ 未定義、あなたが決めてOK
+### ゲーム3（グループチャット）の rawData
 
-```typescript
-// 以下は提案。フロントチームと相談して決めてください
+```json
 {
-  responses: [
-    {
-      question_id: string,
-      selected_option: string,   // 選んだ選択肢
-      response_time: number,     // 回答までの秒数
-      was_majority: boolean,     // 多数派と同じ選択か
-    }
-  ],
-  helped_struggling_member: boolean,  // 困っているメンバーを助けたか
-  help_response_time: number | null,  // 助けるまでの時間
-  total_messages_sent: number,
-  first_to_respond_count: number,     // 最初に発言した回数
+  "tutorialViewTime": 5200,
+  "stages": [
+    { "stageId": 1, "selectedOptionId": 2, "reactionTime": 3400, "isTimeout": false },
+    { "stageId": 2, "selectedOptionId": 1, "reactionTime": 1800, "isTimeout": false },
+    { "stageId": 3, "selectedOptionId": 3, "reactionTime": 4500, "isTimeout": false },
+    { "stageId": 4, "selectedOptionId": 0, "reactionTime": 10000, "isTimeout": true },
+    { "stageId": 5, "selectedOptionId": 1, "reactionTime": 2200, "isTimeout": false }
+  ]
 }
 ```
 
+**フィールド説明：**
+- `tutorialViewTime` (number): チュートリアル説明を閉じるまでの時間（ms）
+- `stages` (array): 全5ステージの操作ログ
+  - `stageId` (number): ステージ番号 (1～5)
+  - `selectedOptionId` (number | null): 選んだ選択肢のID (1～4)。時間切れの場合は `0` または `null`
+  - `reactionTime` (number): 選択肢が表示されてから決定（または時間切れ）までの時間（ms）
+  - `isTimeout` (boolean): 時間切れで終了したか
+
+**ステージ一覧：**
+
+| # | シチュエーション | 概要 |
+|---|---|---|
+| 1 | 沈黙 | 誰も返信しない中、立候補するか待つか |
+| 2 | 祝賀 | 周りに合わせたスタンプを押すか、違うものを押すか |
+| 3 | 衝突 | 相手も入力中の時、譲るか送信するか |
+| 4 | 食事 | 全員同じメニューの中、自分の注文を選ぶ |
+| 5 | 退室 | どのタイミングで「お疲れ様」を送るか |
+
 **このデータで測りたいもの：**
-- 🟪 **協調性** — 多数派に合わせるか、困っている人を助けるか
-- 🟩 **積極性** — 最初に発言するか、発言数が多いか
+- � **協調性** — `selectedOptionId`（他者と同じ選択=同調）, ステージ3で譲る行動
+- � **積極性** — 独自の選択, `reactionTime`（即答=主導権）, `isTimeout`（時間切れ=優柔不断）
 
 ---
 
@@ -157,99 +203,39 @@ src/analysis/
 
 ### 必須タスク
 
-- [ ] **`calculateGame1Scores(rawData)`** のスコア計算を調整する
-  - 現在仮で実装済み。配点や閾値を調整してください
-  - 返り値: `{ caution: number, logic: number }`
+- [ ] **`calculateGame1Scores(rawData)`** のスコア計算を書き直す
+  - 現在の仮実装は旧仕様の raw_data を参照しているので、上記の最新仕様に合わせる
+  - 返り値: `{ caution: number, logic: number, calmness: number }`
 
-- [ ] **`calculateGame2Scores(rawData)`** のスコア計算を調整する
-  - `languageAnalysis` の計算をどこでやるか決める（後述）
+- [ ] **`calculateGame2Scores(rawData)`** のスコア計算を書き直す
+  - 現在の仮実装は旧仕様の `voiceTurns` 等を参照しているので、`turns` に書き換え
   - 返り値: `{ positivity: number, logic: number, calmness: number }`
 
-- [ ] **`calculateGame3Scores(rawData)`** を新規作成する ← 一番重要
-  - `scoreCalculator.ts` に関数を追加
+- [ ] **`calculateGame3Scores(rawData)`** のスコア計算を実装する
+  - 現在はスタブ（空 `{}` を返すだけ）
   - 返り値: `{ cooperativeness: number, positivity: number }`
-
-- [ ] **`combineScores()`** にゲーム3を追加する
-  - 引数に `game3Scores` を追加
-  - `cooperativeness` をゲーム3のスコアで埋める（現在ハードコード50）
 
 - [ ] **`generateFeedback()`** を改善する
   - ギャップの方向（正/負）に応じたテキスト分岐
   - 例: 自己申告80 → 実測20 → 「慎重だと思っていたが大胆でした」
   - 例: 自己申告20 → 実測80 → 「大胆だと思っていたが実は慎重でした」
 
-### 追加タスク（やれたら）
+- [ ] **`buildPhaseSummaries(game1Raw, game2Raw, game3Raw)`** を実装する
+  - 現在はスタブ（「分析結果を準備中...」を返すだけ）
+  - 返り値: `{ phase_1: string, phase_2: string, phase_3: string }`
+  - 例: `{ phase_1: "規約を2秒で読み飛ばし、即座に同意ボタンを押しました" }`
 
-- [ ] **`languageAnalyzer.ts`** を新規作成
-  - チャット履歴テキストから論理語・感情語をカウントする関数
-  - キーワードマッチングでOK（AI不要）
-  - `scoreCalculator.ts` から呼び出す
+### 済み（触らなくてOK）
 
-- [ ] 各ゲーム計算に **`behavioral_summary`** を追加
-  - 結果画面で「利用規約を12秒で同意しました」のように表示するためのデータ
-  - 例: `{ total_read_time: 12, scroll_percentage: 8, found_hidden_task: false }`
-
----
-
-## 🔧 具体的な実装手順
-
-### Step 1: ゲーム3のスコア計算を作る
-
-`src/analysis/scoreCalculator.ts` を開いて、末尾に追加：
-
-```typescript
-// ゲーム3のデータからスコアを算出
-export function calculateGame3Scores(rawData: any): Partial<BaselineScores> {
-  const scores: Partial<BaselineScores> = {};
-
-  // 協調性の計算
-  let coopScore = 0;
-  // ... ここにロジックを書く
-
-  scores.cooperativeness = Math.min(100, Math.round(coopScore));
-
-  // 積極性の計算
-  let positivityScore = 0;
-  // ... ここにロジックを書く
-
-  scores.positivity = Math.min(100, Math.round(positivityScore));
-
-  return scores;
-}
-```
-
-### Step 2: combineScores を更新
-
-同じファイル内の `combineScores()` を修正：
-
-```typescript
-export function combineScores(
-  game1Scores: Partial<BaselineScores>,
-  game2Scores: Partial<BaselineScores>,
-  game3Scores: Partial<BaselineScores>,  // ← 追加
-): BaselineScores {
-  return {
-    caution: game1Scores.caution || 50,
-    calmness: game2Scores.calmness || 50,
-    logic: Math.round(((game1Scores.logic || 0) + (game2Scores.logic || 0)) / 2),
-    cooperativeness: game3Scores.cooperativeness || 50,  // ← ゲーム3から取得
-    positivity: Math.round(
-      ((game2Scores.positivity || 0) + (game3Scores.positivity || 0)) / 2
-    ),  // ← ゲーム2と3の平均
-  };
-}
-```
-
-### Step 3: resultService.ts に反映（※ ここはあなたの担当外だけど参考用）
-
-`combineScores` に引数を追加したら、`src/services/resultService.ts` も更新が必要です。  
-分からなければ声をかけてください。
+- [x] **`calculateGame3Scores()`** のスタブ作成・配線 — ryu対応済み
+- [x] **`combineScores()`** のゲーム3対応 — ryu対応済み（引数に `game3Scores` 追加済み）
+- [x] **`resultService.ts`** でゲーム3の呼び出し — ryu対応済み
 
 ---
 
 ## 📐 5軸スコアの基準
 
-全て **0〜100** の整数値。
+全て **0～100** の整数値。
 
 | スコア | 意味 |
 |--------|------|
@@ -257,7 +243,7 @@ export function combineScores(
 | 50 | 平均的 |
 | 100 | その傾向が非常に強い |
 
-返り値は必ず `Math.min(100, Math.max(0, Math.round(値)))` で 0〜100 に収めてください。
+返り値は必ず `Math.min(100, Math.max(0, Math.round(値)))` で 0～100 に収めてください。
 
 ---
 
