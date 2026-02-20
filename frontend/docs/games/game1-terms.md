@@ -7,20 +7,20 @@
 
 ## 収集データ一覧
 
-| データ | 説明 | 参考: 関連する判定指標 |
-|---|---|---|
-| `totalTime` | ゲーム開始から同意/拒否ボタン押下までの滞在時間（秒） | 慎重さ |
-| `finalAction` | `"agree"` or `"disagree"` | — |
-| `reachedBottom` | スクロールが最下部（90%以上）に到達したか | 慎重さ |
-| `scrollEvents` | スクロール位置と経過時間のログ（200ms間隔で記録） | 冷静さ（速度安定性） |
-| `hiddenInput` | 第12条の隠し指示に対するユーザーの入力値（未入力なら `null`） | 論理性 |
-| `checkboxStates.readConfirm` | 第5条「読みました」チェックボックスの状態 | 慎重さ |
-| `checkboxStates.mailMagazine` | 第8条「メルマガ受信」チェックボックスの状態（初期値ON） | 慎重さ |
-| `checkboxStates.thirdPartyShare` | 第8条「第三者提供」チェックボックスの状態（初期値ON） | 慎重さ |
-| `popupStats.timeToClose` | ポップアップ表示から閉じるまでの時間（ms） | 冷静さ |
-| `popupStats.clickCount` | ポップアップを閉じるまでのクリック回数 | 冷静さ |
-| `popupStats.mouseJitter` | ポップアップ表示中のマウス余剰移動距離（px）。総移動距離 − 最短直線距離 | 冷静さ |
-| `agreeButtonHoverTimeMs` | 「同意する」ボタンにホバーしてからクリックまでの時間（ms） | 冷静さ |
+| データ                           | 説明                                                                    | 参考: 関連する判定指標 |
+| -------------------------------- | ----------------------------------------------------------------------- | ---------------------- |
+| `totalTime`                      | ゲーム開始から同意/拒否ボタン押下までの滞在時間（秒）                   | 慎重さ                 |
+| `finalAction`                    | `"agree"` or `"disagree"`                                               | —                      |
+| `reachedBottom`                  | スクロールが最下部（90%以上）に到達したか                               | 慎重さ                 |
+| `scrollEvents`                   | スクロール位置と経過時間のログ（200ms間隔で記録）                       | 冷静さ（速度安定性）   |
+| `hiddenInput`                    | 第12条の隠し指示に対するユーザーの入力値（未入力なら `null`）           | 論理性                 |
+| `checkboxStates.readConfirm`     | 第5条「読みました」チェックボックスの状態                               | 慎重さ                 |
+| `checkboxStates.mailMagazine`    | 第8条「メルマガ受信」チェックボックスの状態（初期値ON）                 | 慎重さ                 |
+| `checkboxStates.thirdPartyShare` | 第8条「第三者提供」チェックボックスの状態（初期値ON）                   | 慎重さ                 |
+| `popupStats.timeToClose`         | ポップアップ表示から閉じるまでの時間（ms）                              | 冷静さ                 |
+| `popupStats.clickCount`          | ポップアップを閉じるまでのクリック回数                                  | 冷静さ                 |
+| `popupStats.mouseJitter`         | ポップアップ表示中のマウス余剰移動距離（px）。総移動距離 − 最短直線距離 | 冷静さ                 |
+| `agreeButtonHoverTimeMs`         | 「同意する」ボタンにホバーしてからクリックまでの時間（ms）              | 冷静さ                 |
 
 ## Game1Data 型定義
 

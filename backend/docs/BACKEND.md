@@ -90,11 +90,11 @@ src/
 {
   "mbti": "ENTP",
   "baseline_answers": {
-    "q1_caution": "no",
-    "q2_calmness": "yes",
-    "q3_logic": "yes",
-    "q4_cooperativeness": "no",
-    "q5_positivity": "yes"
+    "q1_caution": "A",
+    "q2_calmness": "D",
+    "q3_logic": "B",
+    "q4_cooperativeness": "C",
+    "q5_positivity": "A"
   }
 }
 

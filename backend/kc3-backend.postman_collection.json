@@ -30,7 +30,7 @@
                 ],
                 "body": {
                     "mode": "raw",
-                    "raw": "{\n    \"mbti\": \"INTJ\",\n    \"baseline_scores\": {\n        \"caution\": 60,\n        \"calmness\": 70,\n        \"logic\": 80,\n        \"cooperativeness\": 40,\n        \"positivity\": 50\n    }\n}"
+                    "raw": "{\n    \"mbti\": \"INTJ\",\n    \"baseline_answers\": {\n        \"q1_caution\": \"A\",\n        \"q2_calmness\": \"D\",\n        \"q3_logic\": \"B\",\n        \"q4_cooperativeness\": \"C\",\n        \"q5_positivity\": \"A\"\n    }\n}"
                 },
                 "url": {
                     "raw": "{{base_url}}/register",

@@ -52,7 +52,9 @@ export default function TermsContent({
       </section>
 
       <section>
-        <h3 className="mb-2 font-bold">第4条（ユーザーIDおよびパスワードの管理）</h3>
+        <h3 className="mb-2 font-bold">
+          第4条（ユーザーIDおよびパスワードの管理）
+        </h3>
         <p>
           ユーザーは、自己の責任において、本サービスのユーザーIDおよびパスワードを管理するものとします。
           ユーザーは、いかなる場合にも、ユーザーIDおよびパスワードを第三者に譲渡または貸与し、
@@ -79,9 +81,7 @@ export default function TermsContent({
             onChange={(e) => onCheckboxChange('readConfirm', e.target.checked)}
             className="h-4 w-4"
           />
-          <span className="text-xs text-gray-500">
-            上記の内容を読みました
-          </span>
+          <span className="text-xs text-gray-500">上記の内容を読みました</span>
         </label>
       </section>
 

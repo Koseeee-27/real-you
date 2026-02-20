@@ -3,7 +3,11 @@
 import { useRef, useCallback, useEffect } from 'react';
 
 interface PopupAdProps {
-  onClose: (clickCount: number, timeToClose: number, mouseJitter: number) => void;
+  onClose: (
+    clickCount: number,
+    timeToClose: number,
+    mouseJitter: number
+  ) => void;
   appearedAt: number;
 }
 
@@ -77,7 +81,9 @@ export default function PopupAd({ onClose, appearedAt }: PopupAdProps) {
           ✕
         </button>
         <div className="pt-4 text-center">
-          <p className="text-lg font-bold text-red-500">期間限定キャンペーン!</p>
+          <p className="text-lg font-bold text-red-500">
+            期間限定キャンペーン!
+          </p>
           <p className="mt-2 text-sm text-gray-600">
             今なら初月無料！プレミアムプランにアップグレードしませんか？
           </p>

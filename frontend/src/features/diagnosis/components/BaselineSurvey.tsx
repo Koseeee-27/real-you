@@ -21,7 +21,9 @@ export default function BaselineSurvey() {
   const mbti = useAtomValue(mbtiAtom);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Partial<Record<QuestionKey, string>>>({});
+  const [answers, setAnswers] = useState<Partial<Record<QuestionKey, string>>>(
+    {}
+  );
   const [status, setStatus] = useState<Status>('answering');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -117,7 +119,9 @@ export default function BaselineSurvey() {
           <br />
           ゲームでのあなたの行動から、本当の性格を分析します。
         </p>
-        <p className="text-sm text-gray-400">まもなくゲーム画面に移動します...</p>
+        <p className="text-sm text-gray-400">
+          まもなくゲーム画面に移動します...
+        </p>
       </div>
     );
   }

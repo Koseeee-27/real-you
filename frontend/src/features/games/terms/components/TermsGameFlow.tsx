@@ -32,7 +32,7 @@ export default function TermsGameFlow() {
 
   // --- 以下は再レンダリング不要なデータをrefで管理 ---
   // ゲーム開始時刻（totalTime算出用）
-  const startTimeRef = useRef(Date.now());
+  const startTimeRef = useRef(0);
   // スクロール位置+経過時間のログ配列
   const scrollEventsRef = useRef<ScrollEvent[]>([]);
   // 最下部到達フラグ
@@ -41,10 +41,14 @@ export default function TermsGameFlow() {
   const lastScrollRecordRef = useRef(0);
   // スクロール領域のDOM参照
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  // ポップアップが表示された時刻（timeToClose算出用）
-  const popupAppearedAtRef = useRef(0);
+  // ポップアップが表示された時刻（timeToClose算出用）。レンダー時にJSXへ渡すためstateで管理
+  const [popupAppearedAt, setPopupAppearedAt] = useState(0);
   // ポップアップへの対応データ
-  const popupStatsRef = useRef({ timeToClose: 0, clickCount: 0, mouseJitter: 0 });
+  const popupStatsRef = useRef({
+    timeToClose: 0,
+    clickCount: 0,
+    mouseJitter: 0,
+  });
   // 「同意する」ボタンにホバーし始めた時刻
   const agreeHoverStartRef = useRef(0);
   // 各チェックボックスがユーザーによって変更されたかの追跡
@@ -55,6 +59,7 @@ export default function TermsGameFlow() {
   });
 
   useEffect(() => {
+    startTimeRef.current = Date.now();
     scrollEventsRef.current.push({
       position: 0,
       timestamp: 0,
@@ -63,7 +68,7 @@ export default function TermsGameFlow() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      popupAppearedAtRef.current = Date.now();
+      setPopupAppearedAt(Date.now());
       setShowPopup(true);
     }, POPUP_DELAY_MS);
     return () => clearTimeout(timer);
@@ -90,7 +95,10 @@ export default function TermsGameFlow() {
   }, []);
 
   const handleCheckboxChange = useCallback(
-    (key: 'readConfirm' | 'mailMagazine' | 'thirdPartyShare', checked: boolean) => {
+    (
+      key: 'readConfirm' | 'mailMagazine' | 'thirdPartyShare',
+      checked: boolean
+    ) => {
       checkboxChangedRef.current[key] = true;
       setCheckboxStates((prev) => ({ ...prev, [key]: checked }));
     },
@@ -122,9 +130,7 @@ export default function TermsGameFlow() {
 
   const buildGame1Data = useCallback(
     (action: 'agree' | 'disagree'): Game1Data => {
-      const totalTime = Math.round(
-        (Date.now() - startTimeRef.current) / 1000
-      );
+      const totalTime = Math.round((Date.now() - startTimeRef.current) / 1000);
 
       return {
         totalTime,
@@ -225,10 +231,7 @@ export default function TermsGameFlow() {
       </div>
 
       {showPopup && (
-        <PopupAd
-          onClose={handlePopupClose}
-          appearedAt={popupAppearedAtRef.current}
-        />
+        <PopupAd onClose={handlePopupClose} appearedAt={popupAppearedAt} />
       )}
     </div>
   );
