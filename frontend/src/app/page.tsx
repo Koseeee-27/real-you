@@ -8,7 +8,7 @@ export default function TopPage() {
         あなたの本当の性格を、ゲームを通じて診断します
       </p>
       <Link
-        href="/diagnosis"
+        href="/games/terms"
         className="rounded-lg bg-blue-600 px-8 py-3 text-lg font-semibold text-white transition hover:bg-blue-700"
       >
         診断スタート
