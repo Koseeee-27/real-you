@@ -26,7 +26,7 @@ app.use('/api/voice', voiceRouter);
 app.get('/health', async (req, res) => {
     try {
         const { supabase } = await import('./db/client');
-        const { error } = await supabase.from('users').select('id').limit(1);
+        const { error } = await supabase.from('users').select('*', { count: 'exact', head: true });
 
         if (error) throw error;
 
