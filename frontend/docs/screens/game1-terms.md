@@ -2,7 +2,7 @@
 
 **パス:** `/games/terms`
 
-**前画面:** `/diagnosis` → **現在:** `/games/terms` → **次画面:** `/games/helpdesk`
+**前画面:** `/`（トップ） → **現在:** `/games/terms` → **次画面:** `/diagnosis`
 
 **表示内容:**
 
@@ -30,4 +30,4 @@
 
 **完了時の動作:**
 
-- 次のゲーム画面（`/games/helpdesk`）へ自動遷移
+- 簡易診断画面（`/diagnosis`）へ自動遷移

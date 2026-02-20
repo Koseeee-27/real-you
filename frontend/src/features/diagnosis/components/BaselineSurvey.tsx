@@ -44,7 +44,7 @@ export default function BaselineSurvey() {
   //       setStatus('success');
   //
   //       setTimeout(() => {
-  //         router.push('/games/terms');
+  //         router.push('/games/helpdesk');
   //       }, 2000);
   //     } catch (err) {
   //       setStatus('error');
@@ -63,7 +63,7 @@ export default function BaselineSurvey() {
       setStatus('success');
 
       setTimeout(() => {
-        router.push('/games/terms');
+        router.push('/games/helpdesk');
       }, 2000);
     },
     [mbti, router]

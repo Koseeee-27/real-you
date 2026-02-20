@@ -156,7 +156,7 @@ export default function TermsGameFlow() {
 
       setIsCompleted(true);
       setTimeout(() => {
-        router.push('/games/helpdesk');
+        router.push('/diagnosis');
       }, 2000);
     },
     [buildGame1Data, router]
