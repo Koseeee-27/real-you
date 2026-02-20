@@ -111,9 +111,9 @@ export default function GroupChatGameFlow() {
             </p>
             <p className="mt-2 text-lg font-bold tracking-widest text-amber-300">
               {
-                ['First', 'Second', 'Third', 'Fourth', 'Final'][
+                (['First', 'Second', 'Third', 'Fourth', 'Final'][
                   currentStageIndex
-                ]
+                ] ?? 'Unknown')
               }{' '}
               Situation!
             </p>
@@ -158,7 +158,7 @@ export default function GroupChatGameFlow() {
 
             {chatMessages.map((msg, i) =>
               msg.type === 'bot' ? (
-                <div key={`msg-${i}`} className="flex items-start gap-2">
+                <div key={`s${currentStageIndex}-${i}-${msg.botId}`} className="flex items-start gap-2">
                   {(() => {
                     const bot = getBotByBotId(msg.botId);
                     return (
@@ -181,7 +181,7 @@ export default function GroupChatGameFlow() {
                   </div>
                 </div>
               ) : (
-                <div key={`msg-${i}`} className="flex justify-end">
+                <div key={`s${currentStageIndex}-${i}-user`} className="flex justify-end">
                   <div className="max-w-[70%] rounded-lg rounded-tr-none bg-green-400 px-3 py-2 text-sm text-white shadow-sm">
                     {msg.text}
                   </div>
@@ -231,6 +231,7 @@ export default function GroupChatGameFlow() {
                       key={idx}
                       type="button"
                       onMouseEnter={handleOptionHover}
+                      onFocus={handleOptionHover}
                       onClick={() => selectOption(idx + 1)}
                       className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 active:bg-gray-100"
                     >
@@ -246,6 +247,7 @@ export default function GroupChatGameFlow() {
                       key={idx}
                       type="button"
                       onMouseEnter={handleOptionHover}
+                      onFocus={handleOptionHover}
                       onClick={() => selectOption(idx + 1)}
                       className="flex items-center justify-center rounded-lg border border-gray-300 bg-white py-3 text-3xl transition-colors hover:bg-gray-50 active:bg-gray-100"
                     >

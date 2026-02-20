@@ -137,7 +137,9 @@ export function useGroupChatGame(options: {
       totalHoveredOptionsRef.current += hoveredOptionsCountRef.current;
       hoveredOptionsCountRef.current = 0;
 
-      // typingIndicatorReactTimeMsはステージ3(stageId===3)のみ保存
+      // タイピングインジケータのUI表示はステージ3,5の両方で行うが、
+      // バックエンド(scoreCalculator)が期待するのは単一値のため、
+      // データ計測対象はステージ3のみに限定する
       if (stage.stageId === 3 && typingIndicatorReactTimeMs != null) {
         stage3TypingReactRef.current = typingIndicatorReactTimeMs;
       }
