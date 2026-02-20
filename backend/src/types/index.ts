@@ -10,9 +10,19 @@ export interface BaselineScores {
   positivity: number;
 }
 
+export type AnswerOption = 'A' | 'B' | 'C' | 'D';
+
+export interface BaselineAnswers {
+  q1_caution: AnswerOption;
+  q2_calmness: AnswerOption;
+  q3_logic: AnswerOption;
+  q4_cooperativeness: AnswerOption;
+  q5_positivity: AnswerOption;
+}
+
 export interface RegisterRequest {
   mbti?: string | null; // オプショナル
-  baseline_scores: BaselineScores; // 必須
+  baseline_answers: BaselineAnswers; // 必須
 }
 
 export interface RegisterResponse {
@@ -54,6 +64,8 @@ export interface PhaseSummaries {
 export interface ResultResponse {
   user_id: string;
   self_mbti: string | null;
+  mbti_scores: BaselineScores | null; // MBTI理論値
+  mbti_scores: BaselineScores | null; // MBTI理論値スコア（スキップ時はnull）
   scores: BaselineScores; // 実測スコア
   baseline_scores: BaselineScores; // 自己申告スコア
   gaps: BaselineScores; // 差分
@@ -103,11 +115,11 @@ export const GAME_TYPES = {
 } as const;
 
 export const SCORE_KEYS = {
-  CAUTION: "caution",
-  CALMNESS: "calmness",
-  LOGIC: "logic",
-  COOPERATIVENESS: "cooperativeness",
-  POSITIVITY: "positivity",
+  CAUTION: 'caution',
+  CALMNESS: 'calmness',
+  LOGIC: 'logic',
+  COOPERATIVENESS: 'cooperativeness',
+  POSITIVITY: 'positivity',
 } as const;
 
 export type ScoreKey = typeof SCORE_KEYS[keyof typeof SCORE_KEYS];
