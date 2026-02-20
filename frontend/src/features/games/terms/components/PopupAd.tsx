@@ -1,14 +1,53 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 
 interface PopupAdProps {
-  onClose: (clickCount: number, timeToClose: number) => void;
+  onClose: (clickCount: number, timeToClose: number, mouseJitter: number) => void;
   appearedAt: number;
 }
 
 export default function PopupAd({ onClose, appearedAt }: PopupAdProps) {
   const clickCountRef = useRef(0);
+  // mouseJitter 計測用: 総移動距離と始点・終点の座標を記録
+  const totalDistanceRef = useRef(0);
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+  const firstPosRef = useRef<{ x: number; y: number } | null>(null);
+  const currentPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const pos = { x: e.clientX, y: e.clientY };
+
+      if (!firstPosRef.current) {
+        firstPosRef.current = pos;
+      }
+
+      if (lastPosRef.current) {
+        const dx = pos.x - lastPosRef.current.x;
+        const dy = pos.y - lastPosRef.current.y;
+        totalDistanceRef.current += Math.sqrt(dx * dx + dy * dy);
+      }
+
+      lastPosRef.current = pos;
+      currentPosRef.current = pos;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  const calcMouseJitter = useCallback(() => {
+    const first = firstPosRef.current;
+    const current = currentPosRef.current;
+    if (!first || !current) return 0;
+
+    const dx = current.x - first.x;
+    const dy = current.y - first.y;
+    const straightLine = Math.sqrt(dx * dx + dy * dy);
+
+    return Math.round((totalDistanceRef.current - straightLine) * 10) / 10;
+  }, []);
 
   const handleOverlayClick = useCallback(() => {
     clickCountRef.current += 1;
@@ -17,8 +56,9 @@ export default function PopupAd({ onClose, appearedAt }: PopupAdProps) {
   const handleClose = useCallback(() => {
     clickCountRef.current += 1;
     const timeToClose = Date.now() - appearedAt;
-    onClose(clickCountRef.current, timeToClose);
-  }, [onClose, appearedAt]);
+    const mouseJitter = Math.max(0, calcMouseJitter());
+    onClose(clickCountRef.current, timeToClose, mouseJitter);
+  }, [onClose, appearedAt, calcMouseJitter]);
 
   return (
     <div

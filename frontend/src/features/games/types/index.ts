@@ -30,6 +30,8 @@ export interface CheckboxState {
 export interface PopupStats {
   timeToClose: number;
   clickCount: number;
+  // ポップアップ表示中のマウス余剰移動距離（px）。総移動距離 − 最短直線距離
+  mouseJitter: number;
 }
 
 export interface Game1Data {
@@ -44,4 +46,6 @@ export interface Game1Data {
     thirdPartyShare: CheckboxState;
   };
   popupStats: PopupStats;
+  // 「同意する」ボタンにホバーしてからクリックするまでの時間（ms）
+  agreeButtonHoverTimeMs: number;
 }

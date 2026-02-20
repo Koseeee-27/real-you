@@ -44,7 +44,9 @@ export default function TermsGameFlow() {
   // ポップアップが表示された時刻（timeToClose算出用）
   const popupAppearedAtRef = useRef(0);
   // ポップアップへの対応データ
-  const popupStatsRef = useRef({ timeToClose: 0, clickCount: 0 });
+  const popupStatsRef = useRef({ timeToClose: 0, clickCount: 0, mouseJitter: 0 });
+  // 「同意する」ボタンにホバーし始めた時刻
+  const agreeHoverStartRef = useRef(0);
   // 各チェックボックスがユーザーによって変更されたかの追跡
   const checkboxChangedRef = useRef({
     readConfirm: false,
@@ -100,12 +102,23 @@ export default function TermsGameFlow() {
   }, []);
 
   const handlePopupClose = useCallback(
-    (clickCount: number, timeToClose: number) => {
-      popupStatsRef.current = { clickCount, timeToClose };
+    (clickCount: number, timeToClose: number, mouseJitter: number) => {
+      popupStatsRef.current = { clickCount, timeToClose, mouseJitter };
       setShowPopup(false);
     },
     []
   );
+
+  const handleAgreeHoverStart = useCallback(() => {
+    if (agreeHoverStartRef.current === 0) {
+      agreeHoverStartRef.current = Date.now();
+    }
+  }, []);
+
+  const getAgreeButtonHoverTimeMs = useCallback(() => {
+    if (agreeHoverStartRef.current === 0) return 0;
+    return Date.now() - agreeHoverStartRef.current;
+  }, []);
 
   const buildGame1Data = useCallback(
     (action: 'agree' | 'disagree'): Game1Data => {
@@ -134,9 +147,10 @@ export default function TermsGameFlow() {
           },
         },
         popupStats: popupStatsRef.current,
+        agreeButtonHoverTimeMs: getAgreeButtonHoverTimeMs(),
       };
     },
-    [hiddenInputValue, checkboxStates]
+    [hiddenInputValue, checkboxStates, getAgreeButtonHoverTimeMs]
   );
 
   const handleAction = useCallback(
@@ -202,6 +216,7 @@ export default function TermsGameFlow() {
           </button>
           <button
             onClick={() => handleAction('agree')}
+            onMouseEnter={handleAgreeHoverStart}
             className="rounded bg-blue-600 px-6 py-2 text-sm font-bold text-white hover:bg-blue-700"
           >
             同意する

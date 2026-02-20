@@ -19,6 +19,8 @@
 | `checkboxStates.thirdPartyShare` | 第8条「第三者提供」チェックボックスの状態（初期値ON） | 慎重さ |
 | `popupStats.timeToClose` | ポップアップ表示から閉じるまでの時間（ms） | 冷静さ |
 | `popupStats.clickCount` | ポップアップを閉じるまでのクリック回数 | 冷静さ |
+| `popupStats.mouseJitter` | ポップアップ表示中のマウス余剰移動距離（px）。総移動距離 − 最短直線距離 | 冷静さ |
+| `agreeButtonHoverTimeMs` | 「同意する」ボタンにホバーしてからクリックまでの時間（ms） | 冷静さ |
 
 ## Game1Data 型定義
 
@@ -41,8 +43,10 @@
   },
   "popupStats": {
     "timeToClose": 1200,
-    "clickCount": 1
-  }
+    "clickCount": 1,
+    "mouseJitter": 45.5
+  },
+  "agreeButtonHoverTimeMs": 800
 }
 ```
 
@@ -60,6 +64,8 @@
 - `popupStats` (object): ポップアップ広告への対応
   - `timeToClose` (number): 閉じるまでの時間（ms）
   - `clickCount` (number): 閉じるまでのクリック回数
+  - `mouseJitter` (number): マウス余剰移動距離（px）。総移動距離 − 最短直線距離
+- `agreeButtonHoverTimeMs` (number): 「同意する」ボタンにホバーしてからクリックまでの時間（ms）
 
 ## API連携
 
