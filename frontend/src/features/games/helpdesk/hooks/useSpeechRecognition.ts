@@ -90,6 +90,7 @@ export function useSpeechRecognition(options: {
     };
 
     recognition.onend = () => {
+      if (!recognitionRef.current) return;
       const final = accumulatedRef.current.trim();
       onResult(final);
       accumulatedRef.current = '';

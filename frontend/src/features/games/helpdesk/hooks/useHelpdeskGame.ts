@@ -66,6 +66,7 @@ export function useHelpdeskGame(options: {
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
 
   // --- 再レンダリング不要なデータを ref で管理 ---
+  const currentTurnRef = useRef(0);
   const inputMethodRef = useRef(inputMethod);
   const timerIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingAudioMetricsRef = useRef<AudioMetricsResult | null>(null); // 録音停止〜onResult の間に一時保持
@@ -90,21 +91,20 @@ export function useHelpdeskGame(options: {
    * 次のターンがあれば support-speaking へ、最終ターンなら submitting へ遷移。
    */
   const advanceAfterUserTurn = useCallback(() => {
-    setCurrentTurn((prev) => {
-      const nextTurn = prev + 1;
-      if (nextTurn >= MAX_TURNS) {
-        setGamePhase('submitting');
-      } else {
-        const supportText = SUPPORT_RESPONSES[nextTurn];
-        setChatHistory((prevChat) => [
-          ...prevChat,
-          { role: 'support', text: supportText },
-        ]);
-        setGamePhase('support-speaking');
-        setRemainingTimeMs(TURN_TIME_LIMIT_MS);
-      }
-      return nextTurn;
-    });
+    const nextTurn = currentTurnRef.current + 1;
+    currentTurnRef.current = nextTurn;
+    setCurrentTurn(nextTurn);
+
+    if (nextTurn >= MAX_TURNS) {
+      setGamePhase('submitting');
+    } else {
+      setChatHistory((prevChat) => [
+        ...prevChat,
+        { role: 'support', text: SUPPORT_RESPONSES[nextTurn] },
+      ]);
+      setGamePhase('support-speaking');
+      setRemainingTimeMs(TURN_TIME_LIMIT_MS);
+    }
   }, []);
 
   // =========================================================

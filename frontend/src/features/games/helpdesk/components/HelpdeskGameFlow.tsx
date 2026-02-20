@@ -79,7 +79,11 @@ export default function HelpdeskGameFlow() {
             <p className="mt-6 whitespace-pre-line text-xl font-bold leading-relaxed text-white drop-shadow-lg">
               {instructionText}
             </p>
-            <p className="mt-10 animate-pulse text-sm text-white/70">
+            <p className="mt-6 text-sm leading-relaxed text-white/80">
+              ※ 一部の環境では音声入力が利用できない場合があります。{'\n'}
+              その場合はテキスト入力で返答してください。
+            </p>
+            <p className="mt-8 animate-pulse text-sm text-white/70">
               タップして開始
             </p>
           </div>
