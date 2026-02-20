@@ -10,14 +10,14 @@ export interface BaselineScores {
   positivity: number;
 }
 
-export type YesNo = 'yes' | 'no';
+export type AnswerOption = 'A' | 'B' | 'C' | 'D';
 
 export interface BaselineAnswers {
-  q1_caution: YesNo;
-  q2_calmness: YesNo;
-  q3_logic: YesNo;
-  q4_cooperativeness: YesNo;
-  q5_positivity: YesNo;
+  q1_caution: AnswerOption;
+  q2_calmness: AnswerOption;
+  q3_logic: AnswerOption;
+  q4_cooperativeness: AnswerOption;
+  q5_positivity: AnswerOption;
 }
 
 export interface RegisterRequest {

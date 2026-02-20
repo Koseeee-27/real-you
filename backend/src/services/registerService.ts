@@ -2,9 +2,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { userRepository } from '../repositories/userRepository';
 import { BaselineAnswers, BaselineScores } from '../types';
 
-// yes/no → 数値変換
+// 回答 → スコア変換マップ
+const SCORE_MAP: Record<string, number> = {
+    'A': 100, // Strongly Agree
+    'B': 75,  // Agree
+    'C': 25,  // Disagree (Skip 50 to force choice)
+    'D': 0,   // Strongly Disagree
+};
+
 function convertAnswersToScores(answers: BaselineAnswers): BaselineScores {
-    const convert = (value: string): number => value === 'yes' ? 100 : 0;
+    const convert = (value: string): number => SCORE_MAP[value] ?? 50;
     return {
         caution: convert(answers.q1_caution),
         calmness: convert(answers.q2_calmness),
@@ -29,13 +36,14 @@ export const registerService = {
             throw { status: 400, code: 'invalid_request', message: `Missing baseline_answers keys: ${missingKeys.join(', ')}` };
         }
 
-        const validValues = ['yes', 'no'];
+        const validValues = ['A', 'B', 'C', 'D'];
         const invalidKeys = requiredKeys.filter(k => !validValues.includes((baselineAnswers as any)[k]));
         if (invalidKeys.length > 0) {
-            throw { status: 400, code: 'invalid_answers', message: `Answers must be "yes" or "no". Invalid: ${invalidKeys.join(', ')}` };
+            // エラーメッセージで有効な値を案内
+            throw { status: 400, code: 'invalid_answers', message: `Answers must be one of [${validValues.join(', ')}]. Invalid keys: ${invalidKeys.join(', ')}` };
         }
 
-        // yes/no → 数値に変換
+        // A-E → 数値に変換
         const baselineScores = convertAnswersToScores(baselineAnswers);
 
         const userId = uuidv4();
