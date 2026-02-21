@@ -241,31 +241,25 @@ export function useHelpdeskGame(options: {
 
   // POST /api/voice/respond で AI 応答を取得し、チャットに追加 → TTS 読み上げ → user-input へ遷移。
   // API 失敗時は voice-api-error に遷移し、リトライを促す（モックデータは使用しない）。
-  const addSupportResponseAndSpeak = useCallback(
-    (supportText: string) => {
-      setChatHistory((prev) => [
-        ...prev,
-        { role: 'support', text: supportText },
-      ]);
+  const addSupportResponseAndSpeak = useCallback((supportText: string) => {
+    setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
 
-      const transitionToInput = () => {
-        setGamePhase('user-input');
-        setRemainingTimeMs(TURN_TIME_LIMIT_MS);
-      };
+    const transitionToInput = () => {
+      setGamePhase('user-input');
+      setRemainingTimeMs(TURN_TIME_LIMIT_MS);
+    };
 
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        const utterance = new SpeechSynthesisUtterance(supportText);
-        utterance.lang = 'ja-JP';
-        utterance.rate = 1.1;
-        utterance.onend = transitionToInput;
-        utterance.onerror = transitionToInput;
-        window.speechSynthesis.speak(utterance);
-      } else {
-        requestAnimationFrame(transitionToInput);
-      }
-    },
-    []
-  );
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const utterance = new SpeechSynthesisUtterance(supportText);
+      utterance.lang = 'ja-JP';
+      utterance.rate = 1.1;
+      utterance.onend = transitionToInput;
+      utterance.onerror = transitionToInput;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      requestAnimationFrame(transitionToInput);
+    }
+  }, []);
 
   useEffect(() => {
     if (gamePhase !== 'support-speaking') return;

@@ -89,9 +89,7 @@ export default function BaselineSurvey() {
   if (status === 'error') {
     return (
       <div className="flex w-full max-w-md flex-col items-center gap-4">
-        <p className="text-lg font-semibold text-red-600">
-          通信に失敗しました
-        </p>
+        <p className="text-lg font-semibold text-red-600">通信に失敗しました</p>
         <button
           onClick={handleRetry}
           className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
