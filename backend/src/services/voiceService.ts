@@ -2,14 +2,9 @@
  * voiceService.ts
  *
  * 戦略:
- * 1. 複数Geminiモデルに同時並列リクエスト（Promise.any）
- * 2. 最大5秒タイムアウト（AbortController）
- * 3. タイムアウト or 全失敗 → キーワードベースのフォールバック
- *
- * フロントへの影響: ゼロ（レスポンス形式変わらず）
+ * 1. Gemini にリクエスト（最大5秒タイムアウト）
+ * 2. 失敗時はエラーをスロー（モック/フォールバックは使用しない）
  */
-
-import { getKeywordFallback } from './fallbackService';
 
 const GEMINI_TIMEOUT_MS = 5000;
 
@@ -115,6 +110,8 @@ async function callGeminiSequential(
 // メインの voiceService
 // ============================
 
+import { getKeywordFallback } from './fallbackService';
+
 export const voiceService = {
     async generateAiResponse(
         message: string,
@@ -126,7 +123,6 @@ export const voiceService = {
 
         const apiKey = process.env.GEMINI_API_KEY;
 
-        // APIキーなし → 即フォールバック
         if (!apiKey) {
             console.warn('[voiceService] GEMINI_API_KEY not set. Using fallback.');
             return getKeywordFallback(message);
@@ -135,8 +131,8 @@ export const voiceService = {
         try {
             return await callGeminiSequential(message, conversationHistory ?? [], apiKey);
         } catch (err: any) {
-            const reason = err?.name === 'AbortError' ? 'timeout(5s)' : 'all models failed';
-            console.warn(`[voiceService] Gemini failed (${reason}). Using keyword fallback.`);
+            const reason = err?.name === 'AbortError' ? 'タイムアウト' : err?.message || '不明なエラー';
+            console.warn('[voiceService] Gemini failed:', reason, '- Using fallback response.');
             return getKeywordFallback(message);
         }
     },

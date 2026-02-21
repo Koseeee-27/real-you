@@ -1,5 +1,9 @@
 import type { ResultResponse } from '../types';
 
+/**
+ * @deprecated 現在未使用。useResult.ts は実APIに切り替え済み。
+ * ローカル開発・テスト時のリファレンスとして残している。
+ */
 export const MOCK_RESULT: ResultResponse = {
   user_id: 'uuid-1234-5678',
   self_mbti: 'ENTP',

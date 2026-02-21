@@ -4,9 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSetAtom } from 'jotai';
 import type { ResultResponse } from '@/features/result/types';
 import { resultAtom } from '@/stores/result';
-import { MOCK_RESULT } from '../data/mockResult';
-// TODO: バックエンド接続時にコメントアウトを解除する
-// import { getResult } from '@/lib/api';
+import { getResult } from '@/lib/api';
 
 const MIN_LOADING_MS = 2000;
 
@@ -15,12 +13,10 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function fetchResult(): Promise<ResultResponse> {
-  // --- バックエンド接続時にここを切り替え ---
-  // const userId = typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
-  // if (!userId) throw new Error('ユーザーが見つかりません');
-  // return await getResult(userId);
-  return MOCK_RESULT;
-  // --- ここまで ---
+  const userId =
+    typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
+  if (!userId) throw new Error('ユーザーが見つかりません');
+  return await getResult(userId);
 }
 
 export type ResultStatus = 'loading' | 'error' | 'success';
