@@ -49,7 +49,16 @@ export interface UserTimelineMessage {
   text: string;
 }
 
-export type ChatMessage = TimelineMessage | UserTimelineMessage;
+/** 日付等の区切り線メッセージ */
+export interface SeparatorTimelineMessage {
+  type: 'separator';
+  label: string;
+}
+
+export type ChatMessage =
+  | TimelineMessage
+  | UserTimelineMessage
+  | SeparatorTimelineMessage;
 
 /**
  * Game 3（空気読みグループチャット）全体のステート管理フック。
@@ -153,6 +162,11 @@ export function useGroupChatGame(options: {
       if (nextIndex >= TOTAL_STAGES) {
         setGamePhase('submitting');
       } else {
+        // 次のステージの開始を示すセパレーターを挿入
+        setChatMessages((prev) => [
+          ...prev,
+          { type: 'separator', label: `--- ${STAGES[nextIndex].dayLabel} ---` },
+        ]);
         setCurrentStageIndex(nextIndex);
         setVisibleMessageCount(0);
         setGamePhase('stage-cutin');
@@ -170,7 +184,10 @@ export function useGroupChatGame(options: {
     if (gamePhase !== 'tutorial') return;
     tutorialViewTimeRef.current = Date.now() - tutorialOpenedAtRef.current;
     setCurrentStageIndex(0);
-    setChatMessages([]);
+    setChatMessages([
+      { type: 'separator', label: 'TODAY' },
+      { type: 'separator', label: `--- ${STAGES[0].dayLabel} ---` },
+    ]);
     setVisibleMessageCount(0);
     stageResultsRef.current = [];
     totalHoveredOptionsRef.current = 0;
