@@ -79,12 +79,7 @@ export default function MetricsBarChart({
             ))}
           </Bar>
 
-          <Bar
-            dataKey="average"
-            name="平均"
-            barSize={12}
-            radius={[0, 6, 6, 0]}
-          >
+          <Bar dataKey="average" name="平均" barSize={12} radius={[0, 6, 6, 0]}>
             {metrics.map((_, i) => (
               <Cell key={`avg-${i}`} fill={averageBarColor} />
             ))}
