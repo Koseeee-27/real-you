@@ -101,10 +101,7 @@ export default function HelpdeskGameFlow() {
       className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#99c2ff] bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/images/game2_backcground.png')" }}
     >
-      {/* 画面左上: カスタマーサポートセンター ラベル */}
-      <div className="absolute left-0 top-0 z-20 rounded-br-lg border-b-[4px] border-r-[4px] border-black bg-gray-400 px-4 py-2 shadow-sm font-black text-black">
-        カスタマーサポートセンター
-      </div>
+
 
       {/* 画面右上: キーボード入力 切替ボタン */}
       {inputMethod === 'voice' &&
