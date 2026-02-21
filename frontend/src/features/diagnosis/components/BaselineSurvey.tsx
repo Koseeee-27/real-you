@@ -22,9 +22,9 @@ export default function BaselineSurvey() {
   const mbti = useAtomValue(mbtiAtom);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Partial<Record<QuestionKey, AnswerOption>>>(
-    {}
-  );
+  const [answers, setAnswers] = useState<
+    Partial<Record<QuestionKey, AnswerOption>>
+  >({});
   const [status, setStatus] = useState<Status>('answering');
   const [errorMessage, setErrorMessage] = useState('');
 
