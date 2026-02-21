@@ -99,8 +99,8 @@ export default function GroupChatGameFlow() {
 
   return (
     <div
-      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-4"
-      style={{ backgroundColor: '#F0D44A' }}
+      className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden p-4"
+      style={{ backgroundColor: '#F0D44A', height: '100dvh' }}
     >
       {/* 背景のドット模様（CSSで描画） */}
       <div
