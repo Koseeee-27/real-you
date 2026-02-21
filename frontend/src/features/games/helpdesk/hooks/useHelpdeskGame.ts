@@ -6,8 +6,10 @@ import type {
   Game2Turn,
   TextInputMetrics,
 } from '@/features/games/types';
+import { postVoiceRespond } from '@/lib/api';
 import {
   GAME_TOPIC,
+  INITIAL_SUPPORT_MESSAGE,
   INSTRUCTION_TEXT,
   MAX_TURNS,
   SUPPORT_RESPONSES,
@@ -66,6 +68,7 @@ export function useHelpdeskGame(options: {
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
 
   // --- 再レンダリング不要なデータを ref で管理 ---
+  const chatHistoryRef = useRef<ChatMessage[]>([]);
   const currentTurnRef = useRef(0);
   const inputMethodRef = useRef(inputMethod);
   const timerIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -98,12 +101,7 @@ export function useHelpdeskGame(options: {
     if (nextTurn >= MAX_TURNS) {
       setGamePhase('submitting');
     } else {
-      setChatHistory((prevChat) => [
-        ...prevChat,
-        { role: 'support', text: SUPPORT_RESPONSES[nextTurn] },
-      ]);
       setGamePhase('support-speaking');
-      setRemainingTimeMs(TURN_TIME_LIMIT_MS);
     }
   }, []);
 
@@ -172,6 +170,9 @@ export function useHelpdeskGame(options: {
     turnsRef.current = turns;
   }, [turns]);
   useEffect(() => {
+    chatHistoryRef.current = chatHistory;
+  }, [chatHistory]);
+  useEffect(() => {
     inputMethodRef.current = inputMethod;
   }, [inputMethod]);
 
@@ -232,41 +233,84 @@ export function useHelpdeskGame(options: {
   // サポート担当の TTS 読み上げ → user-input へ遷移
   // =========================================================
 
-  // チャット履歴への追加は advanceAfterUserTurn / startGame 側で実施済み。
-  // このエフェクトは TTS（外部システム）へのサブスクリプションのみ行う。
-  //
-  // TODO: バックエンド接続時に POST /api/voice/respond を呼び出し、
-  // ユーザー発言 + 会話履歴を送信して AI 生成応答を取得する。
-  // 現在は SUPPORT_RESPONSES のハードコードで代替。
+  // POST /api/voice/respond で AI 応答を取得し、チャットに追加 → TTS 読み上げ → user-input へ遷移。
+  // API 失敗時は SUPPORT_RESPONSES のハードコードにフォールバックする。
   useEffect(() => {
     if (gamePhase !== 'support-speaking') return;
-    const supportText = SUPPORT_RESPONSES[currentTurn];
 
     let cancelled = false;
     let fallbackId = 0;
 
-    const transitionToInput = () => {
-      if (!cancelled) {
-        setGamePhase('user-input');
-        setRemainingTimeMs(TURN_TIME_LIMIT_MS);
+    const fetchAndSpeak = async () => {
+      let supportText: string;
+
+      if (currentTurn === 0) {
+        supportText = INITIAL_SUPPORT_MESSAGE;
+      } else {
+        const history = chatHistoryRef.current;
+        const lastUserMsg = [...history]
+          .reverse()
+          .find((m) => m.role === 'user');
+        const userMessage = lastUserMsg?.text || GAME_TOPIC;
+
+        const conversationHistory = history.map((m) => ({
+          role: (m.role === 'support' ? 'assistant' : 'user') as
+            | 'user'
+            | 'assistant',
+          content: m.text,
+        }));
+
+        try {
+          const userId =
+            typeof window !== 'undefined'
+              ? localStorage.getItem('user_id')
+              : null;
+          if (!userId) throw new Error('user_id not found');
+          const result = await postVoiceRespond({
+            user_id: userId,
+            message: userMessage,
+            conversation_history: conversationHistory,
+          });
+          supportText = result.response;
+        } catch (err) {
+          console.warn('AI応答取得失敗、フォールバック使用:', err);
+          supportText =
+            SUPPORT_RESPONSES[currentTurn] ??
+            'もう少し詳しく教えていただけますか？';
+        }
+      }
+
+      if (cancelled) return;
+
+      setChatHistory((prev) => [
+        ...prev,
+        { role: 'support', text: supportText },
+      ]);
+
+      const transitionToInput = () => {
+        if (!cancelled) {
+          setGamePhase('user-input');
+          setRemainingTimeMs(TURN_TIME_LIMIT_MS);
+        }
+      };
+
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        const utterance = new SpeechSynthesisUtterance(supportText);
+        utterance.lang = 'ja-JP';
+        utterance.rate = 1.1;
+        utterance.onend = transitionToInput;
+        utterance.onerror = transitionToInput;
+        window.speechSynthesis.speak(utterance);
+      } else {
+        fallbackId = requestAnimationFrame(transitionToInput);
       }
     };
 
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      const utterance = new SpeechSynthesisUtterance(supportText);
-      utterance.lang = 'ja-JP';
-      utterance.rate = 1.1;
-      utterance.onend = transitionToInput;
-      utterance.onerror = transitionToInput;
-      window.speechSynthesis.speak(utterance);
-    } else {
-      // TTS 非対応: 次フレームで非同期遷移
-      fallbackId = requestAnimationFrame(transitionToInput);
-    }
+    fetchAndSpeak();
 
     return () => {
       cancelled = true;
-      cancelAnimationFrame(fallbackId);
+      if (fallbackId) cancelAnimationFrame(fallbackId);
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
@@ -384,8 +428,6 @@ export function useHelpdeskGame(options: {
   /** 指示ポップアップから「相談を始める」を押したとき */
   const startGame = useCallback(() => {
     if (gamePhase !== 'instruction') return;
-    const supportText = SUPPORT_RESPONSES[0];
-    setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
     setGamePhase('support-speaking');
   }, [gamePhase]);
 
