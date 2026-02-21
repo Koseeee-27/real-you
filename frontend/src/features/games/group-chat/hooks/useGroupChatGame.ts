@@ -343,13 +343,14 @@ export function useGroupChatGame(options: {
   );
 
   /** 選択肢にマウスを乗せたとき（迷いの計測用） */
-  /** optionId: 1〜4。別の選択肢に移ったときだけカウント（BEは0〜5回想定） */
+  /** optionId: 1〜4。別の選択肢に移ったときだけカウント（BEは0〜5回想定）。各ステージの最初の1回はカウントしない */
   const handleOptionHover = useCallback(
     (optionId: number) => {
       if (gamePhase !== 'waiting-input') return;
       if (lastHoveredOptionIdRef.current === optionId) return;
+      const isMovingFromAnother = lastHoveredOptionIdRef.current !== null;
       lastHoveredOptionIdRef.current = optionId;
-      hoveredOptionsCountRef.current += 1;
+      if (isMovingFromAnother) hoveredOptionsCountRef.current += 1;
     },
     [gamePhase]
   );
