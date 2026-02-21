@@ -234,8 +234,8 @@ export default function GroupChatGameFlow() {
                     <button
                       key={idx}
                       type="button"
-                      onMouseEnter={handleOptionHover}
-                      onFocus={handleOptionHover}
+                      onMouseEnter={() => handleOptionHover(idx + 1)}
+                      onFocus={() => handleOptionHover(idx + 1)}
                       onClick={() => selectOption(idx + 1)}
                       className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 active:bg-gray-100"
                     >
@@ -250,8 +250,8 @@ export default function GroupChatGameFlow() {
                     <button
                       key={idx}
                       type="button"
-                      onMouseEnter={handleOptionHover}
-                      onFocus={handleOptionHover}
+                      onMouseEnter={() => handleOptionHover(idx + 1)}
+                      onFocus={() => handleOptionHover(idx + 1)}
                       onClick={() => selectOption(idx + 1)}
                       className="flex items-center justify-center rounded-lg border border-gray-300 bg-white py-3 text-3xl transition-colors hover:bg-gray-50 active:bg-gray-100"
                     >

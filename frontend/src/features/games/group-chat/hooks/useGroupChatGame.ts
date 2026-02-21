@@ -82,8 +82,10 @@ export function useGroupChatGame(options: {
   const tutorialOpenedAtRef = useRef<number>(0);
   const optionsShownAtRef = useRef<number>(0);
   const typingIndicatorShownAtRef = useRef<number>(0);
-  /** 現ステージでの選択肢ホバー回数（ステージ切替ごとにリセット） */
+  /** 現ステージでの選択肢ホバー回数（別の選択肢へ移ったときのみ加算、ステージ切替でリセット） */
   const hoveredOptionsCountRef = useRef(0);
+  /** 最後にホバーした選択肢ID（1〜4）。同じボタンでの細かいenter発火を無視するため */
+  const lastHoveredOptionIdRef = useRef<number | null>(null);
   /** 全ステージ通じたホバー回数の累計（Game3Dataトップレベルに渡す） */
   const totalHoveredOptionsRef = useRef(0);
   /** ステージ3の「○○が返信中」表示〜ユーザー操作までの時間(ms) */
@@ -136,6 +138,7 @@ export function useGroupChatGame(options: {
       // hoveredOptionsは全ステージの累計をトップレベルに渡す
       totalHoveredOptionsRef.current += hoveredOptionsCountRef.current;
       hoveredOptionsCountRef.current = 0;
+      lastHoveredOptionIdRef.current = null;
 
       // タイピングインジケータのUI表示はステージ3,5の両方で行うが、
       // バックエンド(scoreCalculator)が期待するのは単一値のため、
@@ -171,6 +174,7 @@ export function useGroupChatGame(options: {
     setVisibleMessageCount(0);
     stageResultsRef.current = [];
     totalHoveredOptionsRef.current = 0;
+    lastHoveredOptionIdRef.current = null;
     stage3TypingReactRef.current = null;
     setGamePhase('stage-cutin');
   }, [gamePhase]);
@@ -339,11 +343,16 @@ export function useGroupChatGame(options: {
   );
 
   /** 選択肢にマウスを乗せたとき（迷いの計測用） */
-  const handleOptionHover = useCallback(() => {
-    if (gamePhase === 'waiting-input') {
+  /** optionId: 1〜4。別の選択肢に移ったときだけカウント（BEは0〜5回想定） */
+  const handleOptionHover = useCallback(
+    (optionId: number) => {
+      if (gamePhase !== 'waiting-input') return;
+      if (lastHoveredOptionIdRef.current === optionId) return;
+      lastHoveredOptionIdRef.current = optionId;
       hoveredOptionsCountRef.current += 1;
-    }
-  }, [gamePhase]);
+    },
+    [gamePhase]
+  );
 
   // =========================================================
   // ゲーム終了 → Game3Data組み立て → onComplete
