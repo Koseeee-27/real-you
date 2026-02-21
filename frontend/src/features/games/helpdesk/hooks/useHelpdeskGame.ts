@@ -10,6 +10,7 @@ import { postVoiceRespond } from '@/lib/api';
 import {
   GAME_TOPIC,
   INITIAL_SUPPORT_MESSAGE,
+  FINAL_SUPPORT_MESSAGE,
   INSTRUCTION_TEXT,
   INITIAL_HINTS,
   DEFAULT_HINTS,
@@ -138,7 +139,7 @@ export function useHelpdeskGame(options: {
     currentTurnRef.current = nextTurn;
     setCurrentTurn(nextTurn);
 
-    if (nextTurn >= MAX_TURNS) {
+    if (nextTurn > MAX_TURNS) {
       setGamePhase('submitting');
     } else {
       setGamePhase('support-speaking');
@@ -305,8 +306,12 @@ export function useHelpdeskGame(options: {
     }
 
     const transitionToInput = () => {
-      setGamePhase('user-input');
-      setRemainingTimeMs(TURN_TIME_LIMIT_MS);
+      if (currentTurnRef.current >= MAX_TURNS) {
+        setGamePhase('submitting');
+      } else {
+        setGamePhase('user-input');
+        setRemainingTimeMs(TURN_TIME_LIMIT_MS);
+      }
     };
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -332,6 +337,8 @@ export function useHelpdeskGame(options: {
 
       if (currentTurn === 0) {
         supportText = INITIAL_SUPPORT_MESSAGE;
+      } else if (currentTurn === MAX_TURNS) {
+        supportText = FINAL_SUPPORT_MESSAGE;
       } else {
         const history = chatHistoryRef.current;
         const lastUserMsg = [...history]
