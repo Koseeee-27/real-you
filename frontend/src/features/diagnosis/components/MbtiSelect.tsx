@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSetAtom } from 'jotai';
 import { mbtiAtom, diagnosisStepAtom } from '@/stores/diagnosis';
@@ -8,10 +9,21 @@ import { MBTI_TYPES, MBTI_GROUPS, type MbtiType } from '@/constants/mbti';
 
 // タブとカードで同じ色を使用（ジャンルごと）
 const GROUP_COLORS = [
-  'bg-[#e8d5e8]',   // 分析家 - light purple
-  'bg-[#7eb8c9]',   // 外交官 - teal
-  'bg-[#87ceeb]',   // 番人 - light blue
-  'bg-[#f5d89a]',   // 探検家 - light orange
+  'bg-[#E5A1F4]',   // 分析家 - light purple
+  'bg-[#89F1C8]',   // 外交官 - teal
+  'bg-[#8EE3FA]',   // 番人 - light blue
+  'bg-[#FFD77B]',   // 探検家 - light orange
+] as const;
+
+// 水玉模様用（ジャンルごとの色・HEX）
+const GROUP_COLOR_HEX = ['#E5A1F4', '#89F1C8', '#8EE3FA', '#FFD77B'] as const;
+
+// オーバーレイ用（ジャンルごとの少し濃い色）
+const GROUP_OVERLAY_COLORS = [
+  'bg-[#c77dd9]',   // 分析家 - darker magenta
+  'bg-[#52c9a0]',   // 外交官 - darker mint
+  'bg-[#55c9e8]',   // 番人 - darker cyan
+  'bg-[#e6b84d]',   // 探検家 - darker gold
 ] as const;
 
 function getTypesByGroup(group: string): MbtiType[] {
@@ -31,7 +43,9 @@ export default function MbtiSelect() {
 
   const handleTabClick = useCallback((index: number) => {
     if (index === groupIndex) return;
-    setTransitionVia('tab');
+    // タブクリック時は transitionVia を先に 'tab' に反映してから groupIndex を更新
+    // （矢印遷移後の初回タブクリックで正しいアニメーションが使われるようにする）
+    flushSync(() => setTransitionVia('tab'));
     setGroupIndex(index);
     setSelected(null);
   }, [groupIndex]);
@@ -48,10 +62,14 @@ export default function MbtiSelect() {
     setSelected(null);
   }, []);
 
-  const handleSubmit = () => {
+  const handleConfirm = () => {
     if (!selected) return;
     setMbti(selected);
     setStep('quiz');
+  };
+
+  const handleReselect = () => {
+    setSelected(null);
   };
 
   const handleSkip = () => {
@@ -84,28 +102,18 @@ export default function MbtiSelect() {
   const contentVariants = getContentVariants();
 
   return (
-    <div className="relative flex min-h-0 w-full max-w-8xl flex-1 flex-col items-center pt-6 pb-8">
-      {/* わからないボタン - 右上 */}
-      <button
-        type="button"
-        onClick={handleSkip}
-        className="absolute right-4 top-4 rounded-lg border-2 border-gray-800 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50"
-      >
-        わからない
-      </button>
-
-      {/* メインカード + タブ - 縦方向に伸ばす */}
-      <div className="flex min-h-0 w-full flex-1 flex-col px-4">
-        {/* 4ジャンルタブ - 各タブは常に自分の色、選択中は沈む表現 */}
-        <div className="flex justify-center gap-0">
+    <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center py-2">
+      {/* メインカード + タブ */}
+      <div className="flex min-h-0 w-full flex-1 flex-col items-center px-1">
+        {/* 4ジャンルタブ - 左詰め、少し大きく */}
+        <div className="flex w-full justify-start gap-0">
           {MBTI_GROUPS.map((group, index) => (
             <motion.button
               key={group}
               type="button"
               onClick={() => handleTabClick(index)}
-              className={`relative z-10 rounded-t-lg border-2 border-b-0 border-gray-800 px-4 py-2 text-sm font-semibold text-gray-800 ${
-                GROUP_COLORS[index]
-              } ${groupIndex === index ? 'mb-[-2px]' : ''}`}
+              className={`relative z-10 cursor-pointer rounded-t-lg border-4 border-b-0 border-gray-800 px-4 py-2 text-base font-semibold text-gray-800 ${GROUP_COLORS[index]
+                } ${groupIndex === index ? 'mb-[-4px]' : ''}`}
               animate={{
                 y: groupIndex === index ? 2 : 0,
                 boxShadow: groupIndex === index
@@ -119,26 +127,32 @@ export default function MbtiSelect() {
           ))}
         </div>
 
-        {/* カード本体 - 残りの高さを占有 */}
+        {/* カード本体 - items-center 親でも幅を確保するため w-full */}
         <div
-          className={`relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg rounded-tl-none border-2 border-gray-800 shadow-lg ${GROUP_COLORS[groupIndex]}`}
+          className={`relative flex w-full min-h-[70vh] max-h-[85vh] flex-1 flex-col justify-center items-center overflow-visible rounded-lg rounded-tl-none border-4 border-gray-800 shadow-lg ${GROUP_COLORS[groupIndex]}`}
         >
-          <p className="shrink-0 pt-4 pb-2 text-center text-lg font-bold text-gray-900">
+          {/* わからないボタン - カード内右上 */}
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="absolute right-2 top-2 z-10 cursor-pointer rounded-lg border-4 border-gray-800 bg-white px-3 py-1.5 text-sm font-medium text-gray-800 shadow-sm transition-all duration-200 hover:scale-105 hover:bg-gray-50 hover:shadow-md active:scale-95"
+          >
+            わからない
+          </button>
+          <p className="shrink-0 mb-2 pb-1 text-center text-5xl font-bold text-gray-900">
             MBTIを選んでね
           </p>
 
-          {/* キャラ表示エリア + 左右矢印 - 高さは最大で抑える */}
-          <div className="relative flex min-h-0 flex-1 items-center justify-center px-12 py-2">
+          {/* キャラ表示エリア + 左右矢印 - グリッドでボタンとカードを分離 */}
+          <div className="mx-4 grid min-h-0 w-full max-h-[420px] flex-1 grid-cols-[auto_1fr_auto] items-center gap-1 px-2 py-1">
             <button
               type="button"
               onClick={handleArrowPrev}
               aria-label="前のジャンル"
-              className="absolute left-2 z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-gray-800 bg-white text-gray-800 transition hover:bg-gray-100"
-            >
-              <span className="text-xl leading-none">‹</span>
-            </button>
+              className="h-0 w-0 shrink-0 cursor-pointer border-y-18 border-r-24 border-l-0 border-y-transparent border-r-white transition hover:border-r-gray-200 hover:scale-110"
+            />
 
-            <div className="relative flex min-h-72 flex-1 overflow-hidden">
+            <div className="relative min-h-52 overflow-visible">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={groupIndex}
@@ -147,41 +161,40 @@ export default function MbtiSelect() {
                   exit="exit"
                   variants={contentVariants}
                   transition={{ duration: 0.25 }}
-                  className="absolute inset-0 flex items-center justify-center gap-2"
+                  className="absolute inset-0 flex items-center justify-center gap-1"
                 >
-                  <div className="flex h-full w-full items-stretch justify-center gap-3 rounded-lg border-2 border-gray-800 bg-white px-2 py-2">
+                  <div
+                    className="flex h-full w-full items-stretch justify-center gap-2 rounded-lg bg-white px-1 py-1"
+                    style={{
+                      backgroundImage: `radial-gradient(circle, ${GROUP_COLOR_HEX[groupIndex]} 2px, transparent 2px)`,
+                      backgroundSize: '20px 20px',
+                    }}
+                  >
                     {currentTypes.map((type) => (
                       <motion.button
                         key={type.code}
                         type="button"
                         onClick={() => setSelected(type.code)}
-                        className="relative flex flex-1 basis-0 flex-col items-center justify-start overflow-hidden rounded-md border border-gray-200 bg-white"
+                        className="relative flex flex-1 basis-0 flex-col cursor-pointer items-center justify-center overflow-hidden rounded-4xl bg-transparent outline-none ring-0"
                         whileHover={{
-                          scale: 1.1,
-                          y: -8,
-                          boxShadow:
-                            '0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                          scale: 1.2,
+                          y: -16,
                           transition: { duration: 0.2 },
                         }}
                         whileTap={{ scale: 1.02 }}
-                        style={{
-                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                        }}
+                        style={{ boxShadow: 'none' }}
                       >
-                        <div className="shrink-0 pt-1 text-center">
-                          <p className="text-xs font-bold text-gray-800">
-                            {type.code}
-                          </p>
-                          <p className="text-[10px] text-gray-600">
-                            {type.name}
-                          </p>
-                        </div>
-                        <div className="flex min-h-0 flex-1 items-center justify-center">
+                        <div className="relative flex min-h-0 flex-1 items-center justify-center w-full">
                           <img
                             src={`/images/mbti/${type.code}.png`}
                             alt={type.name}
-                            className="max-h-40 w-auto object-contain"
+                            className="max-h-44 w-auto border-0 object-contain outline-none"
                           />
+                          <div className={`absolute bottom-0 left-0 right-0 ${GROUP_OVERLAY_COLORS[groupIndex]} py-1.5 px-2 text-center`}>
+                            <p className="text-sm font-bold text-white">
+                              {type.code} / {type.name}
+                            </p>
+                          </div>
                         </div>
                       </motion.button>
                     ))}
@@ -194,32 +207,57 @@ export default function MbtiSelect() {
               type="button"
               onClick={handleArrowNext}
               aria-label="次のジャンル"
-              className="absolute right-2 z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-gray-800 bg-white text-gray-800 transition hover:bg-gray-100"
-            >
-              <span className="text-xl leading-none">›</span>
-            </button>
+              className="h-0 w-0 shrink-0 cursor-pointer border-y-18 border-l-24 border-r-0 border-y-transparent border-l-white transition hover:border-l-gray-200 hover:scale-110"
+            />
           </div>
 
-          {/* 選択中タイプ表示 */}
-          <p className="shrink-0 pb-4 text-center text-base font-bold text-gray-900">
-            {selectedType
-              ? `${selectedType.code} / ${selectedType.name}`
-              : 'タイプを選んでね'}
-          </p>
-        </div>
-
-        {/* 次へボタン */}
-        <div className="mt-6 flex shrink-0 justify-center">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!selected}
-            className="rounded-lg bg-blue-600 px-8 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-          >
-            次へ
-          </button>
         </div>
       </div>
+
+      {/* 決定確認ポップアップ */}
+      {selectedType && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mbti-confirm-title"
+        >
+          <div className={`mx-4 w-full max-w-md rounded-2xl border-4 border-gray-800 p-6 shadow-xl ${GROUP_COLORS[Math.max(0, MBTI_GROUPS.findIndex((g) => g === selectedType.group))]}`}>
+            <p
+              id="mbti-confirm-title"
+              className="text-center text-lg font-bold text-gray-900"
+            >
+              あなたのMBTIは
+            </p>
+            <div className="my-4 flex justify-center">
+              <img
+                src={`/images/mbti/${selectedType.code}.png`}
+                alt={selectedType.name}
+                className="h-32 w-auto border-0 object-contain outline-none"
+              />
+            </div>
+            <p className="text-center text-xl font-bold text-gray-900">
+              {selectedType.code} / {selectedType.name}
+            </p>
+            <div className="mt-6 flex gap-4">
+              <button
+                type="button"
+                onClick={handleReselect}
+                className="flex-1 cursor-pointer rounded-lg border-4 border-gray-800 bg-white px-4 py-3 font-semibold text-gray-800 transition-all duration-200 hover:scale-105 hover:bg-gray-100 hover:shadow-md active:scale-95"
+              >
+                選び直す
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="flex-1 cursor-pointer rounded-lg border-4 border-gray-800 bg-white px-4 py-3 font-semibold text-gray-800 transition-all duration-200 hover:scale-105 hover:bg-gray-100 hover:shadow-md active:scale-95"
+              >
+                決定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

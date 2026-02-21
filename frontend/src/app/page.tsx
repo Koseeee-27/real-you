@@ -75,18 +75,7 @@ export default function TopPage() {
   };
 
   return (
-    <div
-      className="h-dvh w-full overflow-hidden flex flex-col items-center justify-center"
-      style={{
-        backgroundImage: `
-        radial-gradient(circle, rgba(255,255,255,0.8) 1.0px, transparent 4px),
-        url('/images/bg-pattern.svg')
-      `,
-        backgroundSize: '16px 16px, cover',
-        backgroundPosition: '0 0, center',
-        backgroundRepeat: 'repeat, no-repeat',
-      }}
-    >
+    <div className="flex h-dvh w-full flex-col items-center justify-center overflow-hidden bg-top-pattern">
       <div className="flex flex-col items-center gap-[2vh] w-full">
         <img
           src="/images/RealYouLogo.png"
