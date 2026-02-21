@@ -87,3 +87,23 @@ export interface VoiceRespondResponse {
   emotion: string;
   confidence: number;
 }
+
+// ========================================
+// Game 3: グループチャット（空気読み）
+// ========================================
+
+export interface Game3StageLog {
+  stageId: number;
+  selectedOptionId: number | null;
+  reactionTimeMs: number;
+  isTimeout: boolean;
+}
+
+export interface Game3Data {
+  tutorialViewTime: number;
+  stages: Game3StageLog[];
+  /** 全ステージ通じた選択肢ホバー回数の合計 */
+  hoveredOptions: number;
+  /** ステージ3の「○○が返信中」表示〜ユーザー操作までの時間(ms) */
+  typingIndicatorReactTimeMs: number | null;
+}
