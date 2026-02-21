@@ -75,6 +75,34 @@ export function useHelpdeskGame(options: {
   const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
   const [currentHints, setCurrentHints] = useState<string[]>(INITIAL_HINTS);
 
+  // --- 環境チェック & SE 準備 ---
+  const isSpeechSupported =
+    typeof window !== 'undefined' &&
+    !!(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).SpeechRecognition ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).webkitSpeechRecognition
+    ) &&
+    !!window.speechSynthesis;
+
+  // 呼び出し音 & 切断音
+  const callingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const hangupAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      callingAudioRef.current = new Audio('/sounds/電話の呼び出し音.mp3');
+      callingAudioRef.current.loop = true;
+      hangupAudioRef.current = new Audio('/sounds/電話が切れる1.mp3');
+
+      // 非対応ブラウザならテキストモードへ強制
+      if (!isSpeechSupported) {
+        setInputMethod('text');
+      }
+    }
+  }, [isSpeechSupported]);
+
   // --- 再レンダリング不要なデータを ref で管理 ---
   const pendingVoiceRequestRef = useRef<{
     userMessage: string;
@@ -213,6 +241,11 @@ export function useHelpdeskGame(options: {
     };
     onComplete(game2Data);
     setGamePhase('completed');
+
+    // 電話終了音
+    if (hangupAudioRef.current) {
+      hangupAudioRef.current.play().catch(() => { });
+    }
   }, [onComplete]);
 
   /** gamePhase が submitting になったら一度だけ buildAndSubmit を実行 */
@@ -249,6 +282,12 @@ export function useHelpdeskGame(options: {
   // API 失敗時は voice-api-error に遷移し、リトライを促す（モックデータは使用しない）。
   const addSupportResponseAndSpeak = useCallback((supportText: string) => {
     setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
+
+    // 最初の発言（サポートが喋り始めた）タイミングで呼び出し音を止める
+    if (callingAudioRef.current) {
+      callingAudioRef.current.pause();
+      callingAudioRef.current.currentTime = 0;
+    }
 
     // AIの応答内容からキーワードを検索し、ヒントを更新する
     // ただし初回挨拶(Turn 0)の場合は INITIAL_HINTS を継続する
@@ -482,15 +521,39 @@ export function useHelpdeskGame(options: {
   // =========================================================
 
   /** モーダルからお題オーバレイへ進むとき */
-  const startInstruction = useCallback(() => {
+  const startInstruction = useCallback(async () => {
     if (gamePhase !== 'tutorial') return;
     setGamePhase('instruction');
+
+    // iOS 等での音声（TTS/SE）ロック解除のためのハック
+    if (typeof window !== 'undefined') {
+      const silentAudio = new Audio();
+      silentAudio.src =
+        'data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+      silentAudio.play().catch(() => { });
+
+      // マイクの事前許可を求める
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        // 許可が得られたらすぐに閉じる（本番の録音は useAudioMetrics が行う）
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (err) {
+        console.warn('Microphone permission denied or not available:', err);
+      }
+    }
   }, [gamePhase]);
 
   /** 指示ポップアップから「相談を始める」を押したとき */
   const startGame = useCallback(() => {
     if (gamePhase !== 'instruction') return;
     setGamePhase('support-speaking');
+
+    // 電話呼び出し音を開始
+    if (callingAudioRef.current) {
+      callingAudioRef.current.play().catch(() => { });
+    }
   }, [gamePhase]);
 
   /**
