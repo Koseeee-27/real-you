@@ -155,11 +155,11 @@ export default function BaselineSurvey() {
       <div className="flex flex-col gap-3">
         {currentQuestion.options.map((option) => (
           <button
-            key={option}
-            onClick={() => handleAnswer(option)}
+            key={option.value}
+            onClick={() => handleAnswer(option.value)}
             className="rounded-lg border-2 border-gray-200 bg-white px-6 py-3 text-left font-medium text-gray-700 transition hover:border-blue-400 hover:bg-blue-50"
           >
-            {option}
+            {option.label}
           </button>
         ))}
       </div>
