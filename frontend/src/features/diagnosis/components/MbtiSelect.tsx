@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -185,9 +186,11 @@ export default function MbtiSelect() {
                         style={{ boxShadow: 'none' }}
                       >
                         <div className="relative flex min-h-0 flex-1 items-center justify-center w-full">
-                          <img
+                          <Image
                             src={`/images/mbti/${type.code}.png`}
                             alt={type.name}
+                            width={176}
+                            height={176}
                             className="max-h-44 w-auto border-0 object-contain outline-none"
                           />
                           <div className={`absolute bottom-0 left-0 right-0 ${GROUP_OVERLAY_COLORS[groupIndex]} py-1.5 px-2 text-center`}>
@@ -230,9 +233,11 @@ export default function MbtiSelect() {
               あなたのMBTIは
             </p>
             <div className="my-4 flex justify-center">
-              <img
+              <Image
                 src={`/images/mbti/${selectedType.code}.png`}
                 alt={selectedType.name}
+                width={128}
+                height={128}
                 className="h-32 w-auto border-0 object-contain outline-none"
               />
             </div>

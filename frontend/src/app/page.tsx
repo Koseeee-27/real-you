@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -77,15 +78,12 @@ export default function TopPage() {
   return (
     <div className="flex h-dvh w-full flex-col items-center justify-center overflow-hidden bg-top-pattern">
       <div className="flex flex-col items-center gap-[2vh] w-full">
-        <img
+        <Image
           src="/images/RealYouLogo.png"
           alt="Real You -本当の私じゃだめですか？-"
-          className="
-          max-h-[65vh]
-          w-auto
-          object-contain
-          drop-shadow-2xl
-        "
+          width={800}
+          height={500}
+          className="max-h-[65vh] w-auto object-contain drop-shadow-2xl"
         />
 
         <div className="relative">
@@ -93,15 +91,12 @@ export default function TopPage() {
             onClick={handleStartClick}
             className="transition-all duration-100 ease-out hover:scale-110 active:scale-95 active:opacity-50"
           >
-            <img
+            <Image
               src="/images/StartButton.png"
               alt="診断スタート"
-              className="
-              w-[40vw]
-              max-w-xs
-              min-w-[180px]
-              drop-shadow-md
-            "
+              width={320}
+              height={120}
+              className="w-[40vw] max-w-xs min-w-[180px] drop-shadow-md"
             />
           </button>
 

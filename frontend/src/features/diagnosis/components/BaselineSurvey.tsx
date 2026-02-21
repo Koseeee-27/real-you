@@ -26,8 +26,9 @@ export default function BaselineSurvey() {
     Partial<Record<QuestionKey, AnswerOption>>
   >({});
   const [status, setStatus] = useState<Status>('answering');
-  // バックエンド接続時に_setErrorMessage → setErrorMessageに変更する
-  const [errorMessage, _setErrorMessage] = useState('');
+  // バックエンド接続時にsetErrorMessageを使用する
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- バックエンド接続時に使用予定
+  const [errorMessage, setErrorMessage] = useState('');
 
   const currentQuestion = QUESTIONS[currentIndex];
   const totalQuestions = QUESTIONS.length;
