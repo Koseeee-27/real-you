@@ -11,6 +11,7 @@ import {
   GAME_TOPIC,
   INITIAL_SUPPORT_MESSAGE,
   INSTRUCTION_TEXT,
+  INITIAL_HINTS,
   DEFAULT_HINTS,
   HINT_MAPPING,
   MAX_TURNS,
@@ -72,7 +73,7 @@ export function useHelpdeskGame(options: {
   const [gamePhase, setGamePhase] = useState<GamePhase>('tutorial');
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
   const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
-  const [currentHints, setCurrentHints] = useState<string[]>(DEFAULT_HINTS);
+  const [currentHints, setCurrentHints] = useState<string[]>(INITIAL_HINTS);
 
   // --- 再レンダリング不要なデータを ref で管理 ---
   const pendingVoiceRequestRef = useRef<{
@@ -250,13 +251,18 @@ export function useHelpdeskGame(options: {
     setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
 
     // AIの応答内容からキーワードを検索し、ヒントを更新する
-    const matched = HINT_MAPPING.find((m) =>
-      m.keywords.some((kw) => supportText.includes(kw))
-    );
-    if (matched) {
-      setCurrentHints(matched.hints);
+    // ただし初回挨拶(Turn 0)の場合は INITIAL_HINTS を継続する
+    if (currentTurnRef.current === 0) {
+      setCurrentHints(INITIAL_HINTS);
     } else {
-      setCurrentHints(DEFAULT_HINTS);
+      const matched = HINT_MAPPING.find((m) =>
+        m.keywords.some((kw) => supportText.includes(kw))
+      );
+      if (matched) {
+        setCurrentHints(matched.hints);
+      } else {
+        setCurrentHints(DEFAULT_HINTS);
+      }
     }
 
     const transitionToInput = () => {

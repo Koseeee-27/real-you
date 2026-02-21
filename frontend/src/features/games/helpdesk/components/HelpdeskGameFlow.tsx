@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { Game2Data } from '@/features/games/types';
 import { submitGame } from '@/lib/api';
 import { useHelpdeskGame } from '../hooks/useHelpdeskGame';
