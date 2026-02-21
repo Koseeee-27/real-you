@@ -11,6 +11,8 @@ import {
   GAME_TOPIC,
   INITIAL_SUPPORT_MESSAGE,
   INSTRUCTION_TEXT,
+  DEFAULT_HINTS,
+  HINT_MAPPING,
   MAX_TURNS,
   TURN_TIME_LIMIT_MS,
 } from '../data/supportResponses';
@@ -70,6 +72,7 @@ export function useHelpdeskGame(options: {
   const [gamePhase, setGamePhase] = useState<GamePhase>('tutorial');
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
   const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
+  const [currentHints, setCurrentHints] = useState<string[]>(DEFAULT_HINTS);
 
   // --- 再レンダリング不要なデータを ref で管理 ---
   const pendingVoiceRequestRef = useRef<{
@@ -194,12 +197,12 @@ export function useHelpdeskGame(options: {
     const hasTextTurn = currentTurns.some((t) => t.inputMethod === 'text');
     const textInputMetrics: TextInputMetrics | null = hasTextTurn
       ? {
-          typingIntervalVariance:
-            typingVariancesRef.current.length > 0
-              ? typingVariancesRef.current.reduce((a, b) => a + b, 0) /
-                typingVariancesRef.current.length
-              : 0,
-        }
+        typingIntervalVariance:
+          typingVariancesRef.current.length > 0
+            ? typingVariancesRef.current.reduce((a, b) => a + b, 0) /
+            typingVariancesRef.current.length
+            : 0,
+      }
       : null;
     const game2Data: Game2Data = {
       inputMethod: inputMethodRef.current,
@@ -245,6 +248,16 @@ export function useHelpdeskGame(options: {
   // API 失敗時は voice-api-error に遷移し、リトライを促す（モックデータは使用しない）。
   const addSupportResponseAndSpeak = useCallback((supportText: string) => {
     setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
+
+    // AIの応答内容からキーワードを検索し、ヒントを更新する
+    const matched = HINT_MAPPING.find((m) =>
+      m.keywords.some((kw) => supportText.includes(kw))
+    );
+    if (matched) {
+      setCurrentHints(matched.hints);
+    } else {
+      setCurrentHints(DEFAULT_HINTS);
+    }
 
     const transitionToInput = () => {
       setGamePhase('user-input');
@@ -519,5 +532,6 @@ export function useHelpdeskGame(options: {
     isVoiceSupported: speech.isSupported,
     voiceApiRetrying,
     retryVoiceApi,
+    hints: currentHints,
   };
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Game2Data } from '@/features/games/types';
 import { submitGame } from '@/lib/api';
 import { useHelpdeskGame } from '../hooks/useHelpdeskGame';
@@ -75,7 +75,18 @@ export default function HelpdeskGameFlow() {
     voiceApiRetrying,
     retryVoiceApi,
     startInstruction,
+    gameTopic,
+    hints,
   } = useHelpdeskGame({ onComplete: handleComplete });
+
+  const [hintIndex, setHintIndex] = useState(0);
+  const [prevHints, setPrevHints] = useState(hints);
+
+  // ヒント内容が更新されたら（AIの応答に基づき）、インデックスを0（おすすめ）にリセットする
+  if (hints !== prevHints) {
+    setPrevHints(hints);
+    setHintIndex(0);
+  }
 
   const handleTextSubmit = useCallback(() => {
     if (!textInput.trim()) return;
@@ -261,6 +272,34 @@ export default function HelpdeskGameFlow() {
               <div className="relative mt-6 rounded-[24px] border-[6px] border-black bg-[#d9d9d9] px-6 py-8 shadow-[8px_8px_0_0_#000] animate-[fadeInUp_0.3s_ease-out]">
                 <div className="absolute -top-7 left-8 rounded-t-xl border-x-[6px] border-t-[6px] border-black bg-[#d9d9d9] px-6 py-1 text-lg font-black tracking-widest text-black">
                   あなた
+                </div>
+
+                {/* --- ヒント表示領域 --- */}
+                <div className="absolute -right-4 -top-12 z-10 w-64 animate-[fadeIn_0.5s_ease-out] lg:-right-12">
+                  <div className="relative rounded-2xl border-[4px] border-black bg-white p-3 shadow-[4px_4px_0_0_#000]">
+                    <div className="absolute -top-3 left-3 bg-[#f0f380] px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-black border-[2px] border-black rounded-lg">
+                      Advice
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[11px] font-bold leading-snug text-gray-800">
+                        {hints[hintIndex]}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setHintIndex((prev) => (prev + 1) % hints.length)}
+                        className="mt-0.5 shrink-0 rounded-full border-2 border-black bg-gray-100 p-1 hover:bg-gray-200 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /><path d="m9 10 3 3 3-3" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-1 text-right">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-black/30">
+                      Mission: {gameTopic.replace('【トラブル】', '')}
+                    </p>
+                  </div>
                 </div>
 
                 {inputMethod === 'voice' ? (
