@@ -5,6 +5,7 @@ import { useSetAtom } from 'jotai';
 import { useRouter } from 'next/navigation';
 import type { Game1Data, ScrollEvent } from '@/features/games/types';
 import { game1DataAtom } from '@/stores/games';
+import TermsContent from './TermsContent';
 import PopupAd from './PopupAd';
 import PopupTerms from './PopupTerms';
 // TODO: バックエンド接続時にコメントアウトを解除する
@@ -31,7 +32,7 @@ export default function TermsGameFlow() {
   // ポップアップ広告の表示状態
   const [showPopup, setShowPopup] = useState(false);
   // 利用規約モーダル表示状態（初期で表示）
-  const [showTermsModal] = useState(true);
+  const [showTermsModal, setShowTermsModal] = useState(true);
   // ゲーム完了フラグ（trueで完了画面を表示→次のゲームへ遷移）
   const [isCompleted, setIsCompleted] = useState(false);
 
@@ -205,6 +206,10 @@ export default function TermsGameFlow() {
 
       {showTermsModal && (
         <PopupTerms
+          onClose={() => {
+            setShowTermsModal(false);
+            scrollContainerRef.current = null;
+          }}
           onCheckboxChange={handleCheckboxChange}
           onHiddenInputChange={handleHiddenInputChange}
           checkboxStates={checkboxStates}
