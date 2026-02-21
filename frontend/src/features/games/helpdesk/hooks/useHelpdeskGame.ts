@@ -31,9 +31,11 @@ import { useTypingMetrics } from './useTypingMetrics';
  * error             → その他エラー
  */
 export type GamePhase =
+  | 'tutorial'
   | 'instruction'
   | 'support-speaking'
   | 'user-input'
+  | 'awaiting-api'
   | 'voice-api-error'
   | 'submitting'
   | 'completed'
@@ -65,7 +67,7 @@ export function useHelpdeskGame(options: {
   const [currentTurn, setCurrentTurn] = useState(0); // 0〜2（3ラリー）
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]); // 表示用メッセージ履歴
   const [turns, setTurns] = useState<Game2Turn[]>([]); // 収集データ用ターンログ
-  const [gamePhase, setGamePhase] = useState<GamePhase>('instruction');
+  const [gamePhase, setGamePhase] = useState<GamePhase>('tutorial');
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
   const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
 
@@ -456,6 +458,16 @@ export function useHelpdeskGame(options: {
     [getVarianceAndReset, advanceAfterUserTurn]
   );
 
+  // =========================================================
+  // ゲーム開始
+  // =========================================================
+
+  /** モーダルからお題オーバレイへ進むとき */
+  const startInstruction = useCallback(() => {
+    if (gamePhase !== 'tutorial') return;
+    setGamePhase('instruction');
+  }, [gamePhase]);
+
   /** 指示ポップアップから「相談を始める」を押したとき */
   const startGame = useCallback(() => {
     if (gamePhase !== 'instruction') return;
@@ -498,6 +510,7 @@ export function useHelpdeskGame(options: {
     maxTurns: MAX_TURNS,
     speech,
     startGame,
+    startInstruction,
     endVoiceTurnManually,
     submitTextTurn,
     switchToText,
