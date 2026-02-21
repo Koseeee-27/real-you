@@ -217,26 +217,16 @@ export default function GroupChatGameFlow() {
         {/* チャットエリア */}
         <div className="flex-1 overflow-y-auto bg-[#dae5f3] px-3 py-4">
           <div className="space-y-4">
-            {/* DAYラベル */}
-            {currentStage && (
-              <>
-                <div className="my-2 flex justify-center">
-                  <span className="rounded-full border-[2px] border-gray-300 bg-white/50 px-4 py-1 text-[10px] font-bold text-gray-500">
-                    TODAY
-                  </span>
-                </div>
-                <div className="my-2 flex justify-center">
-                  <span className="rounded-full border-[2px] border-gray-300 bg-white/50 px-4 py-1 text-[10px] font-bold text-gray-500">
-                    --- {currentStage.dayLabel} ---
-                  </span>
-                </div>
-              </>
-            )}
-
             {chatMessages.map((msg, i) =>
-              msg.type === 'bot' ? (
+              msg.type === 'separator' ? (
+                <div key={`msg-${i}`} className="my-2 flex justify-center">
+                  <span className="rounded-full border-[2px] border-gray-300 bg-white/50 px-4 py-1 text-[10px] font-bold text-gray-500">
+                    {msg.label}
+                  </span>
+                </div>
+              ) : msg.type === 'bot' ? (
                 <div
-                  key={`s${currentStageIndex}-${i}-${msg.botId}`}
+                  key={`msg-${i}`}
                   className="flex items-start gap-2"
                 >
                   {(() => {
@@ -263,7 +253,7 @@ export default function GroupChatGameFlow() {
                 </div>
               ) : (
                 <div
-                  key={`s${currentStageIndex}-${i}-user`}
+                  key={`msg-${i}`}
                   className="flex justify-end"
                 >
                   <div className="max-w-[80%] rounded-2xl rounded-tr-none border-[3px] border-black bg-[#57d071] px-4 py-3 text-sm font-bold text-white shadow-[2px_2px_0_0_#000]">
