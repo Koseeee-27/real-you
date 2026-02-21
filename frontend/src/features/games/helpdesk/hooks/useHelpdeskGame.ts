@@ -75,7 +75,6 @@ export function useHelpdeskGame(options: {
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
   const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
   const [currentHints, setCurrentHints] = useState<string[]>(INITIAL_HINTS);
-  const [usedHints, setUsedHints] = useState<Set<string>>(new Set());
 
   // --- 環境チェック & SE 準備 ---
   const isSpeechSupported =
@@ -118,6 +117,7 @@ export function useHelpdeskGame(options: {
   const typingVariancesRef = useRef<number[]>([]); // テキスト入力ターンごとの分散を蓄積
   const skipNextVoiceResultRef = useRef(false); // テキスト切替時に onResult を無視するフラグ
   const submittedRef = useRef(false); // buildAndSubmit の二重実行防止
+  const usedHintsRef = useRef<Set<string>>(new Set());
 
   // --- 子フック ---
   const { startRecording, stopRecording } = useAudioMetrics();
@@ -303,18 +303,18 @@ export function useHelpdeskGame(options: {
       let nextHints = matched ? [...matched.hints] : [...DEFAULT_HINTS];
 
       // 既に使用したヒントを除外
-      nextHints = nextHints.filter(h => !usedHints.has(h));
+      nextHints = nextHints.filter(h => !usedHintsRef.current.has(h));
 
       // もし全て使用済みならデフォルトに戻す（あるいは空にしないための配慮）
       if (nextHints.length === 0) {
-        nextHints = DEFAULT_HINTS.filter(h => !usedHints.has(h));
+        nextHints = DEFAULT_HINTS.filter(h => !usedHintsRef.current.has(h));
       }
 
       if (nextHints.length > 0) {
         setCurrentHints(nextHints);
         // 今回表示するヒント（先頭1つなど）を使用済みとしてマークする場合：
         // ここではUI側でインデックスがリセットされるため、先頭のヒントを使用済みに追加
-        setUsedHints(prev => new Set([...prev, nextHints[0]]));
+        usedHintsRef.current.add(nextHints[0]);
       }
     }
 
@@ -337,7 +337,7 @@ export function useHelpdeskGame(options: {
     } else {
       requestAnimationFrame(transitionToInput);
     }
-  }, [usedHints]);
+  }, []);
 
   useEffect(() => {
     if (gamePhase !== 'support-speaking') return;
