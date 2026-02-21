@@ -35,20 +35,11 @@ const PopupTerms: FC<PopupTermsProps> = ({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-      onClick={onClose}
     >
       <div
         className="relative mx-4 w-full max-w-3xl rounded-lg bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* クローズボタン */}
-        <button
-          onClick={onClose}
-          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-          aria-label="閉じる"
-        >
-          ✕
-        </button>
 
         {/* スクロール領域 */}
         <div
