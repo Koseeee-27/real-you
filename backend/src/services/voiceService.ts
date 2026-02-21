@@ -110,6 +110,8 @@ async function callGeminiSequential(
 // メインの voiceService
 // ============================
 
+import { getKeywordFallback } from './fallbackService';
+
 export const voiceService = {
     async generateAiResponse(
         message: string,
@@ -122,16 +124,16 @@ export const voiceService = {
         const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey) {
-            console.warn('[voiceService] GEMINI_API_KEY not set.');
-            throw { status: 503, code: 'service_unavailable', message: 'AI応答サービスが利用できません' };
+            console.warn('[voiceService] GEMINI_API_KEY not set. Using fallback.');
+            return getKeywordFallback(message);
         }
 
         try {
             return await callGeminiSequential(message, conversationHistory ?? [], apiKey);
         } catch (err: any) {
             const reason = err?.name === 'AbortError' ? 'タイムアウト' : err?.message || '不明なエラー';
-            console.warn('[voiceService] Gemini failed:', reason);
-            throw { status: 503, code: 'ai_unavailable', message: 'AI応答の取得に失敗しました。しばらく待ってからリトライしてください。' };
+            console.warn('[voiceService] Gemini failed:', reason, '- Using fallback response.');
+            return getKeywordFallback(message);
         }
     },
 };
