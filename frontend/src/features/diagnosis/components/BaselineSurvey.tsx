@@ -25,7 +25,8 @@ export default function BaselineSurvey() {
     {}
   );
   const [status, setStatus] = useState<Status>('answering');
-  const [errorMessage, setErrorMessage] = useState('');
+  // バックエンド接続時に_setErrorMessage → setErrorMessageに変更する
+  const [errorMessage, _setErrorMessage] = useState('');
 
   const currentQuestion = QUESTIONS[currentIndex];
   const totalQuestions = QUESTIONS.length;
