@@ -80,7 +80,6 @@ export default function GroupChatGameFlow() {
     selectOption,
     handleOptionHover,
     stageTimeLimitMs,
-    totalStages,
     groupName,
     groupMemberCount,
   } = useGroupChatGame({ onComplete: handleComplete });
@@ -89,27 +88,28 @@ export default function GroupChatGameFlow() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isTypingIndicatorVisible, gamePhase]);
 
+  const isOverlayActive = ['tutorial', 'stage-cutin', 'completed'].includes(
+    gamePhase
+  );
+
   const timerRatio = remainingTimeMs / stageTimeLimitMs;
-  const timerColorClass =
-    timerRatio > 0.5
-      ? 'bg-green-500'
-      : timerRatio > 0.2
-        ? 'bg-amber-500'
-        : 'bg-red-500';
 
   return (
     <div
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden p-4"
       style={{ backgroundColor: '#F0D44A', height: '100dvh' }}
     >
-      {/* 背景のドット模様（CSSで描画） */}
-      <div
-        className="absolute inset-0 z-0 opacity-40"
-        style={{
-          backgroundImage: 'radial-gradient(#b8a030 3px, transparent 3px)',
-          backgroundSize: '24px 24px',
-        }}
-      />
+      {/* 背景のドット模様（CSSで描画） - オーバーレイ非表示時のみ */}
+      {!isOverlayActive && (
+        <div
+          className="absolute inset-0 z-0 opacity-40"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle, rgba(255,255,255,0.8) 1.0px, transparent 4px)',
+            backgroundSize: '16px 16px, cover',
+          }}
+        />
+      )}
 
       {/* --- チュートリアルオーバーレイ --- */}
       {gamePhase === 'tutorial' && (
@@ -122,7 +122,6 @@ export default function GroupChatGameFlow() {
           }}
           className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-black/60"
         >
-          <div className="absolute inset-0 z-0 opacity-40 bg-[radial-gradient(#b8a030_3px,transparent_3px)] [background-size:24px_24px]" />
           <div className="z-10 animate-[fadeInUp_0.4s_ease-out] px-6 text-center">
             <p className="text-3xl font-black tracking-widest text-white drop-shadow-md">
               適切に応答せよ！
@@ -157,8 +156,6 @@ export default function GroupChatGameFlow() {
       {/* --- 終了（完了）オーバーレイ --- */}
       {gamePhase === 'completed' && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60">
-          <div className="absolute inset-0 z-0 opacity-40 bg-[radial-gradient(#b8a030_3px,transparent_3px)] [background-size:24px_24px]" />
-
           <div className="z-10 animate-[fadeInUp_0.4s_ease-out] px-6 text-center">
             {submitStatus === 'error' ? (
               <>
