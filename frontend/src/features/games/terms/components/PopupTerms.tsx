@@ -10,7 +10,10 @@ interface PopupTermsProps {
     checked: boolean
   ) => void;
   onHiddenInputChange: (value: string) => void;
-  checkboxStates: Record<'readConfirm' | 'mailMagazine' | 'thirdPartyShare', boolean>;
+  checkboxStates: Record<
+    'readConfirm' | 'mailMagazine' | 'thirdPartyShare',
+    boolean
+  >;
   hiddenInputValue: string;
   setScrollContainerRef?: (el: HTMLDivElement | null) => void;
   onScroll?: () => void;
@@ -50,7 +53,8 @@ const PopupTerms: FC<PopupTermsProps> = ({
         {/* スクロール領域 */}
         <div
           ref={(el) => {
-            if (setScrollContainerRef) setScrollContainerRef(el as HTMLDivElement | null);
+            if (setScrollContainerRef)
+              setScrollContainerRef(el as HTMLDivElement | null);
           }}
           onScroll={() => {
             if (onScroll) onScroll();
