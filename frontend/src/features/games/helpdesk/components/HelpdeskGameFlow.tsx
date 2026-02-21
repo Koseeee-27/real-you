@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Game2Data } from '@/features/games/types';
+import { submitGame } from '@/lib/api';
 import { useHelpdeskGame } from '../hooks/useHelpdeskGame';
 
 export default function HelpdeskGameFlow() {
@@ -11,9 +12,14 @@ export default function HelpdeskGameFlow() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const handleComplete = useCallback(
-    (data: Game2Data) => {
-      // TODO: バックエンド接続時に API 送信に差し替える
-      console.log('Game2Data:', data);
+    async (data: Game2Data) => {
+      try {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) throw new Error('user_id が見つかりません');
+        await submitGame({ user_id: userId, game_type: 2, data: data as unknown as Record<string, unknown> });
+      } catch (err) {
+        console.error('Game2データ送信エラー:', err);
+      }
       setTimeout(() => {
         router.push('/games/group-chat');
       }, 2000);

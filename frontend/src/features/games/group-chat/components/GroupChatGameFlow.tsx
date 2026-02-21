@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { Game3Data } from '@/features/games/types';
 import { BOTS } from '../data/stages';
 import { useGroupChatGame } from '../hooks/useGroupChatGame';
-// TODO: バックエンド接続時にコメント解除 → import { submitGame } from '@/lib/api';
+import { submitGame } from '@/lib/api';
 
 const TUTORIAL_TEXT = `あなたは職場のグループチャットに
 参加しています。
@@ -22,10 +22,13 @@ export default function GroupChatGameFlow() {
 
   const handleComplete = useCallback(
     async (data: Game3Data) => {
-      console.log('Game3Data:', data);
-      // TODO: バックエンド接続時に以下を有効化
-      // const userId = localStorage.getItem('user_id');
-      // if (userId) await submitGame({ user_id: userId, game_type: 3, data });
+      try {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) throw new Error('user_id が見つかりません');
+        await submitGame({ user_id: userId, game_type: 3, data: data as unknown as Record<string, unknown> });
+      } catch (err) {
+        console.error('Game3データ送信エラー:', err);
+      }
       setTimeout(() => {
         router.push('/result');
       }, 2000);
