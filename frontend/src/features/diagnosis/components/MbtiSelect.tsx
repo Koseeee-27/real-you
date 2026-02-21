@@ -10,10 +10,10 @@ import { MBTI_TYPES, MBTI_GROUPS, type MbtiType } from '@/constants/mbti';
 
 // タブとカードで同じ色を使用（ジャンルごと）
 const GROUP_COLORS = [
-  'bg-[#E5A1F4]',   // 分析家 - light purple
-  'bg-[#89F1C8]',   // 外交官 - teal
-  'bg-[#8EE3FA]',   // 番人 - light blue
-  'bg-[#FFD77B]',   // 探検家 - light orange
+  'bg-[#E5A1F4]', // 分析家 - light purple
+  'bg-[#89F1C8]', // 外交官 - teal
+  'bg-[#8EE3FA]', // 番人 - light blue
+  'bg-[#FFD77B]', // 探検家 - light orange
 ] as const;
 
 // 水玉模様用（ジャンルごとの色・HEX）
@@ -21,10 +21,10 @@ const GROUP_COLOR_HEX = ['#E5A1F4', '#89F1C8', '#8EE3FA', '#FFD77B'] as const;
 
 // オーバーレイ用（ジャンルごとの少し濃い色）
 const GROUP_OVERLAY_COLORS = [
-  'bg-[#c77dd9]',   // 分析家 - darker magenta
-  'bg-[#52c9a0]',   // 外交官 - darker mint
-  'bg-[#55c9e8]',   // 番人 - darker cyan
-  'bg-[#e6b84d]',   // 探検家 - darker gold
+  'bg-[#c77dd9]', // 分析家 - darker magenta
+  'bg-[#52c9a0]', // 外交官 - darker mint
+  'bg-[#55c9e8]', // 番人 - darker cyan
+  'bg-[#e6b84d]', // 探検家 - darker gold
 ] as const;
 
 function getTypesByGroup(group: string): MbtiType[] {
@@ -36,20 +36,27 @@ export default function MbtiSelect() {
   const setStep = useSetAtom(diagnosisStepAtom);
   const [groupIndex, setGroupIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
-  const [transitionVia, setTransitionVia] = useState<'tab' | 'arrow-left' | 'arrow-right'>('tab');
+  const [transitionVia, setTransitionVia] = useState<
+    'tab' | 'arrow-left' | 'arrow-right'
+  >('tab');
 
   const currentGroup = MBTI_GROUPS[groupIndex];
   const currentTypes = getTypesByGroup(currentGroup);
-  const selectedType = selected ? MBTI_TYPES.find((t) => t.code === selected) : null;
+  const selectedType = selected
+    ? MBTI_TYPES.find((t) => t.code === selected)
+    : null;
 
-  const handleTabClick = useCallback((index: number) => {
-    if (index === groupIndex) return;
-    // タブクリック時は transitionVia を先に 'tab' に反映してから groupIndex を更新
-    // （矢印遷移後の初回タブクリックで正しいアニメーションが使われるようにする）
-    flushSync(() => setTransitionVia('tab'));
-    setGroupIndex(index);
-    setSelected(null);
-  }, [groupIndex]);
+  const handleTabClick = useCallback(
+    (index: number) => {
+      if (index === groupIndex) return;
+      // タブクリック時は transitionVia を先に 'tab' に反映してから groupIndex を更新
+      // （矢印遷移後の初回タブクリックで正しいアニメーションが使われるようにする）
+      flushSync(() => setTransitionVia('tab'));
+      setGroupIndex(index);
+      setSelected(null);
+    },
+    [groupIndex]
+  );
 
   const handleArrowPrev = useCallback(() => {
     setTransitionVia('arrow-right'); // コンテンツは右から入る
@@ -113,13 +120,15 @@ export default function MbtiSelect() {
               key={group}
               type="button"
               onClick={() => handleTabClick(index)}
-              className={`relative z-10 cursor-pointer rounded-t-lg border-4 border-b-0 border-gray-800 px-4 py-2 text-base font-semibold text-gray-800 ${GROUP_COLORS[index]
-                } ${groupIndex === index ? 'mb-[-4px]' : ''}`}
+              className={`relative z-10 cursor-pointer rounded-t-lg border-4 border-b-0 border-gray-800 px-4 py-2 text-base font-semibold text-gray-800 ${
+                GROUP_COLORS[index]
+              } ${groupIndex === index ? 'mb-[-4px]' : ''}`}
               animate={{
                 y: groupIndex === index ? 2 : 0,
-                boxShadow: groupIndex === index
-                  ? 'inset 0 3px 6px rgba(0,0,0,0.12)'
-                  : 'none',
+                boxShadow:
+                  groupIndex === index
+                    ? 'inset 0 3px 6px rgba(0,0,0,0.12)'
+                    : 'none',
               }}
               transition={{ duration: 0.2 }}
             >
@@ -193,7 +202,9 @@ export default function MbtiSelect() {
                             height={176}
                             className="max-h-44 w-auto border-0 object-contain outline-none"
                           />
-                          <div className={`absolute bottom-0 left-0 right-0 ${GROUP_OVERLAY_COLORS[groupIndex]} py-1.5 px-2 text-center`}>
+                          <div
+                            className={`absolute bottom-0 left-0 right-0 ${GROUP_OVERLAY_COLORS[groupIndex]} py-1.5 px-2 text-center`}
+                          >
                             <p className="text-sm font-bold text-white">
                               {type.code} / {type.name}
                             </p>
@@ -213,7 +224,6 @@ export default function MbtiSelect() {
               className="h-0 w-0 shrink-0 cursor-pointer border-y-18 border-l-24 border-r-0 border-y-transparent border-l-white transition hover:border-l-gray-200 hover:scale-110"
             />
           </div>
-
         </div>
       </div>
 
@@ -225,7 +235,16 @@ export default function MbtiSelect() {
           aria-modal="true"
           aria-labelledby="mbti-confirm-title"
         >
-          <div className={`mx-4 w-full max-w-md rounded-2xl border-4 border-gray-800 p-6 shadow-xl ${GROUP_COLORS[Math.max(0, MBTI_GROUPS.findIndex((g) => g === selectedType.group))]}`}>
+          <div
+            className={`mx-4 w-full max-w-md rounded-2xl border-4 border-gray-800 p-6 shadow-xl ${
+              GROUP_COLORS[
+                Math.max(
+                  0,
+                  MBTI_GROUPS.findIndex((g) => g === selectedType.group)
+                )
+              ]
+            }`}
+          >
             <p
               id="mbti-confirm-title"
               className="text-center text-lg font-bold text-gray-900"
