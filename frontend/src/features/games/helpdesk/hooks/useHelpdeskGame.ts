@@ -80,12 +80,9 @@ export function useHelpdeskGame(options: {
   const isSpeechSupported =
     typeof window !== 'undefined' &&
     !!(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (
-        (window as any).SpeechRecognition ||
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).webkitSpeechRecognition
-      )
+      (window as Window & { SpeechRecognition?: unknown }).SpeechRecognition ||
+      (window as Window & { webkitSpeechRecognition?: unknown })
+        .webkitSpeechRecognition
     ) &&
     !!window.speechSynthesis;
 
@@ -230,12 +227,12 @@ export function useHelpdeskGame(options: {
     const hasTextTurn = currentTurns.some((t) => t.inputMethod === 'text');
     const textInputMetrics: TextInputMetrics | null = hasTextTurn
       ? {
-          typingIntervalVariance:
-            typingVariancesRef.current.length > 0
-              ? typingVariancesRef.current.reduce((a, b) => a + b, 0) /
-                typingVariancesRef.current.length
-              : 0,
-        }
+        typingIntervalVariance:
+          typingVariancesRef.current.length > 0
+            ? typingVariancesRef.current.reduce((a, b) => a + b, 0) /
+            typingVariancesRef.current.length
+            : 0,
+      }
       : null;
     const game2Data: Game2Data = {
       inputMethod: inputMethodRef.current,
@@ -248,7 +245,7 @@ export function useHelpdeskGame(options: {
 
     // 電話終了音
     if (hangupAudioRef.current) {
-      hangupAudioRef.current.play().catch(() => {});
+      hangupAudioRef.current.play().catch(() => { });
     }
   }, [onComplete]);
 
@@ -559,7 +556,7 @@ export function useHelpdeskGame(options: {
       const silentAudio = new Audio();
       silentAudio.src =
         'data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-      silentAudio.play().catch(() => {});
+      silentAudio.play().catch(() => { });
 
       // マイクの事前許可を求める
       try {
@@ -581,7 +578,7 @@ export function useHelpdeskGame(options: {
 
     // 電話呼び出し音を開始
     if (callingAudioRef.current) {
-      callingAudioRef.current.play().catch(() => {});
+      callingAudioRef.current.play().catch(() => { });
     }
   }, [gamePhase]);
 
