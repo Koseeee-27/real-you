@@ -13,7 +13,7 @@ export const INITIAL_SUPPORT_MESSAGE =
 
 /** ゲーム終了時の最後のサポート発言（固定） */
 export const FINAL_SUPPORT_MESSAGE =
-  'もういいです！わかりました！こちらでもう一度確認しますので、一旦失礼します！！（ガチャッ）';
+  'もういいです！わかりました！こちらでもう一度確認しますので、一旦失礼します！！';
 
 /**
  * POST /api/voice/respond が失敗した場合のフォールバック応答。
