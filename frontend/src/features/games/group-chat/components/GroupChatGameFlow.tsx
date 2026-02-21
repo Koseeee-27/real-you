@@ -195,32 +195,37 @@ export default function GroupChatGameFlow() {
         style={{ height: 'min(90vh, 700px)' }}
       >
         {/* ヘッダー: LINE風 */}
-        <header className="flex items-center justify-between bg-blue-500 px-4 py-3 text-white">
+        <header className="flex items-center justify-between border-b-[6px] border-black bg-[#2d5be3] px-4 py-3 text-white">
           <div className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-green-300" />
-            <h1 className="text-sm font-bold">
+            <span className="inline-block h-3 w-3 rounded-full border-[2px] border-black bg-[#57d071]" />
+            <h1 className="text-lg font-black tracking-widest">
               {groupName}({groupMemberCount})
             </h1>
           </div>
-          {currentStage && (
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium">
-              {currentStageIndex + 1}/{totalStages}
-            </span>
-          )}
+          <button
+            onClick={() => window.location.reload()}
+            className="flex items-center justify-center rounded-full border-[3px] border-black bg-[#e03131] px-4 py-1 text-xs font-black shadow-[2px_2px_0_0_#000] transition-all hover:translate-y-0.5 hover:shadow-[0_0_0_0_#000]"
+          >
+            RESET
+          </button>
         </header>
 
         {/* チャットエリア */}
-        <div className="flex-1 overflow-y-auto bg-sky-100 px-3 py-3">
-          <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto bg-[#dae5f3] px-3 py-4">
+          <div className="space-y-4">
             {/* DAYラベル */}
             {currentStage && (
               <>
-                <p className="text-center text-[10px] text-gray-400">TODAY</p>
-                <p className="text-center">
-                  <span className="inline-block rounded-full bg-gray-300/60 px-3 py-0.5 text-[10px] text-gray-500">
-                    — {currentStage.dayLabel} —
+                <div className="my-2 flex justify-center">
+                  <span className="rounded-full border-[2px] border-gray-300 bg-white/50 px-4 py-1 text-[10px] font-bold text-gray-500">
+                    TODAY
                   </span>
-                </p>
+                </div>
+                <div className="my-2 flex justify-center">
+                  <span className="rounded-full border-[2px] border-gray-300 bg-white/50 px-4 py-1 text-[10px] font-bold text-gray-500">
+                    --- {currentStage.dayLabel} ---
+                  </span>
+                </div>
               </>
             )}
 
@@ -233,21 +238,23 @@ export default function GroupChatGameFlow() {
                   {(() => {
                     const bot = getBotByBotId(msg.botId);
                     return (
-                      <div className="flex flex-col items-center gap-0.5">
+                      <div className="mt-1 flex flex-col items-center gap-1">
                         <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${bot?.color ?? 'bg-gray-400 text-white'
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-[3px] border-black text-sm font-black shadow-[2px_2px_0_0_#000] ${bot?.color ?? 'bg-gray-400 text-white'
                             }`}
                         >
                           {bot?.avatarLabel ?? '?'}
                         </div>
-                        <span className="text-[9px] text-gray-500">
-                          {bot?.name}
-                        </span>
                       </div>
                     );
                   })()}
-                  <div className="max-w-[70%] rounded-lg rounded-tl-none bg-white px-3 py-2 text-sm shadow-sm">
-                    {msg.text}
+                  <div className="flex flex-col">
+                    <span className="mb-1 ml-1 text-[10px] font-bold text-gray-600">
+                      {getBotByBotId(msg.botId)?.name}
+                    </span>
+                    <div className="max-w-[80%] rounded-2xl rounded-tl-none border-[3px] border-black bg-white px-4 py-3 text-sm font-bold text-black shadow-[2px_2px_0_0_#000]">
+                      {msg.text}
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -255,7 +262,7 @@ export default function GroupChatGameFlow() {
                   key={`s${currentStageIndex}-${i}-user`}
                   className="flex justify-end"
                 >
-                  <div className="max-w-[70%] rounded-lg rounded-tr-none bg-green-400 px-3 py-2 text-sm text-white shadow-sm">
+                  <div className="max-w-[80%] rounded-2xl rounded-tr-none border-[3px] border-black bg-[#57d071] px-4 py-3 text-sm font-bold text-white shadow-[2px_2px_0_0_#000]">
                     {msg.text}
                   </div>
                 </div>
@@ -264,19 +271,19 @@ export default function GroupChatGameFlow() {
 
             {/* 入力中インジケータ */}
             {isTypingIndicatorVisible && typingBotName && (
-              <div className="flex items-center justify-center gap-2 rounded-full bg-white/80 px-4 py-1.5 shadow-sm mx-auto w-fit">
-                <span className="inline-flex gap-0.5">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500" />
+              <div className="mx-auto flex w-fit items-center justify-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 shadow-[2px_2px_0_0_#000]">
+                <span className="inline-flex gap-1">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-black" />
                   <span
-                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500"
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-black"
                     style={{ animationDelay: '0.15s' }}
                   />
                   <span
-                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500"
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-black"
                     style={{ animationDelay: '0.3s' }}
                   />
                 </span>
-                <span className="text-sm font-medium text-gray-600">
+                <span className="text-sm font-bold text-black">
                   {typingBotName}が返信中
                 </span>
               </div>
