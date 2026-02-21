@@ -68,7 +68,7 @@ export default function MetricsBarChart({
           {/* あなた：太くて黒枠があるメインバー */}
           <Bar
             dataKey="user"
-            name="あなた :"
+            name="あなた"
             barSize={24}
             radius={[0, 10, 10, 0]}
             stroke="#000"
@@ -81,7 +81,7 @@ export default function MetricsBarChart({
 
           <Bar
             dataKey="average"
-            name="平均 :"
+            name="平均"
             barSize={12}
             radius={[0, 6, 6, 0]}
           >
