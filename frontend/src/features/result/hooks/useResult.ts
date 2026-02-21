@@ -13,7 +13,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function fetchResult(): Promise<ResultResponse> {
-  const userId = typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
+  const userId =
+    typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
   if (!userId) throw new Error('ユーザーが見つかりません');
   return await getResult(userId);
 }

@@ -16,7 +16,11 @@ export default function HelpdeskGameFlow() {
       try {
         const userId = localStorage.getItem('user_id');
         if (!userId) throw new Error('user_id が見つかりません');
-        await submitGame({ user_id: userId, game_type: 2, data: data as unknown as Record<string, unknown> });
+        await submitGame({
+          user_id: userId,
+          game_type: 2,
+          data: data as unknown as Record<string, unknown>,
+        });
       } catch (err) {
         console.error('Game2データ送信エラー:', err);
       }

@@ -1,5 +1,10 @@
 import type { BaselineAnswers } from '@/features/diagnosis/types';
-import type { SubmitGameRequest, SubmitGameResponse, VoiceRespondRequest, VoiceRespondResponse } from '@/features/games/types';
+import type {
+  SubmitGameRequest,
+  SubmitGameResponse,
+  VoiceRespondRequest,
+  VoiceRespondResponse,
+} from '@/features/games/types';
 import type { ResultResponse } from '@/features/result/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
