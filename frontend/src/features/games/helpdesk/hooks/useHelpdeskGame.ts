@@ -6,11 +6,12 @@ import type {
   Game2Turn,
   TextInputMetrics,
 } from '@/features/games/types';
+import { postVoiceRespond } from '@/lib/api';
 import {
   GAME_TOPIC,
+  INITIAL_SUPPORT_MESSAGE,
   INSTRUCTION_TEXT,
   MAX_TURNS,
-  SUPPORT_RESPONSES,
   TURN_TIME_LIMIT_MS,
 } from '../data/supportResponses';
 import type { AudioMetricsResult } from './useAudioMetrics';
@@ -21,17 +22,19 @@ import { useTypingMetrics } from './useTypingMetrics';
 /**
  * ゲームの進行状態。
  *
- * instruction      → 開始前の指示ポップアップ表示中
- * support-speaking → サポート担当の発言をチャットに追加中
- * user-input       → ユーザーの音声/テキスト入力待ち（20秒タイマー稼働）
- * submitting       → 全ラリー完了、Game2Data を組み立てて onComplete に渡す
- * completed        → 送信完了、次の画面への遷移待ち
- * error            → エラー発生（将来の API 連携用）
+ * instruction       → 開始前の指示ポップアップ表示中
+ * support-speaking  → サポート担当の発言をチャットに追加中
+ * user-input        → ユーザーの音声/テキスト入力待ち（20秒タイマー稼働）
+ * voice-api-error   → AI応答API失敗、リトライ待ち
+ * submitting        → 全ラリー完了、Game2Data を組み立てて onComplete に渡す
+ * completed         → 送信完了、次の画面への遷移待ち
+ * error             → その他エラー
  */
 export type GamePhase =
   | 'instruction'
   | 'support-speaking'
   | 'user-input'
+  | 'voice-api-error'
   | 'submitting'
   | 'completed'
   | 'error';
@@ -64,8 +67,14 @@ export function useHelpdeskGame(options: {
   const [turns, setTurns] = useState<Game2Turn[]>([]); // 収集データ用ターンログ
   const [gamePhase, setGamePhase] = useState<GamePhase>('instruction');
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
+  const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
 
   // --- 再レンダリング不要なデータを ref で管理 ---
+  const pendingVoiceRequestRef = useRef<{
+    userMessage: string;
+    conversationHistory: { role: 'user' | 'assistant'; content: string }[];
+  } | null>(null);
+  const chatHistoryRef = useRef<ChatMessage[]>([]);
   const currentTurnRef = useRef(0);
   const inputMethodRef = useRef(inputMethod);
   const timerIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -98,12 +107,7 @@ export function useHelpdeskGame(options: {
     if (nextTurn >= MAX_TURNS) {
       setGamePhase('submitting');
     } else {
-      setChatHistory((prevChat) => [
-        ...prevChat,
-        { role: 'support', text: SUPPORT_RESPONSES[nextTurn] },
-      ]);
       setGamePhase('support-speaking');
-      setRemainingTimeMs(TURN_TIME_LIMIT_MS);
     }
   }, []);
 
@@ -172,6 +176,9 @@ export function useHelpdeskGame(options: {
     turnsRef.current = turns;
   }, [turns]);
   useEffect(() => {
+    chatHistoryRef.current = chatHistory;
+  }, [chatHistory]);
+  useEffect(() => {
     inputMethodRef.current = inputMethod;
   }, [inputMethod]);
 
@@ -232,24 +239,14 @@ export function useHelpdeskGame(options: {
   // サポート担当の TTS 読み上げ → user-input へ遷移
   // =========================================================
 
-  // チャット履歴への追加は advanceAfterUserTurn / startGame 側で実施済み。
-  // このエフェクトは TTS（外部システム）へのサブスクリプションのみ行う。
-  //
-  // TODO: バックエンド接続時に POST /api/voice/respond を呼び出し、
-  // ユーザー発言 + 会話履歴を送信して AI 生成応答を取得する。
-  // 現在は SUPPORT_RESPONSES のハードコードで代替。
-  useEffect(() => {
-    if (gamePhase !== 'support-speaking') return;
-    const supportText = SUPPORT_RESPONSES[currentTurn];
-
-    let cancelled = false;
-    let fallbackId = 0;
+  // POST /api/voice/respond で AI 応答を取得し、チャットに追加 → TTS 読み上げ → user-input へ遷移。
+  // API 失敗時は voice-api-error に遷移し、リトライを促す（モックデータは使用しない）。
+  const addSupportResponseAndSpeak = useCallback((supportText: string) => {
+    setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
 
     const transitionToInput = () => {
-      if (!cancelled) {
-        setGamePhase('user-input');
-        setRemainingTimeMs(TURN_TIME_LIMIT_MS);
-      }
+      setGamePhase('user-input');
+      setRemainingTimeMs(TURN_TIME_LIMIT_MS);
     };
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -260,18 +257,96 @@ export function useHelpdeskGame(options: {
       utterance.onerror = transitionToInput;
       window.speechSynthesis.speak(utterance);
     } else {
-      // TTS 非対応: 次フレームで非同期遷移
-      fallbackId = requestAnimationFrame(transitionToInput);
+      requestAnimationFrame(transitionToInput);
     }
+  }, []);
+
+  useEffect(() => {
+    if (gamePhase !== 'support-speaking') return;
+
+    let cancelled = false;
+    const fallbackId = 0;
+
+    const fetchAndSpeak = async () => {
+      let supportText: string;
+
+      if (currentTurn === 0) {
+        supportText = INITIAL_SUPPORT_MESSAGE;
+      } else {
+        const history = chatHistoryRef.current;
+        const lastUserMsg = [...history]
+          .reverse()
+          .find((m) => m.role === 'user');
+        const userMessage = lastUserMsg?.text || GAME_TOPIC;
+
+        const conversationHistory = history.map((m) => ({
+          role: (m.role === 'support' ? 'assistant' : 'user') as
+            | 'user'
+            | 'assistant',
+          content: m.text,
+        }));
+
+        try {
+          const userId =
+            typeof window !== 'undefined'
+              ? localStorage.getItem('user_id')
+              : null;
+          if (!userId) throw new Error('user_id not found');
+          const result = await postVoiceRespond({
+            user_id: userId,
+            message: userMessage,
+            conversation_history: conversationHistory,
+          });
+          supportText = result.response;
+        } catch {
+          if (cancelled) return;
+          pendingVoiceRequestRef.current = {
+            userMessage,
+            conversationHistory,
+          };
+          setGamePhase('voice-api-error');
+          return;
+        }
+      }
+
+      if (cancelled) return;
+
+      addSupportResponseAndSpeak(supportText);
+    };
+
+    fetchAndSpeak();
 
     return () => {
       cancelled = true;
-      cancelAnimationFrame(fallbackId);
+      if (fallbackId) cancelAnimationFrame(fallbackId);
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
     };
-  }, [gamePhase, currentTurn]);
+  }, [gamePhase, currentTurn, addSupportResponseAndSpeak]);
+
+  const retryVoiceApi = useCallback(async () => {
+    const pending = pendingVoiceRequestRef.current;
+    if (!pending) return;
+
+    setVoiceApiRetrying(true);
+
+    try {
+      const userId =
+        typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
+      if (!userId) throw new Error('user_id not found');
+      const result = await postVoiceRespond({
+        user_id: userId,
+        message: pending.userMessage,
+        conversation_history: pending.conversationHistory,
+      });
+      addSupportResponseAndSpeak(result.response);
+    } catch {
+      pendingVoiceRequestRef.current = pending;
+    } finally {
+      setVoiceApiRetrying(false);
+    }
+  }, [addSupportResponseAndSpeak]);
 
   // =========================================================
   // user-input フェーズ: 録音開始 & 20秒タイマー
@@ -384,8 +459,6 @@ export function useHelpdeskGame(options: {
   /** 指示ポップアップから「相談を始める」を押したとき */
   const startGame = useCallback(() => {
     if (gamePhase !== 'instruction') return;
-    const supportText = SUPPORT_RESPONSES[0];
-    setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
     setGamePhase('support-speaking');
   }, [gamePhase]);
 
@@ -431,5 +504,7 @@ export function useHelpdeskGame(options: {
     onKeyDown,
     resetTyping,
     isVoiceSupported: speech.isSupported,
+    voiceApiRetrying,
+    retryVoiceApi,
   };
 }

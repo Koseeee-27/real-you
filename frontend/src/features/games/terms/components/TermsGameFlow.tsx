@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useSetAtom } from 'jotai';
 import { useRouter } from 'next/navigation';
 import type { Game1Data, ScrollEvent } from '@/features/games/types';
+import { game1DataAtom } from '@/stores/games';
 import TermsContent from './TermsContent';
 import PopupAd from './PopupAd';
 import PopupTerms from './PopupTerms';
@@ -18,6 +20,7 @@ const REACHED_BOTTOM_THRESHOLD = 0.9;
 
 export default function TermsGameFlow() {
   const router = useRouter();
+  const setGame1Data = useSetAtom(game1DataAtom);
 
   const [checkboxStates, setCheckboxStates] = useState({
     readConfirm: false,
@@ -168,26 +171,16 @@ export default function TermsGameFlow() {
   );
 
   const handleAction = useCallback(
-    async (action: 'agree' | 'disagree') => {
-      const game1Data = buildGame1Data(action);
-
-      // TODO: バックエンド接続時に以下のコメントアウトを解除し、console.logを削除する
-      // try {
-      //   const userId = localStorage.getItem('user_id');
-      //   if (!userId) throw new Error('user_id が見つかりません');
-      //   await submitGame({ user_id: userId, game_type: 1, data: game1Data as unknown as Record<string, unknown> });
-      // } catch (err) {
-      //   console.error('Game1データ送信エラー:', err);
-      // }
-
-      console.log('Game1Data:', game1Data);
+    (action: 'agree' | 'disagree') => {
+      const data = buildGame1Data(action);
+      setGame1Data(data);
 
       setIsCompleted(true);
       setTimeout(() => {
         router.push('/diagnosis');
       }, 2000);
     },
-    [buildGame1Data, router]
+    [buildGame1Data, setGame1Data, router]
   );
 
   if (isCompleted) {
