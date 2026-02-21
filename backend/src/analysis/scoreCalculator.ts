@@ -332,6 +332,7 @@ const feedback = generateFeedback(scores, gaps);
         metrics: [
           { label: "反応潜時(ms)", user: Math.round(g2.avgReact ?? 0), average: 2500, category: "time" },
           { label: "発話時間(秒)", user: Number((g2.totalSpeech / 1000).toFixed(1)), average: 4.2, category: "time" },
+          { label: "食い気味度(ms)", user: game2Raw?.interruptMs || 0, average: 800, category: "time" },
           { label: "平均音量(dB)", user: Number((g2.avgVolume ?? 0).toFixed(1)), average: -25.0, category: "voice" },
           { label: "論理的接続詞(回)", user: g2.logicWordsCount, average: 0.5, category: "logic" }
         ]
@@ -346,7 +347,8 @@ const feedback = generateFeedback(scores, gaps);
           { label: "同調率(%)", user: Math.round((g3.conformCount / (game3Raw?.stages?.length || 1)) * 100), average: 75, category: "social" },
           { label: "反応潜時(ms)", user: Math.round(g3.avgReact ?? 0), average: 3500, category: "time" },
           { label: "本音ホバー(回)", user: game3Raw?.hoveredOptions || 0, average: 2.4, category: "mouse" },
-          { label: "譲り合い待機(ms)", user: game3Raw?.typingIndicatorReactTimeMs || 0, average: 2000, category: "time" }
+          { label: "譲り合い待機(ms)", user: game3Raw?.typingIndicatorReactTimeMs || 0, average: 2000, category: "time" },
+          { label: "過去ログ遡及(回)", user: game3Raw?.scrollBackCount || 0, average: 1.2, category: "scroll" }
         ]
       }
     }

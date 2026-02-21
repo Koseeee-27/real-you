@@ -4,14 +4,15 @@ import { useState, useCallback } from 'react';
 import { useAtomValue } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { mbtiAtom } from '@/stores/diagnosis';
+import { game1DataAtom } from '@/stores/games';
 import {
   QUESTIONS,
   type QuestionKey,
   type BaselineAnswers,
+  type AnswerOption,
 } from '@/features/diagnosis/types';
 import Spinner from '@/components/ui/Spinner';
-// TODO: バックエンド接続時にコメントアウトを解除する
-// import { postRegister } from '@/lib/api';
+import { postRegister, submitGame } from '@/lib/api';
 
 type Status = 'answering' | 'loading' | 'error' | 'success';
 
@@ -19,73 +20,63 @@ type Status = 'answering' | 'loading' | 'error' | 'success';
 export default function BaselineSurvey() {
   const router = useRouter();
   const mbti = useAtomValue(mbtiAtom);
+  const game1Data = useAtomValue(game1DataAtom);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Partial<Record<QuestionKey, string>>>(
-    {}
-  );
+  const [answers, setAnswers] = useState<
+    Partial<Record<QuestionKey, AnswerOption>>
+  >({});
   const [status, setStatus] = useState<Status>('answering');
-  const [errorMessage, setErrorMessage] = useState('');
 
   const currentQuestion = QUESTIONS[currentIndex];
   const totalQuestions = QUESTIONS.length;
 
-  // TODO: バックエンド接続時にコメントアウトを解除する
-  // const submitToApi = useCallback(
-  //   async (finalAnswers: BaselineAnswers) => {
-  //     setStatus('loading');
-  //     setErrorMessage('');
-  //
-  //     try {
-  //       const result = await postRegister({
-  //         mbti,
-  //         baseline_answers: finalAnswers,
-  //       });
-  //
-  //       localStorage.setItem('user_id', result.user_id);
-  //       setStatus('success');
-  //
-  //       setTimeout(() => {
-  //         router.push('/games/helpdesk');
-  //       }, 2000);
-  //     } catch (err) {
-  //       setStatus('error');
-  //       setErrorMessage(
-  //         err instanceof Error ? err.message : 'データ送信に失敗しました'
-  //       );
-  //     }
-  //   },
-  //   [mbti, router]
-  // );
+  const submitToApi = useCallback(
+    async (finalAnswers: BaselineAnswers) => {
+      setStatus('loading');
 
-  // TODO: バックエンド接続時にhandleSubmitを削除し、submitToApiを使用する
-  const handleSubmit = useCallback(
-    (finalAnswers: BaselineAnswers) => {
-      console.log('送信データ:', { mbti, baseline_answers: finalAnswers });
-      setStatus('success');
+      try {
+        const result = await postRegister({
+          mbti,
+          baseline_answers: finalAnswers,
+        });
 
-      setTimeout(() => {
-        router.push('/games/helpdesk');
-      }, 2000);
+        localStorage.setItem('user_id', result.user_id);
+
+        if (game1Data) {
+          await submitGame({
+            user_id: result.user_id,
+            game_type: 1,
+            data: game1Data as unknown as Record<string, unknown>,
+          });
+        }
+
+        setStatus('success');
+
+        setTimeout(() => {
+          router.push('/games/helpdesk');
+        }, 2000);
+      } catch {
+        setStatus('error');
+      }
     },
-    [mbti, router]
+    [mbti, router, game1Data]
   );
 
-  const handleAnswer = (value: string) => {
+  const handleAnswer = (value: AnswerOption) => {
     const newAnswers = { ...answers, [currentQuestion.key]: value };
     setAnswers(newAnswers);
 
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      handleSubmit(newAnswers as BaselineAnswers);
+      submitToApi(newAnswers as BaselineAnswers);
     }
   };
 
-  // TODO: バックエンド接続時にコメントアウトを解除する
-  // const handleRetry = () => {
-  //   submitToApi(answers as BaselineAnswers);
-  // };
+  const handleRetry = () => {
+    submitToApi(answers as BaselineAnswers);
+  };
 
   if (status === 'loading') {
     return (
@@ -98,14 +89,13 @@ export default function BaselineSurvey() {
   if (status === 'error') {
     return (
       <div className="flex w-full max-w-md flex-col items-center gap-4">
-        <p className="text-lg font-semibold text-red-600">{errorMessage}</p>
-        {/* TODO: バックエンド接続時にコメントアウトを解除する */}
-        {/* <button
+        <p className="text-lg font-semibold text-red-600">通信に失敗しました</p>
+        <button
           onClick={handleRetry}
           className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
         >
           リトライ
-        </button> */}
+        </button>
       </div>
     );
   }
