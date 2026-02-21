@@ -225,17 +225,15 @@ export default function GroupChatGameFlow() {
                   </span>
                 </div>
               ) : msg.type === 'bot' ? (
-                <div
-                  key={`msg-${i}`}
-                  className="flex items-start gap-2"
-                >
+                <div key={`msg-${i}`} className="flex items-start gap-2">
                   {(() => {
                     const bot = getBotByBotId(msg.botId);
                     return (
                       <div className="mt-1 flex flex-col items-center gap-1">
                         <div
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-[3px] border-black text-sm font-black shadow-[2px_2px_0_0_#000] ${bot?.color ?? 'bg-gray-400 text-white'
-                            }`}
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-[3px] border-black text-sm font-black shadow-[2px_2px_0_0_#000] ${
+                            bot?.color ?? 'bg-gray-400 text-white'
+                          }`}
                         >
                           {bot?.avatarLabel ?? '?'}
                         </div>
@@ -252,10 +250,7 @@ export default function GroupChatGameFlow() {
                   </div>
                 </div>
               ) : (
-                <div
-                  key={`msg-${i}`}
-                  className="flex justify-end"
-                >
+                <div key={`msg-${i}`} className="flex justify-end">
                   <div className="max-w-[80%] rounded-2xl rounded-tr-none border-[3px] border-black bg-[#57d071] px-4 py-3 text-sm font-bold text-white shadow-[2px_2px_0_0_#000]">
                     {msg.text}
                   </div>

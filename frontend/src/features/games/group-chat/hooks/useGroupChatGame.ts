@@ -55,7 +55,10 @@ export interface SeparatorTimelineMessage {
   label: string;
 }
 
-export type ChatMessage = TimelineMessage | UserTimelineMessage | SeparatorTimelineMessage;
+export type ChatMessage =
+  | TimelineMessage
+  | UserTimelineMessage
+  | SeparatorTimelineMessage;
 
 /**
  * Game 3（空気読みグループチャット）全体のステート管理フック。
