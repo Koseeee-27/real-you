@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Game1Data, ScrollEvent } from '@/features/games/types';
 import TermsContent from './TermsContent';
 import PopupAd from './PopupAd';
+import PopupTerms from './PopupTerms';
 // TODO: バックエンド接続時にコメントアウトを解除する
 // import { submitGame } from '@/lib/api';
 
@@ -27,6 +28,8 @@ export default function TermsGameFlow() {
   const [hiddenInputValue, setHiddenInputValue] = useState('');
   // ポップアップ広告の表示状態
   const [showPopup, setShowPopup] = useState(false);
+  // 利用規約モーダル表示状態（初期で表示）
+  const [showTermsModal, setShowTermsModal] = useState(true);
   // ゲーム完了フラグ（trueで完了画面を表示→次のゲームへ遷移）
   const [isCompleted, setIsCompleted] = useState(false);
 
@@ -117,6 +120,11 @@ export default function TermsGameFlow() {
     []
   );
 
+  // モーダル内スクロール領域を親で扱えるようにするためのコールバック
+  const setModalScrollRef = useCallback((el: HTMLDivElement | null) => {
+    scrollContainerRef.current = el;
+  }, []);
+
   const handleAgreeHoverStart = useCallback(() => {
     if (agreeHoverStartRef.current === 0) {
       agreeHoverStartRef.current = Date.now();
@@ -196,42 +204,28 @@ export default function TermsGameFlow() {
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <div
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-6"
-      >
-        <div className="mx-auto max-w-2xl">
-          <TermsContent
-            onCheckboxChange={handleCheckboxChange}
-            onHiddenInputChange={handleHiddenInputChange}
-            checkboxStates={checkboxStates}
-            hiddenInputValue={hiddenInputValue}
-          />
-        </div>
-      </div>
-
-      <div className="border-t bg-white px-4 py-3">
-        <div className="mx-auto flex max-w-2xl items-center gap-3">
-          <button
-            onClick={() => handleAction('disagree')}
-            className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-          >
-            同意しない
-          </button>
-          <button
-            onClick={() => handleAction('agree')}
-            onMouseEnter={handleAgreeHoverStart}
-            className="rounded bg-blue-600 px-6 py-2 text-sm font-bold text-white hover:bg-blue-700"
-          >
-            同意する
-          </button>
-        </div>
-      </div>
+    <div className="flex h-screen flex-col bg-[#F0F380]">
+      <div className="flex-1" />
 
       {showPopup && (
         <PopupAd onClose={handlePopupClose} appearedAt={popupAppearedAt} />
+      )}
+
+      {showTermsModal && (
+        <PopupTerms
+          onClose={() => {
+            setShowTermsModal(false);
+            scrollContainerRef.current = null;
+          }}
+          onCheckboxChange={handleCheckboxChange}
+          onHiddenInputChange={handleHiddenInputChange}
+          checkboxStates={checkboxStates}
+          hiddenInputValue={hiddenInputValue}
+          setScrollContainerRef={setModalScrollRef}
+          onScroll={handleScroll}
+          onAction={handleAction}
+          onAgreeHoverStart={handleAgreeHoverStart}
+        />
       )}
     </div>
   );
