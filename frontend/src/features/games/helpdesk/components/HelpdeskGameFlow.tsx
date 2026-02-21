@@ -5,31 +5,59 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Game2Data } from '@/features/games/types';
 import { submitGame } from '@/lib/api';
 import { useHelpdeskGame } from '../hooks/useHelpdeskGame';
+import Spinner from '@/components/ui/Spinner';
+
+type SubmitStatus = 'loading' | 'success' | 'error';
 
 export default function HelpdeskGameFlow() {
   const router = useRouter();
   const [textInput, setTextInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('loading');
+  const pendingDataRef = useRef<Game2Data | null>(null);
+
+  const submitGame2 = useCallback(async (data: Game2Data) => {
+    const userId = localStorage.getItem('user_id');
+    if (!userId) throw new Error('user_id が見つかりません');
+    await submitGame({
+      user_id: userId,
+      game_type: 2,
+      data: data as unknown as Record<string, unknown>,
+    });
+  }, []);
 
   const handleComplete = useCallback(
     async (data: Game2Data) => {
+      pendingDataRef.current = data;
+      setSubmitStatus('loading');
+
       try {
-        const userId = localStorage.getItem('user_id');
-        if (!userId) throw new Error('user_id が見つかりません');
-        await submitGame({
-          user_id: userId,
-          game_type: 2,
-          data: data as unknown as Record<string, unknown>,
-        });
-      } catch (err) {
-        console.error('Game2データ送信エラー:', err);
+        await submitGame2(data);
+        setSubmitStatus('success');
+        setTimeout(() => {
+          router.push('/games/group-chat');
+        }, 2000);
+      } catch {
+        setSubmitStatus('error');
       }
+    },
+    [router, submitGame2]
+  );
+
+  const handleRetry = useCallback(async () => {
+    const data = pendingDataRef.current;
+    if (!data) return;
+    setSubmitStatus('loading');
+    try {
+      await submitGame2(data);
+      setSubmitStatus('success');
       setTimeout(() => {
         router.push('/games/group-chat');
       }, 2000);
-    },
-    [router]
-  );
+    } catch {
+      setSubmitStatus('error');
+    }
+  }, [router, submitGame2]);
 
   const {
     instructionText,
@@ -45,6 +73,8 @@ export default function HelpdeskGameFlow() {
     onKeyDown,
     resetTyping,
     isVoiceSupported,
+    voiceApiRetrying,
+    retryVoiceApi,
   } = useHelpdeskGame({ onComplete: handleComplete });
 
   const handleTextSubmit = useCallback(() => {
@@ -60,6 +90,28 @@ export default function HelpdeskGameFlow() {
 
   // --- 完了画面 ---
   if (gamePhase === 'completed') {
+    if (submitStatus === 'loading') {
+      return (
+        <div className="flex min-h-screen items-center justify-center">
+          <Spinner message="送信中..." />
+        </div>
+      );
+    }
+    if (submitStatus === 'error') {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+          <p className="text-lg font-semibold text-red-600">
+            通信に失敗しました
+          </p>
+          <button
+            onClick={handleRetry}
+            className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+          >
+            リトライ
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -75,6 +127,28 @@ export default function HelpdeskGameFlow() {
   // --- チャット画面 ---
   return (
     <div className="relative flex h-screen flex-col bg-gray-50">
+      {/* --- AI応答取得失敗オーバーレイ --- */}
+      {gamePhase === 'voice-api-error' && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/30 px-6">
+          <div className="rounded-lg bg-white p-6 text-center shadow-lg">
+            <p className="text-lg font-semibold text-red-600">
+              通信に失敗しました
+            </p>
+            {voiceApiRetrying ? (
+              <Spinner message="リトライ中..." />
+            ) : (
+              <button
+                type="button"
+                onClick={retryVoiceApi}
+                className="mt-4 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+              >
+                リトライ
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* --- 指示ポップアップ（オーバーレイ / 全体タップで進む） --- */}
       {gamePhase === 'instruction' && (
         <button

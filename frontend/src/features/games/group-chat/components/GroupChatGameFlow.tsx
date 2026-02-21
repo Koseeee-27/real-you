@@ -1,16 +1,19 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Game3Data } from '@/features/games/types';
 import { BOTS } from '../data/stages';
 import { useGroupChatGame } from '../hooks/useGroupChatGame';
 import { submitGame } from '@/lib/api';
+import Spinner from '@/components/ui/Spinner';
 
 const TUTORIAL_TEXT = `あなたは職場のグループチャットに
 参加しています。
 
 自由に返信せよ！！`;
+
+type SubmitStatus = 'loading' | 'success' | 'error';
 
 function getBotByBotId(botId: string) {
   return BOTS.find((b) => b.id === botId);
@@ -19,26 +22,51 @@ function getBotByBotId(botId: string) {
 export default function GroupChatGameFlow() {
   const router = useRouter();
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('loading');
+  const pendingDataRef = useRef<Game3Data | null>(null);
+
+  const submitGame3 = useCallback(async (data: Game3Data) => {
+    const userId = localStorage.getItem('user_id');
+    if (!userId) throw new Error('user_id が見つかりません');
+    await submitGame({
+      user_id: userId,
+      game_type: 3,
+      data: data as unknown as Record<string, unknown>,
+    });
+  }, []);
 
   const handleComplete = useCallback(
     async (data: Game3Data) => {
+      pendingDataRef.current = data;
+      setSubmitStatus('loading');
+
       try {
-        const userId = localStorage.getItem('user_id');
-        if (!userId) throw new Error('user_id が見つかりません');
-        await submitGame({
-          user_id: userId,
-          game_type: 3,
-          data: data as unknown as Record<string, unknown>,
-        });
-      } catch (err) {
-        console.error('Game3データ送信エラー:', err);
+        await submitGame3(data);
+        setSubmitStatus('success');
+        setTimeout(() => {
+          router.push('/result');
+        }, 2000);
+      } catch {
+        setSubmitStatus('error');
       }
+    },
+    [router, submitGame3]
+  );
+
+  const handleRetry = useCallback(async () => {
+    const data = pendingDataRef.current;
+    if (!data) return;
+    setSubmitStatus('loading');
+    try {
+      await submitGame3(data);
+      setSubmitStatus('success');
       setTimeout(() => {
         router.push('/result');
       }, 2000);
-    },
-    [router]
-  );
+    } catch {
+      setSubmitStatus('error');
+    }
+  }, [router, submitGame3]);
 
   const {
     gamePhase,
@@ -62,6 +90,28 @@ export default function GroupChatGameFlow() {
   }, [chatMessages, isTypingIndicatorVisible, gamePhase]);
 
   if (gamePhase === 'completed') {
+    if (submitStatus === 'loading') {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-gray-100">
+          <Spinner message="送信中..." />
+        </div>
+      );
+    }
+    if (submitStatus === 'error') {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-100">
+          <p className="text-lg font-semibold text-red-600">
+            通信に失敗しました
+          </p>
+          <button
+            onClick={handleRetry}
+            className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+          >
+            リトライ
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-100">
         <div className="text-center">
