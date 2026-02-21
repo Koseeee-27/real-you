@@ -33,14 +33,11 @@ const PopupTerms: FC<PopupTermsProps> = ({
   onAgreeHoverStart,
 }) => {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <div
         className="relative mx-4 w-full max-w-3xl rounded-lg bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-
         {/* スクロール領域 */}
         <div
           ref={(el) => {
