@@ -67,7 +67,6 @@ export function useHelpdeskGame(options: {
   const [turns, setTurns] = useState<Game2Turn[]>([]); // 収集データ用ターンログ
   const [gamePhase, setGamePhase] = useState<GamePhase>('instruction');
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
-  const [voiceApiErrorMessage, setVoiceApiErrorMessage] = useState('');
   const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
 
   // --- 再レンダリング不要なデータを ref で管理 ---
@@ -272,7 +271,7 @@ export function useHelpdeskGame(options: {
     if (gamePhase !== 'support-speaking') return;
 
     let cancelled = false;
-    let fallbackId = 0;
+    const fallbackId = 0;
 
     const fetchAndSpeak = async () => {
       let supportText: string;
@@ -305,15 +304,12 @@ export function useHelpdeskGame(options: {
             conversation_history: conversationHistory,
           });
           supportText = result.response;
-        } catch (err) {
+        } catch {
           if (cancelled) return;
           pendingVoiceRequestRef.current = {
             userMessage,
             conversationHistory,
           };
-          setVoiceApiErrorMessage(
-            err instanceof Error ? err.message : 'AI応答の取得に失敗しました'
-          );
           setGamePhase('voice-api-error');
           return;
         }
@@ -340,7 +336,6 @@ export function useHelpdeskGame(options: {
     if (!pending) return;
 
     setVoiceApiRetrying(true);
-    setVoiceApiErrorMessage('');
 
     try {
       const userId =
@@ -352,11 +347,8 @@ export function useHelpdeskGame(options: {
         conversation_history: pending.conversationHistory,
       });
       addSupportResponseAndSpeak(result.response);
-    } catch (err) {
+    } catch {
       pendingVoiceRequestRef.current = pending;
-      setVoiceApiErrorMessage(
-        err instanceof Error ? err.message : 'AI応答の取得に失敗しました'
-      );
     } finally {
       setVoiceApiRetrying(false);
     }

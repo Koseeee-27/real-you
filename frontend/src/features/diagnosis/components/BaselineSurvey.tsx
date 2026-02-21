@@ -27,7 +27,6 @@ export default function BaselineSurvey() {
     Partial<Record<QuestionKey, AnswerOption>>
   >({});
   const [status, setStatus] = useState<Status>('answering');
-  const [errorMessage, setErrorMessage] = useState('');
 
   const currentQuestion = QUESTIONS[currentIndex];
   const totalQuestions = QUESTIONS.length;
@@ -35,7 +34,6 @@ export default function BaselineSurvey() {
   const submitToApi = useCallback(
     async (finalAnswers: BaselineAnswers) => {
       setStatus('loading');
-      setErrorMessage('');
 
       try {
         const result = await postRegister({
@@ -58,11 +56,8 @@ export default function BaselineSurvey() {
         setTimeout(() => {
           router.push('/games/helpdesk');
         }, 2000);
-      } catch (err) {
+      } catch {
         setStatus('error');
-        setErrorMessage(
-          err instanceof Error ? err.message : 'データ送信に失敗しました'
-        );
       }
     },
     [mbti, router, game1Data]
