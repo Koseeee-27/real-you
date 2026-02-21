@@ -87,9 +87,7 @@ export default function TopPage() {
         backgroundRepeat: 'repeat, no-repeat',
       }}
     >
-
       <div className="flex flex-col items-center gap-[2vh] w-full">
-  
         <img
           src="/RealYouLogo.png"
           alt="Real You -本当の私じゃだめですか？-"
