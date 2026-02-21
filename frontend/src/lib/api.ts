@@ -67,3 +67,19 @@ export async function postRegister(
 //
 //   return res.json();
 // }
+
+// TODO: バックエンド接続時にコメントアウトを解除する
+// import type { ResultResponse } from '@/features/result/types';
+//
+// export async function getResult(userId: string): Promise<ResultResponse> {
+//   const res = await fetch(`${API_BASE}/api/results/${userId}`, {
+//     method: 'GET',
+//   });
+//
+//   if (!res.ok) {
+//     const errorData = await res.json().catch(() => null);
+//     throw new Error(errorData?.message || '結果の取得に失敗しました');
+//   }
+//
+//   return res.json();
+// }
