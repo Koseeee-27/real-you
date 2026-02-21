@@ -293,53 +293,57 @@ export default function GroupChatGameFlow() {
         </div>
 
         {/* 下部: タイマー + 選択肢 */}
-        <div className="border-t border-gray-800 bg-amber-50">
+        <div className="border-t-[6px] border-black bg-[#f1cf44] pb-6">
           {gamePhase === 'waiting-input' && currentStage && (
-            <div className="px-3 pb-3 pt-2">
+            <>
               {/* タイマーゲージ */}
-              <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-gray-200">
+              <div className="h-2 w-full bg-black">
                 <div
-                  className={`h-full transition-all duration-100 ${timerColorClass}`}
+                  className="h-full bg-[#e03131] transition-all duration-100"
                   style={{ width: `${timerRatio * 100}%` }}
                 />
               </div>
               {/* 選択肢 */}
-              {currentStage.options.some((o) => o.label) ? (
-                <div className="flex flex-col gap-1.5">
-                  {currentStage.options.map((opt, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onMouseEnter={() => handleOptionHover(idx + 1)}
-                      onFocus={() => handleOptionHover(idx + 1)}
-                      onClick={() => selectOption(idx + 1)}
-                      className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 active:bg-gray-100"
-                    >
-                      <span className="text-base">{opt.emoji}</span>
-                      <span>{opt.label}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-4 gap-2">
-                  {currentStage.options.map((opt, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onMouseEnter={() => handleOptionHover(idx + 1)}
-                      onFocus={() => handleOptionHover(idx + 1)}
-                      onClick={() => selectOption(idx + 1)}
-                      className="flex items-center justify-center rounded-lg border border-gray-300 bg-white py-3 text-3xl transition-colors hover:bg-gray-50 active:bg-gray-100"
-                    >
-                      {opt.emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+              <div className="px-5 pt-5 pb-2">
+                {currentStage.options.some((o) => o.label) ? (
+                  <div className="flex flex-col gap-3">
+                    {currentStage.options.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onMouseEnter={() => handleOptionHover(idx + 1)}
+                        onFocus={() => handleOptionHover(idx + 1)}
+                        onClick={() => selectOption(idx + 1)}
+                        className="flex items-center gap-3 rounded-xl border-[3px] border-black bg-white px-5 py-3.5 text-left font-bold transition-transform hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
+                      >
+                        <span className="text-lg">{opt.emoji}</span>
+                        <span className="text-[13px] text-black">
+                          {opt.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-3">
+                    {currentStage.options.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onMouseEnter={() => handleOptionHover(idx + 1)}
+                        onFocus={() => handleOptionHover(idx + 1)}
+                        onClick={() => selectOption(idx + 1)}
+                        className="flex items-center justify-center rounded-xl border-[3px] border-black bg-white py-4 text-3xl font-bold transition-transform hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
+                      >
+                        {opt.emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
           )}
           {(gamePhase === 'chat-playing' || gamePhase === 'stage-cutin') && (
-            <p className="py-3 text-center text-xs text-gray-400">
+            <p className="py-6 text-center text-sm font-bold text-black/60">
               メッセージを表示しています...
             </p>
           )}
