@@ -133,7 +133,19 @@ export default function GroupChatGameFlow() {
         : 'bg-red-500';
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 p-4">
+    <div
+      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-4"
+      style={{ backgroundColor: '#F0D44A' }}
+    >
+      {/* 背景のドット模様（CSSで描画） */}
+      <div
+        className="absolute inset-0 z-0 opacity-40"
+        style={{
+          backgroundImage: 'radial-gradient(#b8a030 3px, transparent 3px)',
+          backgroundSize: '24px 24px',
+        }}
+      />
+
       {/* --- チュートリアルオーバーレイ --- */}
       {gamePhase === 'tutorial' && (
         <div
@@ -143,16 +155,17 @@ export default function GroupChatGameFlow() {
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') startGame();
           }}
-          className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-black/30"
+          className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-black/60"
         >
-          <div className="animate-[fadeInUp_0.4s_ease-out] px-6 text-center">
-            <p className="text-lg font-black tracking-widest text-white drop-shadow-lg">
-              指示‼️
+          <div className="absolute inset-0 z-0 opacity-40 bg-[radial-gradient(#b8a030_3px,transparent_3px)] [background-size:24px_24px]" />
+          <div className="z-10 animate-[fadeInUp_0.4s_ease-out] px-6 text-center">
+            <p className="text-3xl font-black tracking-widest text-white drop-shadow-md">
+              適切に応答せよ！
             </p>
-            <p className="mt-6 whitespace-pre-line text-xl font-bold leading-relaxed text-white drop-shadow-lg">
+            <p className="mt-6 whitespace-pre-line text-lg font-bold leading-relaxed text-white drop-shadow-md">
               {TUTORIAL_TEXT}
             </p>
-            <p className="mt-8 animate-pulse text-sm text-white/70">
+            <p className="mt-8 animate-pulse text-sm font-bold text-white/80">
               タップして開始
             </p>
           </div>
@@ -178,7 +191,7 @@ export default function GroupChatGameFlow() {
 
       {/* --- スマホフレーム --- */}
       <div
-        className="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border-2 border-gray-800 bg-white shadow-2xl"
+        className="relative z-10 flex w-full max-w-sm flex-col overflow-hidden rounded-[24px] border-[6px] border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.3)] transition-all"
         style={{ height: 'min(90vh, 700px)' }}
       >
         {/* ヘッダー: LINE風 */}
@@ -222,9 +235,8 @@ export default function GroupChatGameFlow() {
                     return (
                       <div className="flex flex-col items-center gap-0.5">
                         <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                            bot?.color ?? 'bg-gray-400 text-white'
-                          }`}
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${bot?.color ?? 'bg-gray-400 text-white'
+                            }`}
                         >
                           {bot?.avatarLabel ?? '?'}
                         </div>
