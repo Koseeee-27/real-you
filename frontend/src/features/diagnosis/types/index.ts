@@ -1,3 +1,5 @@
+export type AnswerOption = 'A' | 'B' | 'C' | 'D';
+
 export type QuestionKey =
   | 'q1_caution'
   | 'q2_calmness'
@@ -5,12 +7,12 @@ export type QuestionKey =
   | 'q4_cooperativeness'
   | 'q5_positivity';
 
-export type BaselineAnswers = Record<QuestionKey, string>;
+export type BaselineAnswers = Record<QuestionKey, AnswerOption>;
 
 export type Question = {
   key: QuestionKey;
   label: string;
-  options: string[];
+  options: AnswerOption[];
 };
 
 export const QUESTIONS: Question[] = [

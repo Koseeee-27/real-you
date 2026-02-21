@@ -1,3 +1,5 @@
-export default function ResultPage() {
-  return <h1>Result</h1>;
+import ResultPage from '@/features/result/components/ResultPage';
+
+export default function ResultRoutePage() {
+  return <ResultPage />;
 }

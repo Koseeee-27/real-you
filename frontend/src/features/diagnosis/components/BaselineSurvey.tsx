@@ -8,6 +8,7 @@ import {
   QUESTIONS,
   type QuestionKey,
   type BaselineAnswers,
+  type AnswerOption,
 } from '@/features/diagnosis/types';
 import Spinner from '@/components/ui/Spinner';
 // TODO: バックエンド接続時にコメントアウトを解除する
@@ -21,9 +22,9 @@ export default function BaselineSurvey() {
   const mbti = useAtomValue(mbtiAtom);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Partial<Record<QuestionKey, string>>>(
-    {}
-  );
+  const [answers, setAnswers] = useState<
+    Partial<Record<QuestionKey, AnswerOption>>
+  >({});
   const [status, setStatus] = useState<Status>('answering');
   // バックエンド接続時に_setErrorMessage → setErrorMessageに変更する
   const [errorMessage, _setErrorMessage] = useState('');
@@ -72,7 +73,7 @@ export default function BaselineSurvey() {
     [mbti, router]
   );
 
-  const handleAnswer = (value: string) => {
+  const handleAnswer = (value: AnswerOption) => {
     const newAnswers = { ...answers, [currentQuestion.key]: value };
     setAnswers(newAnswers);
 

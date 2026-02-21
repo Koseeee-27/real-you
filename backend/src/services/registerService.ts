@@ -24,6 +24,13 @@ function convertAnswersToScores(answers: BaselineAnswers): BaselineScores {
 export const registerService = {
     async registerUser(mbti: string | null | undefined, baselineAnswers: BaselineAnswers) {
         // バリデーション
+        if (mbti) {
+            const mbtiRegex = /^[IE][SN][TF][JP]$/i;
+            if (!mbtiRegex.test(mbti)) {
+                throw { status: 400, code: 'invalid_mbti', message: 'MBTI must be a valid 4-letter type (e.g., INTJ, ESFP)' };
+            }
+        }
+
         if (!baselineAnswers) {
             throw { status: 400, code: 'invalid_request', message: 'baseline_answers is required' };
         }
