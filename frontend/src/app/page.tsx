@@ -63,7 +63,7 @@ export default function TopPage() {
     setShowExplosion(true);
 
     const audio = new Audio('/sounds/start-se.mp3');
-    audio.play().catch(() => { });
+    audio.play().catch(() => {});
 
     setTimeout(() => {
       router.push('/games/terms');

@@ -81,9 +81,11 @@ export function useHelpdeskGame(options: {
     typeof window !== 'undefined' &&
     !!(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).SpeechRecognition ||
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).webkitSpeechRecognition
+      (
+        (window as any).SpeechRecognition ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).webkitSpeechRecognition
+      )
     ) &&
     !!window.speechSynthesis;
 
@@ -228,12 +230,12 @@ export function useHelpdeskGame(options: {
     const hasTextTurn = currentTurns.some((t) => t.inputMethod === 'text');
     const textInputMetrics: TextInputMetrics | null = hasTextTurn
       ? {
-        typingIntervalVariance:
-          typingVariancesRef.current.length > 0
-            ? typingVariancesRef.current.reduce((a, b) => a + b, 0) /
-            typingVariancesRef.current.length
-            : 0,
-      }
+          typingIntervalVariance:
+            typingVariancesRef.current.length > 0
+              ? typingVariancesRef.current.reduce((a, b) => a + b, 0) /
+                typingVariancesRef.current.length
+              : 0,
+        }
       : null;
     const game2Data: Game2Data = {
       inputMethod: inputMethodRef.current,
@@ -246,7 +248,7 @@ export function useHelpdeskGame(options: {
 
     // 電話終了音
     if (hangupAudioRef.current) {
-      hangupAudioRef.current.play().catch(() => { });
+      hangupAudioRef.current.play().catch(() => {});
     }
   }, [onComplete]);
 
@@ -303,11 +305,11 @@ export function useHelpdeskGame(options: {
       let nextHints = matched ? [...matched.hints] : [...DEFAULT_HINTS];
 
       // 既に使用したヒントを除外
-      nextHints = nextHints.filter(h => !usedHintsRef.current.has(h));
+      nextHints = nextHints.filter((h) => !usedHintsRef.current.has(h));
 
       // もし全て使用済みならデフォルトに戻す（あるいは空にしないための配慮）
       if (nextHints.length === 0) {
-        nextHints = DEFAULT_HINTS.filter(h => !usedHintsRef.current.has(h));
+        nextHints = DEFAULT_HINTS.filter((h) => !usedHintsRef.current.has(h));
       }
 
       if (nextHints.length > 0) {
@@ -393,7 +395,7 @@ export function useHelpdeskGame(options: {
 
       // 初回なら呼び出し音を3秒聞かせる
       if (currentTurn === 0) {
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
 
       if (cancelled) return;
@@ -557,7 +559,7 @@ export function useHelpdeskGame(options: {
       const silentAudio = new Audio();
       silentAudio.src =
         'data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-      silentAudio.play().catch(() => { });
+      silentAudio.play().catch(() => {});
 
       // マイクの事前許可を求める
       try {
@@ -579,7 +581,7 @@ export function useHelpdeskGame(options: {
 
     // 電話呼び出し音を開始
     if (callingAudioRef.current) {
-      callingAudioRef.current.play().catch(() => { });
+      callingAudioRef.current.play().catch(() => {});
     }
   }, [gamePhase]);
 

@@ -101,8 +101,6 @@ export default function HelpdeskGameFlow() {
       className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#99c2ff] bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/images/game2_backcground.png')" }}
     >
-
-
       {/* 画面右上: キーボード入力 切替ボタン */}
       {inputMethod === 'voice' &&
         gamePhase !== 'tutorial' &&
@@ -283,11 +281,24 @@ export default function HelpdeskGameFlow() {
                       </p>
                       <button
                         type="button"
-                        onClick={() => setHintIndex((prev) => (prev + 1) % hints.length)}
+                        onClick={() =>
+                          setHintIndex((prev) => (prev + 1) % hints.length)
+                        }
                         className="mt-0.5 shrink-0 rounded-full border-2 border-black bg-gray-100 p-1 hover:bg-gray-200 transition-colors"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /><path d="m9 10 3 3 3-3" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="10"
+                          height="10"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          <path d="m9 10 3 3 3-3" />
                         </svg>
                       </button>
                     </div>

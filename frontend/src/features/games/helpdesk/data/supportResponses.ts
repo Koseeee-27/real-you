@@ -26,7 +26,9 @@ export const SUPPORT_RESPONSES = [
 ];
 
 /** 最初のターンに出すヒント（ミッションの再確認） */
-export const INITIAL_HINTS = ['「ログインしたのに、ダッシュボードが表示されないんです」'];
+export const INITIAL_HINTS = [
+  '「ログインしたのに、ダッシュボードが表示されないんです」',
+];
 
 /** ユーザーへのデフォルト発話ヒント（文脈が特定できない場合） */
 export const DEFAULT_HINTS = [
