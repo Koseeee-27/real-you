@@ -89,41 +89,6 @@ export default function GroupChatGameFlow() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isTypingIndicatorVisible, gamePhase]);
 
-  if (gamePhase === 'completed') {
-    if (submitStatus === 'loading') {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-100">
-          <Spinner message="送信中..." />
-        </div>
-      );
-    }
-    if (submitStatus === 'error') {
-      return (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-100">
-          <p className="text-lg font-semibold text-red-600">
-            通信に失敗しました
-          </p>
-          <button
-            onClick={handleRetry}
-            className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
-          >
-            リトライ
-          </button>
-        </div>
-      );
-    }
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <p className="text-lg font-bold">完了しました</p>
-          <p className="mt-2 text-sm text-gray-500">
-            Loading画面へ移動します...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const timerRatio = remainingTimeMs / stageTimeLimitMs;
   const timerColorClass =
     timerRatio > 0.5
@@ -174,7 +139,7 @@ export default function GroupChatGameFlow() {
 
       {/* --- カットイン演出 --- */}
       {gamePhase === 'stage-cutin' && currentStage && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
+        <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-black/60">
           <div className="animate-[fadeInUp_0.3s_ease-out] text-center">
             <p className="text-4xl font-black text-white drop-shadow-lg">
               場面{currentStageIndex + 1}
@@ -185,6 +150,45 @@ export default function GroupChatGameFlow() {
               ] ?? 'Unknown'}{' '}
               Situation!
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* --- 終了（完了）オーバーレイ --- */}
+      {gamePhase === 'completed' && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60">
+          <div className="absolute inset-0 z-0 opacity-40 bg-[radial-gradient(#b8a030_3px,transparent_3px)] [background-size:24px_24px]" />
+
+          <div className="z-10 animate-[fadeInUp_0.4s_ease-out] px-6 text-center">
+            {submitStatus === 'error' ? (
+              <>
+                <p className="text-4xl font-black tracking-widest text-[#e03131] drop-shadow-md bg-white px-6 py-2 rounded-xl border-[4px] border-black">
+                  通信エラー！
+                </p>
+                <button
+                  onClick={handleRetry}
+                  className="mt-6 flex items-center justify-center rounded-xl border-[4px] border-black bg-white px-8 py-3 text-xl font-black text-black shadow-[4px_4px_0_0_#000] transition-transform hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] mx-auto"
+                >
+                  リトライする
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-6xl font-black tracking-widest text-white drop-shadow-lg">
+                  終了！
+                </p>
+                {submitStatus === 'loading' && (
+                  <div className="mt-8 flex justify-center text-white">
+                    <Spinner message="送信中..." />
+                  </div>
+                )}
+                {submitStatus === 'success' && (
+                  <p className="mt-6 text-lg font-bold text-white/80">
+                    Loading画面へ移動します...
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
