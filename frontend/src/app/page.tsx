@@ -62,7 +62,7 @@ export default function TopPage() {
   const handleStartClick = () => {
     setShowExplosion(true);
 
-    const audio = new Audio('/start-se.mp3');
+    const audio = new Audio('/sounds/start-se.mp3');
     audio.play().catch(() => {});
 
     setTimeout(() => {
@@ -80,7 +80,7 @@ export default function TopPage() {
       style={{
         backgroundImage: `
         radial-gradient(circle, rgba(255,255,255,0.8) 1.0px, transparent 4px),
-        url('/bg-pattern.svg')
+        url('/images/bg-pattern.svg')
       `,
         backgroundSize: '16px 16px, cover',
         backgroundPosition: '0 0, center',
@@ -89,7 +89,7 @@ export default function TopPage() {
     >
       <div className="flex flex-col items-center gap-[2vh] w-full">
         <img
-          src="/RealYouLogo.png"
+          src="/images/RealYouLogo.png"
           alt="Real You -本当の私じゃだめですか？-"
           className="
           max-h-[65vh]
@@ -105,7 +105,7 @@ export default function TopPage() {
             className="transition-all duration-100 ease-out hover:scale-110 active:scale-95 active:opacity-50"
           >
             <img
-              src="/StartButton.png"
+              src="/images/StartButton.png"
               alt="診断スタート"
               className="
               w-[40vw]
