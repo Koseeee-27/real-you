@@ -1,6 +1,6 @@
 import { userRepository } from '../repositories/userRepository';
 import { gameRepository } from '../repositories/gameRepository';
-import { GameType } from '../types';
+import { GameType, GAME_TYPES } from '../types';
 
 export const gameService = {
     async submitGame(userId: string, gameType: GameType, data: Record<string, any>) {
@@ -13,8 +13,8 @@ export const gameService = {
             throw { status: 400, code: 'invalid_request', message: 'data cannot be empty' };
         }
 
-        if (![1, 2, 3].includes(gameType)) {
-            throw { status: 400, code: 'invalid_game_type', message: 'game_type must be 1, 2, or 3' };
+        if (!Object.values(GAME_TYPES).includes(gameType)) {
+            throw { status: 400, code: 'invalid_game_type', message: `game_type must be one of: ${Object.values(GAME_TYPES).join(', ')}` };
         }
 
         // ユーザー存在確認
