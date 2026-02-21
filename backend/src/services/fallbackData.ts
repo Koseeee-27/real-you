@@ -17,22 +17,22 @@ export interface FallbackEntry {
 export const FALLBACK_TABLE: FallbackEntry[] = [
   // ===== ラリー1系: 状況説明キーワード =====
   {
-    keywords: ['ログイン', 'パスワード', 'サインイン', 'ログアウト', '認証', 'アカウント'],
-    responses: [
-      { response: 'パスワードは半角英数字で入力していただく必要がございます。たぶん。', emotion: 'confident' },
-      { response: 'ブラウザのCookieをクリアしてみてください。それで直ると思います。', emotion: 'confused' },
-      { response: 'ブラウザを変えてみるのが早いかもしれません。根拠はないですけど。', emotion: 'confused' },
-      { response: 'ログイン画面を一度閉じて、もう一度開いてみてください。', emotion: 'confident' },
-      { response: 'パスワードの大文字小文字は区別されますので、ご確認いただけますでしょうか。', emotion: 'neutral' },
-    ],
-  },
-  {
-    keywords: ['ダッシュボード', '画面', '表示されない', '見えない', '出ない', '真っ白', '白い'],
+    keywords: ['ダッシュボード', 'メイン画面', 'ログイン後', '表示されない', '見えない', '出ない', '真っ白', '白い', '画面移行'],
     responses: [
       { response: 'ページを更新してみてください。F5キーを押すと更新できます。', emotion: 'confident' },
       { response: 'キャッシュが原因の可能性がございます。コントロールとシフトとデリートで削除できます。', emotion: 'confused' },
       { response: 'こちらの環境では正常に表示されておりますので、お客様の環境の問題かと思われます。', emotion: 'apologetic' },
       { response: '別のタブで開き直してみるとうまくいくかもしれません。', emotion: 'neutral' },
+    ],
+  },
+  {
+    keywords: ['ログイン', 'パスワード', 'サインイン', 'ログアウト', '認証', 'アカウント', '入れない'],
+    responses: [
+      { response: 'パスワードは半角英数字で入力していただく必要がございます。たぶん。', emotion: 'confident' },
+      { response: 'ログイン画面を一度閉じて、もう一度開いてみてください。', emotion: 'confident' },
+      { response: 'パスワードの大文字小文字は区別されますので、ご確認いただけますでしょうか。', emotion: 'neutral' },
+      { response: 'ブラウザのCookieをクリアしてみてください。それで直ると思います。', emotion: 'confused' },
+      { response: 'ブラウザを変えてみるのが早いかもしれません。根拠はないですけど。', emotion: 'confused' },
     ],
   },
   {
