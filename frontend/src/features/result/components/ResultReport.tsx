@@ -53,7 +53,7 @@ export default function ResultReport({ data }: ResultReportProps) {
       style={{
         backgroundImage: `
           radial-gradient(circle, rgba(255,255,255,0.8) 1.5px, transparent 4px),
-          url('/bg-pattern.svg')
+          url('/images/bg-pattern.svg')
         `,
         backgroundSize: '16px 16px, cover',
         backgroundPosition: '0 0, center',
