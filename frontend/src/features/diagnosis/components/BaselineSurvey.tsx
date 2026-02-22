@@ -117,8 +117,9 @@ export default function BaselineSurvey() {
           {Array.from({ length: totalQuestions }).map((_, i) => (
             <div
               key={i}
-              className={`h-6 w-8 rounded-lg transition-colors ${i <= currentIndex ? 'bg-rose-400' : 'bg-gray-200'
-                }`}
+              className={`h-6 w-8 rounded-lg transition-colors ${
+                i <= currentIndex ? 'bg-rose-400' : 'bg-gray-200'
+              }`}
             />
           ))}
         </div>
