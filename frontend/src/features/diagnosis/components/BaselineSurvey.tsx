@@ -117,39 +117,49 @@ export default function BaselineSurvey() {
   }
 
   return (
-    <div className="flex w-full max-w-md flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">簡易性格診断</h1>
-        <span className="text-sm font-medium text-gray-500">
-          {currentIndex + 1} / {totalQuestions}
-        </span>
+    <div className="relative w-full max-w-2xl">
+      {/* ヘッダー: タイトル + プログレスバー */}
+      <div className="mb-0 flex items-start justify-between gap-4">
+        {/* タイトルエリア - メインカードに少し重なる */}
+        <div className="relative z-10 flex flex-col">
+          <p className="mb-1 text-sm text-gray-500">質問コーナー4択ver</p>
+          <div className="rounded-2xl border-4 border-gray-800 bg-white px-6 py-3 shadow-md">
+            <h1 className="text-xl font-bold text-gray-900">質問コーナー</h1>
+          </div>
+        </div>
+
+        {/* プログレスバー: 5セグメント */}
+        <div className="flex shrink-0 gap-0.5 rounded-xl border-4 border-gray-800 bg-gray-100 p-1">
+          {Array.from({ length: totalQuestions }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-6 w-8 rounded-lg transition-colors ${
+                i <= currentIndex ? 'bg-rose-400' : 'bg-gray-200'
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-        <div
-          className="h-full rounded-full bg-blue-600 transition-all duration-300"
-          style={{
-            width: `${((currentIndex + 1) / totalQuestions) * 100}%`,
-          }}
-        />
-      </div>
-
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <p className="text-lg font-medium">
+      {/* メインカード: 質問 + 4択 - タイトルと重なる */}
+      <div className="relative -mt-4 rounded-3xl border-4 border-gray-800 bg-white p-6 shadow-lg">
+        <p className="mb-6 text-xl font-bold text-gray-900">
           Q{currentIndex + 1}. {currentQuestion.label}
         </p>
-      </div>
 
-      <div className="flex flex-col gap-3">
-        {currentQuestion.options.map((option) => (
-          <button
-            key={option.value}
-            onClick={() => handleAnswer(option.value)}
-            className="rounded-lg border-2 border-gray-200 bg-white px-6 py-3 text-left font-medium text-gray-700 transition hover:border-blue-400 hover:bg-blue-50"
-          >
-            {option.label}
-          </button>
-        ))}
+        {/* 2x2グリッドの選択肢 */}
+        <div className="grid grid-cols-2 gap-4">
+          {currentQuestion.options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => handleAnswer(option.value)}
+              className="rounded-2xl border-4 border-gray-800 bg-gray-100 px-6 py-4 text-center font-bold text-gray-900 transition hover:bg-rose-50 hover:border-rose-300"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
