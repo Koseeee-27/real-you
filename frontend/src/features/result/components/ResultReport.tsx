@@ -2,6 +2,15 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
+import {
+  LucideIcon,
+  Activity,
+  ShieldAlert,
+  Zap,
+  Users,
+  Star,
+  RefreshCw,
+} from 'lucide-react';
 import type { ResultResponse } from '../types';
 import GameDetailTab from './GameDetailTab';
 import OverviewTab from './OverviewTab';
@@ -9,11 +18,11 @@ import SharePanel from './SharePanel';
 
 type TabId = 'overview' | 'game_1' | 'game_2' | 'game_3';
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'overview', label: '総合診断' },
-  { id: 'game_1', label: '規約の罠' },
-  { id: 'game_2', label: 'AIバトル' },
-  { id: 'game_3', label: '空気読み' },
+const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
+  { id: 'overview', label: '総合診断', icon: Activity },
+  { id: 'game_1', label: '規約の罠', icon: ShieldAlert },
+  { id: 'game_2', label: 'AIバトル', icon: Zap },
+  { id: 'game_3', label: '空気読み', icon: Users },
 ];
 
 const GAME_TAB_COLORS: Record<string, string> = {
@@ -38,32 +47,59 @@ export default function ResultReport({ data }: ResultReportProps) {
   }, [router]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 px-2 py-4 sm:px-4 sm:py-8">
-      <header className="mb-4 flex items-center justify-center gap-2 sm:mb-6">
-        <span className="text-xl font-bold tracking-wide text-gray-800 sm:text-2xl">
-          行動解析REPORT
-        </span>
+    <div
+      //背景にトップ画面と同じパターンを利用
+      className="relative h-screen w-full overflow-hidden font-sans text-gray-800 flex flex-col items-center justify-center p-2 sm:p-4"
+      style={{
+        backgroundImage: `
+          radial-gradient(circle, rgba(255,255,255,0.8) 1.5px, transparent 4px),
+          url('/bg-pattern.svg')
+        `,
+        backgroundSize: '16px 16px, cover',
+        backgroundPosition: '0 0, center',
+        backgroundRepeat: 'repeat, no-repeat',
+      }}
+    >
+      <header className="relative z-10 mb-8 text-center">
+        <div className="inline-block bg-white border-4 border-black px-8 py-3 rounded-full shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transform -rotate-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-black flex items-center gap-3">
+            <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+            行動解析REPORT
+            <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+          </h1>
+        </div>
       </header>
 
-      <div className="w-full max-w-6xl rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-6">
-        <nav className="mb-4 flex gap-2 overflow-x-auto">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 rounded-lg px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm ${
-                activeTab === tab.id
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <main className="relative z-10 w-full max-w-7xl flex flex-col max-h-[80vh]">
+        <nav className="flex px-2 lg:px-10 items-end h-10">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative flex-1 py-3 px-1 mx-1 rounded-t-2xl font-black text-xs sm:text-base transition-all transform duration-200 border-x-4 border-t-4 border-black
+                  ${
+                    isActive
+                      ? 'bg-white text-black translate-y-0 z-10'
+                      : 'bg-gray-100 text-gray-500 translate-y-2 hover:translate-y-1'
+                  }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <Icon
+                    className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive ? 'text-purple-600' : 'text-gray-400'}`}
+                  />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.slice(0, 2)}</span>
+                </div>
+              </button>
+            );
+          })}
         </nav>
 
-        <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-2 sm:p-4">
+        <div className="flex-1 bg-white border-4 border-black rounded-3xl rounded-tr-3xl shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-8 min-h-125">
           {activeTab === 'overview' && <OverviewTab data={data} />}
           {activeTab === 'game_1' && (
             <GameDetailTab
@@ -88,24 +124,19 @@ export default function ResultReport({ data }: ResultReportProps) {
           )}
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap justify-center gap-4">
           <button
             type="button"
             onClick={handleRetake}
-            className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            className="flex items-center justify-center h-12 min-w-[160px] px-6 bg-white border-4 border-black text-black rounded-full font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 hover:shadow-none transition-all text-sm sm:text-base"
           >
+            <RefreshCw className="w-5 h-5 mr-2" />
             もう一度診断
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('game_1')}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            ゲーム結果の詳細を閲覧する
-          </button>
+
           <SharePanel title={data.feedback.title} />
         </div>
-      </div>
+      </main>
     </div>
   );
 }

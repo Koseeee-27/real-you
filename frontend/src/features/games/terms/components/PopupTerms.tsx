@@ -4,7 +4,6 @@ import TermsContent from './TermsContent';
 import type { FC } from 'react';
 
 interface PopupTermsProps {
-  onClose: () => void;
   onCheckboxChange: (
     key: 'readConfirm' | 'mailMagazine' | 'thirdPartyShare',
     checked: boolean
@@ -22,7 +21,6 @@ interface PopupTermsProps {
 }
 
 const PopupTerms: FC<PopupTermsProps> = ({
-  onClose,
   onCheckboxChange,
   onHiddenInputChange,
   checkboxStates,

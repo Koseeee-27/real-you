@@ -80,7 +80,6 @@ export default function GroupChatGameFlow() {
     selectOption,
     handleOptionHover,
     stageTimeLimitMs,
-    totalStages,
     groupName,
     groupMemberCount,
   } = useGroupChatGame({ onComplete: handleComplete });
@@ -89,51 +88,29 @@ export default function GroupChatGameFlow() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isTypingIndicatorVisible, gamePhase]);
 
-  if (gamePhase === 'completed') {
-    if (submitStatus === 'loading') {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-100">
-          <Spinner message="送信中..." />
-        </div>
-      );
-    }
-    if (submitStatus === 'error') {
-      return (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-100">
-          <p className="text-lg font-semibold text-red-600">
-            通信に失敗しました
-          </p>
-          <button
-            onClick={handleRetry}
-            className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
-          >
-            リトライ
-          </button>
-        </div>
-      );
-    }
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <p className="text-lg font-bold">完了しました</p>
-          <p className="mt-2 text-sm text-gray-500">
-            Loading画面へ移動します...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const isOverlayActive = ['tutorial', 'stage-cutin', 'completed'].includes(
+    gamePhase
+  );
 
   const timerRatio = remainingTimeMs / stageTimeLimitMs;
-  const timerColorClass =
-    timerRatio > 0.5
-      ? 'bg-green-500'
-      : timerRatio > 0.2
-        ? 'bg-amber-500'
-        : 'bg-red-500';
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 p-4">
+    <div
+      className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden p-4"
+      style={{ backgroundColor: '#F0D44A', height: '100dvh' }}
+    >
+      {/* 背景のドット模様（CSSで描画） - オーバーレイ非表示時のみ */}
+      {!isOverlayActive && (
+        <div
+          className="absolute inset-0 z-0 opacity-40"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle, rgba(255,255,255,0.8) 1.0px, transparent 4px)',
+            backgroundSize: '16px 16px, cover',
+          }}
+        />
+      )}
+
       {/* --- チュートリアルオーバーレイ --- */}
       {gamePhase === 'tutorial' && (
         <div
@@ -143,16 +120,16 @@ export default function GroupChatGameFlow() {
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') startGame();
           }}
-          className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-black/30"
+          className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-black/60"
         >
-          <div className="animate-[fadeInUp_0.4s_ease-out] px-6 text-center">
-            <p className="text-lg font-black tracking-widest text-white drop-shadow-lg">
-              指示‼️
+          <div className="z-10 animate-[fadeInUp_0.4s_ease-out] px-6 text-center">
+            <p className="text-3xl font-black tracking-widest text-white drop-shadow-md">
+              適切に応答せよ！
             </p>
-            <p className="mt-6 whitespace-pre-line text-xl font-bold leading-relaxed text-white drop-shadow-lg">
+            <p className="mt-6 whitespace-pre-line text-lg font-bold leading-relaxed text-white drop-shadow-md">
               {TUTORIAL_TEXT}
             </p>
-            <p className="mt-8 animate-pulse text-sm text-white/70">
+            <p className="mt-8 animate-pulse text-sm font-bold text-white/80">
               タップして開始
             </p>
           </div>
@@ -161,7 +138,7 @@ export default function GroupChatGameFlow() {
 
       {/* --- カットイン演出 --- */}
       {gamePhase === 'stage-cutin' && currentStage && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
+        <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-black/60">
           <div className="animate-[fadeInUp_0.3s_ease-out] text-center">
             <p className="text-4xl font-black text-white drop-shadow-lg">
               場面{currentStageIndex + 1}
@@ -176,74 +153,102 @@ export default function GroupChatGameFlow() {
         </div>
       )}
 
+      {/* --- 終了（完了）オーバーレイ --- */}
+      {gamePhase === 'completed' && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60">
+          <div className="z-10 animate-[fadeInUp_0.4s_ease-out] px-6 text-center">
+            {submitStatus === 'error' ? (
+              <>
+                <p className="text-4xl font-black tracking-widest text-[#e03131] drop-shadow-md bg-white px-6 py-2 rounded-xl border-[4px] border-black">
+                  通信エラー！
+                </p>
+                <button
+                  onClick={handleRetry}
+                  className="mt-6 flex items-center justify-center rounded-xl border-[4px] border-black bg-white px-8 py-3 text-xl font-black text-black shadow-[4px_4px_0_0_#000] transition-transform hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] mx-auto"
+                >
+                  リトライする
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-6xl font-black tracking-widest text-white drop-shadow-lg">
+                  終了！
+                </p>
+                {submitStatus === 'loading' && (
+                  <div className="mt-8 flex justify-center text-white">
+                    <Spinner message="送信中..." />
+                  </div>
+                )}
+                {submitStatus === 'success' && (
+                  <p className="mt-6 text-lg font-bold text-white/80">
+                    Loading画面へ移動します...
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* --- スマホフレーム --- */}
       <div
-        className="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border-2 border-gray-800 bg-white shadow-2xl"
+        className="relative z-10 flex w-full max-w-sm flex-col overflow-hidden rounded-[24px] border-[6px] border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.3)] transition-all"
         style={{ height: 'min(90vh, 700px)' }}
       >
         {/* ヘッダー: LINE風 */}
-        <header className="flex items-center justify-between bg-blue-500 px-4 py-3 text-white">
+        <header className="flex items-center justify-between border-b-[6px] border-black bg-[#2d5be3] px-4 py-3 text-white">
           <div className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-green-300" />
-            <h1 className="text-sm font-bold">
+            <span className="inline-block h-3 w-3 rounded-full border-[2px] border-black bg-[#57d071]" />
+            <h1 className="text-lg font-black tracking-widest">
               {groupName}({groupMemberCount})
             </h1>
           </div>
-          {currentStage && (
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium">
-              {currentStageIndex + 1}/{totalStages}
-            </span>
-          )}
+          <button
+            onClick={() => window.location.reload()}
+            className="flex items-center justify-center rounded-full border-[3px] border-black bg-[#e03131] px-4 py-1 text-xs font-black shadow-[2px_2px_0_0_#000] transition-all hover:translate-y-0.5 hover:shadow-[0_0_0_0_#000]"
+          >
+            RESET
+          </button>
         </header>
 
         {/* チャットエリア */}
-        <div className="flex-1 overflow-y-auto bg-sky-100 px-3 py-3">
-          <div className="space-y-3">
-            {/* DAYラベル */}
-            {currentStage && (
-              <>
-                <p className="text-center text-[10px] text-gray-400">TODAY</p>
-                <p className="text-center">
-                  <span className="inline-block rounded-full bg-gray-300/60 px-3 py-0.5 text-[10px] text-gray-500">
-                    — {currentStage.dayLabel} —
-                  </span>
-                </p>
-              </>
-            )}
-
+        <div className="flex-1 overflow-y-auto bg-[#dae5f3] px-3 py-4">
+          <div className="space-y-4">
             {chatMessages.map((msg, i) =>
-              msg.type === 'bot' ? (
-                <div
-                  key={`s${currentStageIndex}-${i}-${msg.botId}`}
-                  className="flex items-start gap-2"
-                >
+              msg.type === 'separator' ? (
+                <div key={`msg-${i}`} className="my-2 flex justify-center">
+                  <span className="rounded-full border-[2px] border-gray-300 bg-white/50 px-4 py-1 text-[10px] font-bold text-gray-500">
+                    {msg.label}
+                  </span>
+                </div>
+              ) : msg.type === 'bot' ? (
+                <div key={`msg-${i}`} className="flex items-start gap-2">
                   {(() => {
                     const bot = getBotByBotId(msg.botId);
                     return (
-                      <div className="flex flex-col items-center gap-0.5">
+                      <div className="mt-1 flex flex-col items-center gap-1">
                         <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-[3px] border-black text-sm font-black shadow-[2px_2px_0_0_#000] ${
                             bot?.color ?? 'bg-gray-400 text-white'
                           }`}
                         >
                           {bot?.avatarLabel ?? '?'}
                         </div>
-                        <span className="text-[9px] text-gray-500">
-                          {bot?.name}
-                        </span>
                       </div>
                     );
                   })()}
-                  <div className="max-w-[70%] rounded-lg rounded-tl-none bg-white px-3 py-2 text-sm shadow-sm">
-                    {msg.text}
+                  <div className="flex flex-col">
+                    <span className="mb-1 ml-1 text-[10px] font-bold text-gray-600">
+                      {getBotByBotId(msg.botId)?.name}
+                    </span>
+                    <div className="max-w-[80%] rounded-2xl rounded-tl-none border-[3px] border-black bg-white px-4 py-3 text-sm font-bold text-black shadow-[2px_2px_0_0_#000]">
+                      {msg.text}
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div
-                  key={`s${currentStageIndex}-${i}-user`}
-                  className="flex justify-end"
-                >
-                  <div className="max-w-[70%] rounded-lg rounded-tr-none bg-green-400 px-3 py-2 text-sm text-white shadow-sm">
+                <div key={`msg-${i}`} className="flex justify-end">
+                  <div className="max-w-[80%] rounded-2xl rounded-tr-none border-[3px] border-black bg-[#57d071] px-4 py-3 text-sm font-bold text-white shadow-[2px_2px_0_0_#000]">
                     {msg.text}
                   </div>
                 </div>
@@ -252,19 +257,19 @@ export default function GroupChatGameFlow() {
 
             {/* 入力中インジケータ */}
             {isTypingIndicatorVisible && typingBotName && (
-              <div className="flex items-center justify-center gap-2 rounded-full bg-white/80 px-4 py-1.5 shadow-sm mx-auto w-fit">
-                <span className="inline-flex gap-0.5">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500" />
+              <div className="mx-auto flex w-fit items-center justify-center gap-2 rounded-full border-[3px] border-black bg-white px-4 py-2 shadow-[2px_2px_0_0_#000]">
+                <span className="inline-flex gap-1">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-black" />
                   <span
-                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500"
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-black"
                     style={{ animationDelay: '0.15s' }}
                   />
                   <span
-                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500"
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-black"
                     style={{ animationDelay: '0.3s' }}
                   />
                 </span>
-                <span className="text-sm font-medium text-gray-600">
+                <span className="text-sm font-bold text-black">
                   {typingBotName}が返信中
                 </span>
               </div>
@@ -274,53 +279,57 @@ export default function GroupChatGameFlow() {
         </div>
 
         {/* 下部: タイマー + 選択肢 */}
-        <div className="border-t border-gray-800 bg-amber-50">
+        <div className="border-t-[6px] border-black bg-[#f1cf44] pb-6">
           {gamePhase === 'waiting-input' && currentStage && (
-            <div className="px-3 pb-3 pt-2">
+            <>
               {/* タイマーゲージ */}
-              <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-gray-200">
+              <div className="h-2 w-full bg-black">
                 <div
-                  className={`h-full transition-all duration-100 ${timerColorClass}`}
+                  className="h-full bg-[#e03131] transition-all duration-100"
                   style={{ width: `${timerRatio * 100}%` }}
                 />
               </div>
               {/* 選択肢 */}
-              {currentStage.options.some((o) => o.label) ? (
-                <div className="flex flex-col gap-1.5">
-                  {currentStage.options.map((opt, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onMouseEnter={() => handleOptionHover(idx + 1)}
-                      onFocus={() => handleOptionHover(idx + 1)}
-                      onClick={() => selectOption(idx + 1)}
-                      className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-50 active:bg-gray-100"
-                    >
-                      <span className="text-base">{opt.emoji}</span>
-                      <span>{opt.label}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-4 gap-2">
-                  {currentStage.options.map((opt, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onMouseEnter={() => handleOptionHover(idx + 1)}
-                      onFocus={() => handleOptionHover(idx + 1)}
-                      onClick={() => selectOption(idx + 1)}
-                      className="flex items-center justify-center rounded-lg border border-gray-300 bg-white py-3 text-3xl transition-colors hover:bg-gray-50 active:bg-gray-100"
-                    >
-                      {opt.emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+              <div className="px-5 pt-5 pb-2">
+                {currentStage.options.some((o) => o.label) ? (
+                  <div className="flex flex-col gap-3">
+                    {currentStage.options.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onMouseEnter={() => handleOptionHover(idx + 1)}
+                        onFocus={() => handleOptionHover(idx + 1)}
+                        onClick={() => selectOption(idx + 1)}
+                        className="flex items-center gap-3 rounded-xl border-[3px] border-black bg-white px-5 py-3.5 text-left font-bold transition-transform hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
+                      >
+                        <span className="text-lg">{opt.emoji}</span>
+                        <span className="text-[13px] text-black">
+                          {opt.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-3">
+                    {currentStage.options.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onMouseEnter={() => handleOptionHover(idx + 1)}
+                        onFocus={() => handleOptionHover(idx + 1)}
+                        onClick={() => selectOption(idx + 1)}
+                        className="flex items-center justify-center rounded-xl border-[3px] border-black bg-white py-4 text-3xl font-bold transition-transform hover:-translate-y-1 hover:shadow-[4px_4px_0_0_#000]"
+                      >
+                        {opt.emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
           )}
           {(gamePhase === 'chat-playing' || gamePhase === 'stage-cutin') && (
-            <p className="py-3 text-center text-xs text-gray-400">
+            <p className="py-6 text-center text-sm font-bold text-black/60">
               メッセージを表示しています...
             </p>
           )}

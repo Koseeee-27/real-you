@@ -46,7 +46,7 @@ export default function RadarChart({
   return (
     <div className={className}>
       <ResponsiveContainer width="100%" height={300} minHeight={220}>
-        <RechartsRadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
+        <RechartsRadarChart data={data} cx="50%" cy="50%" outerRadius="110%">
           <PolarGrid strokeDasharray="3 3" />
           <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
           <Radar

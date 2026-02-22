@@ -8,6 +8,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  CartesianGrid,
 } from 'recharts';
 import type { Metric } from '../types';
 
@@ -20,58 +21,66 @@ type MetricsBarChartProps = {
 
 export default function MetricsBarChart({
   metrics,
-  userBarColor = '#ef4444',
-  averageBarColor = '#9ca3af',
+  userBarColor = '#eab308', // スクショの黄金色
+  averageBarColor = '#d1d5db',
   className = '',
 }: MetricsBarChartProps) {
-  const allValues = metrics.flatMap((m) => [m.user, m.average]);
-  const minVal = Math.min(...allValues, 0);
-  const maxVal = Math.max(...allValues, 1);
-
-  const data = metrics.map((m) => ({
-    label: m.label,
-    user: m.user,
-    average: m.average,
-  }));
-
   return (
-    <div className={className}>
-      <ResponsiveContainer
-        width="100%"
-        height={Math.max(180, metrics.length * 36)}
-      >
+    <div className={`${className} w-full h-full`}>
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart
-          data={data}
+          data={metrics}
           layout="vertical"
-          margin={{ top: 4, right: 4, left: 0, bottom: 4 }}
+          margin={{ top: 10, right: 40, left: 40, bottom: 20 }}
+          barGap={2} // バー同士の隙間を詰める
         >
-          <XAxis type="number" domain={[minVal, maxVal]} hide />
+          {/* 縦の点線：グリッド */}
+          <CartesianGrid
+            strokeDasharray="3 3"
+            horizontal={false}
+            stroke="#e5e7eb"
+          />
+
+          <XAxis
+            type="number"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#9ca3af', fontSize: 12 }}
+          />
           <YAxis
             type="category"
             dataKey="label"
-            width={100}
-            tick={{ fontSize: 10 }}
+            width={120}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: '#000', fontSize: 13, fontWeight: 900 }}
           />
+
           <Tooltip
-            content={({ active, payload }) => {
-              if (!active || !payload?.length) return null;
-              const d = payload[0].payload;
-              return (
-                <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md">
-                  <p className="font-medium text-gray-800">{d.label}</p>
-                  <p className="text-sm">あなた: {d.user}</p>
-                  <p className="text-sm">平均: {d.average}</p>
-                </div>
-              );
+            cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
+            contentStyle={{
+              borderRadius: '12px',
+              border: '4px solid #000',
+              fontWeight: '900',
             }}
           />
-          <Bar dataKey="user" name="あなた" barSize={14} radius={[0, 4, 4, 0]}>
-            {data.map((_, i) => (
+
+          {/* あなた：太くて黒枠があるメインバー */}
+          <Bar
+            dataKey="user"
+            name="あなた"
+            barSize={24}
+            radius={[0, 10, 10, 0]}
+            stroke="#000"
+            strokeWidth={2.5}
+          >
+            {metrics.map((_, i) => (
               <Cell key={`user-${i}`} fill={userBarColor} />
             ))}
           </Bar>
-          <Bar dataKey="average" name="平均" barSize={14} radius={[0, 4, 4, 0]}>
-            {data.map((_, i) => (
+
+          <Bar dataKey="average" name="平均" barSize={12} radius={[0, 6, 6, 0]}>
+            {metrics.map((_, i) => (
               <Cell key={`avg-${i}`} fill={averageBarColor} />
             ))}
           </Bar>

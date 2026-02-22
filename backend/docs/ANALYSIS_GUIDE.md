@@ -117,7 +117,7 @@ src/analysis/
       "speechDurationMs": 8500,
       "silenceDurationMs": 500,
       "volumeDb": -25.3,
-      "transcribedText": "ログイン画面でパスワードを入力しても弾かれます"
+      "transcribedText": "ログインして移動したのに、ダッシュボードが真っ白で何も表示されません"
     },
     {
       "turnIndex": 2,
@@ -126,7 +126,7 @@ src/analysis/
       "speechDurationMs": 12000,
       "silenceDurationMs": 300,
       "volumeDb": -22.1,
-      "transcribedText": "いや、それは違います。なぜならパスワードリセットのリンクが表示されないんです"
+      "transcribedText": "いや、キャッシュの問題ではないと思います。なぜなら別のブラウザで試しても画面が出ないんです"
     },
     {
       "turnIndex": 3,
@@ -135,7 +135,7 @@ src/analysis/
       "speechDurationMs": null,
       "silenceDurationMs": null,
       "volumeDb": null,
-      "transcribedText": "もういいです、別の方法を試します"
+      "transcribedText": "もう解決しそうにないので、エンジニアの方に確認してもらえますか"
     }
   ]
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { Share2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type SharePanelProps = {
@@ -68,9 +69,12 @@ export default function SharePanel({ title }: SharePanelProps) {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+        className="flex items-center justify-center h-12 min-w-[160px] px-6 bg-black text-white rounded-full font-black shadow-[4px_4px_0px_0px_#fbbf24] hover:translate-y-0.5 hover:shadow-none transition-all text-sm sm:text-base"
       >
-        結果をシェア
+        <Share2 className="w-5 h-5 mr-2 stroke-[3px]" />
+        <span className="text-sm sm:text-base tracking-tight">
+          結果をシェア
+        </span>
       </button>
 
       {open && (
