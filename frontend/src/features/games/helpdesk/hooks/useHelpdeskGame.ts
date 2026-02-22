@@ -10,7 +10,11 @@ import { postVoiceRespond } from '@/lib/api';
 import {
   GAME_TOPIC,
   INITIAL_SUPPORT_MESSAGE,
+  FINAL_SUPPORT_MESSAGE,
   INSTRUCTION_TEXT,
+  INITIAL_HINTS,
+  DEFAULT_HINTS,
+  HINT_MAPPING,
   MAX_TURNS,
   TURN_TIME_LIMIT_MS,
 } from '../data/supportResponses';
@@ -31,9 +35,11 @@ import { useTypingMetrics } from './useTypingMetrics';
  * error             → その他エラー
  */
 export type GamePhase =
+  | 'tutorial'
   | 'instruction'
   | 'support-speaking'
   | 'user-input'
+  | 'awaiting-api'
   | 'voice-api-error'
   | 'submitting'
   | 'completed'
@@ -65,9 +71,37 @@ export function useHelpdeskGame(options: {
   const [currentTurn, setCurrentTurn] = useState(0); // 0〜2（3ラリー）
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]); // 表示用メッセージ履歴
   const [turns, setTurns] = useState<Game2Turn[]>([]); // 収集データ用ターンログ
-  const [gamePhase, setGamePhase] = useState<GamePhase>('instruction');
+  const [gamePhase, setGamePhase] = useState<GamePhase>('tutorial');
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
   const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
+  const [currentHints, setCurrentHints] = useState<string[]>(INITIAL_HINTS);
+
+  // --- 環境チェック & SE 準備 ---
+  const isSpeechSupported =
+    typeof window !== 'undefined' &&
+    !!(
+      (window as Window & { SpeechRecognition?: unknown }).SpeechRecognition ||
+      (window as Window & { webkitSpeechRecognition?: unknown })
+        .webkitSpeechRecognition
+    ) &&
+    !!window.speechSynthesis;
+
+  // 呼び出し音 & 切断音
+  const callingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const hangupAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      callingAudioRef.current = new Audio('/sounds/電話の呼び出し音.mp3');
+      callingAudioRef.current.loop = true;
+      hangupAudioRef.current = new Audio('/sounds/電話が切れる1.mp3');
+
+      // 非対応ブラウザならテキストモードへ強制
+      if (!isSpeechSupported) {
+        setInputMethod('text');
+      }
+    }
+  }, [isSpeechSupported]);
 
   // --- 再レンダリング不要なデータを ref で管理 ---
   const pendingVoiceRequestRef = useRef<{
@@ -82,6 +116,7 @@ export function useHelpdeskGame(options: {
   const typingVariancesRef = useRef<number[]>([]); // テキスト入力ターンごとの分散を蓄積
   const skipNextVoiceResultRef = useRef(false); // テキスト切替時に onResult を無視するフラグ
   const submittedRef = useRef(false); // buildAndSubmit の二重実行防止
+  const usedHintsRef = useRef<Set<string>>(new Set());
 
   // --- 子フック ---
   const { startRecording, stopRecording } = useAudioMetrics();
@@ -104,7 +139,7 @@ export function useHelpdeskGame(options: {
     currentTurnRef.current = nextTurn;
     setCurrentTurn(nextTurn);
 
-    if (nextTurn >= MAX_TURNS) {
+    if (nextTurn > MAX_TURNS) {
       setGamePhase('submitting');
     } else {
       setGamePhase('support-speaking');
@@ -207,6 +242,11 @@ export function useHelpdeskGame(options: {
     };
     onComplete(game2Data);
     setGamePhase('completed');
+
+    // 電話終了音
+    if (hangupAudioRef.current) {
+      hangupAudioRef.current.play().catch(() => {});
+    }
   }, [onComplete]);
 
   /** gamePhase が submitting になったら一度だけ buildAndSubmit を実行 */
@@ -244,15 +284,52 @@ export function useHelpdeskGame(options: {
   const addSupportResponseAndSpeak = useCallback((supportText: string) => {
     setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
 
+    // 最初の発言（サポートが喋り始めた）タイミングで呼び出し音を止める
+    if (callingAudioRef.current) {
+      callingAudioRef.current.pause();
+      callingAudioRef.current.currentTime = 0;
+    }
+
+    // AIの応答内容からキーワードを検索し、ヒントを更新する
+    // ただし初回挨拶(Turn 0)の場合は INITIAL_HINTS を継続する
+    if (currentTurnRef.current === 0) {
+      setCurrentHints(INITIAL_HINTS);
+    } else {
+      const matched = HINT_MAPPING.find((m) =>
+        m.keywords.some((kw) => supportText.includes(kw))
+      );
+
+      let nextHints = matched ? [...matched.hints] : [...DEFAULT_HINTS];
+
+      // 既に使用したヒントを除外
+      nextHints = nextHints.filter((h) => !usedHintsRef.current.has(h));
+
+      // もし全て使用済みならデフォルトに戻す（あるいは空にしないための配慮）
+      if (nextHints.length === 0) {
+        nextHints = DEFAULT_HINTS.filter((h) => !usedHintsRef.current.has(h));
+      }
+
+      if (nextHints.length > 0) {
+        setCurrentHints(nextHints);
+        // 今回表示するヒント（先頭1つなど）を使用済みとしてマークする場合：
+        // ここではUI側でインデックスがリセットされるため、先頭のヒントを使用済みに追加
+        usedHintsRef.current.add(nextHints[0]);
+      }
+    }
+
     const transitionToInput = () => {
-      setGamePhase('user-input');
-      setRemainingTimeMs(TURN_TIME_LIMIT_MS);
+      if (currentTurnRef.current >= MAX_TURNS) {
+        setGamePhase('submitting');
+      } else {
+        setGamePhase('user-input');
+        setRemainingTimeMs(TURN_TIME_LIMIT_MS);
+      }
     };
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       const utterance = new SpeechSynthesisUtterance(supportText);
       utterance.lang = 'ja-JP';
-      utterance.rate = 1.1;
+      utterance.rate = 1.3;
       utterance.onend = transitionToInput;
       utterance.onerror = transitionToInput;
       window.speechSynthesis.speak(utterance);
@@ -272,6 +349,8 @@ export function useHelpdeskGame(options: {
 
       if (currentTurn === 0) {
         supportText = INITIAL_SUPPORT_MESSAGE;
+      } else if (currentTurn === MAX_TURNS) {
+        supportText = FINAL_SUPPORT_MESSAGE;
       } else {
         const history = chatHistoryRef.current;
         const lastUserMsg = [...history]
@@ -307,6 +386,13 @@ export function useHelpdeskGame(options: {
           setGamePhase('voice-api-error');
           return;
         }
+      }
+
+      if (cancelled) return;
+
+      // 初回なら呼び出し音を3秒聞かせる
+      if (currentTurn === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
 
       if (cancelled) return;
@@ -456,10 +542,44 @@ export function useHelpdeskGame(options: {
     [getVarianceAndReset, advanceAfterUserTurn]
   );
 
+  // =========================================================
+  // ゲーム開始
+  // =========================================================
+
+  /** モーダルからお題オーバレイへ進むとき */
+  const startInstruction = useCallback(async () => {
+    if (gamePhase !== 'tutorial') return;
+    setGamePhase('instruction');
+
+    // iOS 等での音声（TTS/SE）ロック解除のためのハック
+    if (typeof window !== 'undefined') {
+      const silentAudio = new Audio();
+      silentAudio.src =
+        'data:audio/wav;base64,UklGRigAAABXQVZFRm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+      silentAudio.play().catch(() => {});
+
+      // マイクの事前許可を求める
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        // 許可が得られたらすぐに閉じる（本番の録音は useAudioMetrics が行う）
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (err) {
+        console.warn('Microphone permission denied or not available:', err);
+      }
+    }
+  }, [gamePhase]);
+
   /** 指示ポップアップから「相談を始める」を押したとき */
   const startGame = useCallback(() => {
     if (gamePhase !== 'instruction') return;
     setGamePhase('support-speaking');
+
+    // 電話呼び出し音を開始
+    if (callingAudioRef.current) {
+      callingAudioRef.current.play().catch(() => {});
+    }
   }, [gamePhase]);
 
   /**
@@ -498,6 +618,7 @@ export function useHelpdeskGame(options: {
     maxTurns: MAX_TURNS,
     speech,
     startGame,
+    startInstruction,
     endVoiceTurnManually,
     submitTextTurn,
     switchToText,
@@ -506,5 +627,6 @@ export function useHelpdeskGame(options: {
     isVoiceSupported: speech.isSupported,
     voiceApiRetrying,
     retryVoiceApi,
+    hints: currentHints,
   };
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -62,7 +63,7 @@ export default function TopPage() {
   const handleStartClick = () => {
     setShowExplosion(true);
 
-    const audio = new Audio('/start-se.mp3');
+    const audio = new Audio('/sounds/start-se.mp3');
     audio.play().catch(() => {});
 
     setTimeout(() => {
@@ -88,15 +89,12 @@ export default function TopPage() {
       }}
     >
       <div className="flex flex-col items-center gap-[2vh] w-full">
-        <img
-          src="/RealYouLogo.png"
+        <Image
+          src="/images/RealYouLogo.png"
           alt="Real You -本当の私じゃだめですか？-"
-          className="
-          max-h-[65vh]
-          w-auto
-          object-contain
-          drop-shadow-2xl
-        "
+          width={800}
+          height={500}
+          className="max-h-[65vh] w-auto object-contain drop-shadow-2xl"
         />
 
         <div className="relative">
@@ -104,15 +102,12 @@ export default function TopPage() {
             onClick={handleStartClick}
             className="transition-all duration-100 ease-out hover:scale-110 active:scale-95 active:opacity-50"
           >
-            <img
-              src="/StartButton.png"
+            <Image
+              src="/images/StartButton.png"
               alt="診断スタート"
-              className="
-              w-[40vw]
-              max-w-xs
-              min-w-[180px]
-              drop-shadow-md
-            "
+              width={320}
+              height={120}
+              className="w-[40vw] max-w-xs min-w-[180px] drop-shadow-md"
             />
           </button>
 
