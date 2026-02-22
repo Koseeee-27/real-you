@@ -53,7 +53,7 @@ export default function ResultReport({ data }: ResultReportProps) {
       style={{
         backgroundImage: `
           radial-gradient(circle, rgba(255,255,255,0.8) 1.5px, transparent 4px),
-          url('/bg-pattern.svg')
+          url('/images/bg-pattern.svg')
         `,
         backgroundSize: '16px 16px, cover',
         backgroundPosition: '0 0, center',
@@ -81,10 +81,9 @@ export default function ResultReport({ data }: ResultReportProps) {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={`relative flex-1 py-3 px-1 mx-1 rounded-t-2xl font-black text-xs sm:text-base transition-all transform duration-200 border-x-4 border-t-4 border-black
-                  ${
-                    isActive
-                      ? 'bg-white text-black translate-y-0 z-10'
-                      : 'bg-gray-100 text-gray-500 translate-y-2 hover:translate-y-1'
+                  ${isActive
+                    ? 'bg-white text-black translate-y-0 z-10'
+                    : 'bg-gray-100 text-gray-500 translate-y-2 hover:translate-y-1'
                   }`}
               >
                 <div className="flex items-center justify-center gap-2">
