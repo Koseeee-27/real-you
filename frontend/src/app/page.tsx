@@ -2,10 +2,10 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
-//まる爆発アニメーションコンポーネント
+// --- まる爆発アニメーションコンポーネント ---
 const SparklesExplosion = () => {
   const count = 20;
   const colors = ['#e9eb7c', '#ee7ee6', '#6eb8ca', '#e17a78', '#91ec77'];
@@ -56,15 +56,50 @@ const SparklesExplosion = () => {
   );
 };
 
+// --- メインのトップページコンポーネント ---
 export default function TopPage() {
   const router = useRouter();
   const [showExplosion, setShowExplosion] = useState(false);
 
+  // BGMを保持するための Ref
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+
+  // BGMの初期化と再生管理
+  useEffect(() => {
+    // パスは public/sounds/start-bgm.mp3 を想定
+    const bgm = new Audio('/sounds/start-bgm.mp3');
+    bgm.loop = true;
+    bgm.volume = 0.4;
+    bgmRef.current = bgm;
+
+    const playBGM = () => {
+      bgm.play().catch(() => {
+        // 自動再生制限がかかった場合は何もしない
+      });
+      // 一度クリックされたらイベントリスナーを削除
+      window.removeEventListener('click', playBGM);
+    };
+
+    window.addEventListener('click', playBGM);
+
+    // クリーンアップ
+    return () => {
+      bgm.pause();
+      window.removeEventListener('click', playBGM);
+    };
+  }, []);
+
   const handleStartClick = () => {
     setShowExplosion(true);
 
+    // SEの再生（パスを修正）
     const audio = new Audio('/sounds/start-se.mp3');
     audio.play().catch(() => {});
+
+    // ボタン押下時にBGMを停止
+    if (bgmRef.current) {
+      bgmRef.current.pause();
+    }
 
     setTimeout(() => {
       router.push('/games/terms');
@@ -76,7 +111,18 @@ export default function TopPage() {
   };
 
   return (
-    <div className="flex h-dvh w-full flex-col items-center justify-center overflow-hidden bg-top-pattern">
+    <div
+      className="flex h-dvh w-full flex-col items-center justify-center overflow-hidden bg-top-pattern"
+      style={{
+        backgroundImage: `
+          radial-gradient(circle, rgba(255,255,255,0.8) 1.0px, transparent 4px),
+          url('/images/bg-pattern.svg')
+        `,
+        backgroundSize: '16px 16px, cover',
+        backgroundPosition: '0 0, center',
+        backgroundRepeat: 'repeat, no-repeat',
+      }}
+    >
       <div className="flex flex-col items-center gap-[2vh] w-full">
         <Image
           src="/images/RealYouLogo.png"

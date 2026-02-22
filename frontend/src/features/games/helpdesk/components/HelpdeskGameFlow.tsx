@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Game2Data } from '@/features/games/types';
 import { submitGame } from '@/lib/api';
 import { useHelpdeskGame } from '../hooks/useHelpdeskGame';
@@ -15,6 +15,36 @@ export default function HelpdeskGameFlow() {
   const [textInput, setTextInput] = useState('');
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('loading');
   const pendingDataRef = useRef<Game2Data | null>(null);
+
+  // --- サウンド管理用のRefとヘルパー ---
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+
+  const playSE = useCallback((path: string) => {
+    const audio = new Audio(path);
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+  }, []);
+
+  // BGMの初期化と再生管理
+  useEffect(() => {
+    const bgm = new Audio('/sounds/game2-bgm.mp3');
+    bgm.loop = true;
+    bgm.volume = 0.2;
+    bgmRef.current = bgm;
+
+    const playBGM = () => {
+      bgm.play().catch(() => {});
+      window.removeEventListener('click', playBGM);
+    };
+
+    window.addEventListener('click', playBGM);
+    playBGM(); // 前の画面（規約）から遷移した場合は、既にユーザー操作済みなので即再生される可能性が高い
+
+    return () => {
+      bgm.pause();
+      window.removeEventListener('click', playBGM);
+    };
+  }, []);
 
   const submitGame2 = useCallback(async (data: Game2Data) => {
     const userId = localStorage.getItem('user_id');
@@ -31,6 +61,11 @@ export default function HelpdeskGameFlow() {
       pendingDataRef.current = data;
       setSubmitStatus('loading');
 
+      // 終了時にBGMを停止
+      if (bgmRef.current) {
+        bgmRef.current.pause();
+      }
+
       try {
         await submitGame2(data);
         setSubmitStatus('success');
@@ -44,7 +79,62 @@ export default function HelpdeskGameFlow() {
     [router, submitGame2]
   );
 
+  const {
+    instructionText,
+    inputMethod,
+    chatHistory,
+    gamePhase,
+    remainingTimeMs,
+    speech,
+    startGame: originalStartGame,
+    endVoiceTurnManually: originalEndVoiceTurnManually,
+    submitTextTurn,
+    switchToText: originalSwitchToText,
+    onKeyDown,
+    resetTyping,
+    voiceApiRetrying,
+    retryVoiceApi: originalRetryVoiceApi,
+    startInstruction: originalStartInstruction,
+    gameTopic,
+    hints,
+  } = useHelpdeskGame({ onComplete: handleComplete });
+
+  // --- アクションをラップしてSEを追加 ---
+  const startInstruction = useCallback(() => {
+    playSE('/sounds/general-button-se.mp3');
+    originalStartInstruction();
+  }, [originalStartInstruction, playSE]);
+
+  const startGame = useCallback(() => {
+    playSE('/sounds/general-button-se.mp3');
+    originalStartGame();
+  }, [originalStartGame, playSE]);
+
+  const handleTextSubmit = useCallback(() => {
+    if (!textInput.trim()) return;
+    playSE('/sounds/general-button-se.mp3');
+    submitTextTurn(textInput);
+    setTextInput('');
+    resetTyping();
+  }, [textInput, submitTextTurn, resetTyping, playSE]);
+
+  const endVoiceTurnManually = useCallback(() => {
+    playSE('/sounds/general-button-se.mp3');
+    originalEndVoiceTurnManually();
+  }, [originalEndVoiceTurnManually, playSE]);
+
+  const switchToText = useCallback(() => {
+    playSE('/sounds/general-button-se.mp3');
+    originalSwitchToText();
+  }, [originalSwitchToText, playSE]);
+
+  const retryVoiceApi = useCallback(() => {
+    playSE('/sounds/general-button-se.mp3');
+    originalRetryVoiceApi();
+  }, [originalRetryVoiceApi, playSE]);
+
   const handleRetry = useCallback(async () => {
+    playSE('/sounds/general-button-se.mp3');
     const data = pendingDataRef.current;
     if (!data) return;
     setSubmitStatus('loading');
@@ -57,45 +147,16 @@ export default function HelpdeskGameFlow() {
     } catch {
       setSubmitStatus('error');
     }
-  }, [router, submitGame2]);
-
-  const {
-    instructionText,
-    inputMethod,
-    chatHistory,
-    gamePhase,
-    remainingTimeMs,
-    speech,
-    startGame,
-    endVoiceTurnManually,
-    submitTextTurn,
-    switchToText,
-    onKeyDown,
-    resetTyping,
-    voiceApiRetrying,
-    retryVoiceApi,
-    startInstruction,
-    gameTopic,
-    hints,
-  } = useHelpdeskGame({ onComplete: handleComplete });
+  }, [submitGame2, playSE, router]);
 
   const [hintIndex, setHintIndex] = useState(0);
   const [prevHints, setPrevHints] = useState(hints);
 
-  // ヒント内容が更新されたら（AIの応答に基づき）、インデックスを0（おすすめ）にリセットする
   if (hints !== prevHints) {
     setPrevHints(hints);
     setHintIndex(0);
   }
 
-  const handleTextSubmit = useCallback(() => {
-    if (!textInput.trim()) return;
-    submitTextTurn(textInput);
-    setTextInput('');
-    resetTyping();
-  }, [textInput, submitTextTurn, resetTyping]);
-
-  // --- チャット画面 (ゲームメイン画面) ---
   return (
     <div
       className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#99c2ff] bg-cover bg-center bg-no-repeat"
@@ -139,18 +200,15 @@ export default function HelpdeskGameFlow() {
       {gamePhase === 'tutorial' && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="relative w-full max-w-sm rounded-[24px] border-[6px] border-black bg-white pt-10 pb-6 px-6 shadow-[8px_8px_0_0_#000] animate-[fadeInUp_0.3s_ease-out]">
-            {/* 閉じるボタン */}
             <button
               onClick={startInstruction}
               className="absolute -right-3 -top-3 flex h-10 w-10 items-center justify-center rounded-xl border-[4px] border-black bg-[#ff4d4f] text-xl font-black text-black shadow-[4px_4px_0_0_#000] transition-transform hover:translate-y-1 hover:shadow-none"
             >
               ×
             </button>
-
             <h2 className="mb-4 text-center text-2xl font-black tracking-widest text-black">
               ルール
             </h2>
-
             <div className="rounded-xl border-[4px] border-black bg-[#d9d9d9] p-4 text-sm font-bold leading-relaxed text-black h-48 overflow-y-auto">
               {instructionText}
             </div>
@@ -208,7 +266,6 @@ export default function HelpdeskGameFlow() {
       {/* --- 画面下部の会話エリア --- */}
       <div className="absolute bottom-8 left-0 right-0 px-4 z-30">
         <div className="mx-auto max-w-2xl flex flex-col gap-6">
-          {/* AI 思考中 */}
           {gamePhase === 'awaiting-api' && (
             <div className="relative rounded-[24px] border-[6px] border-black bg-[#d9d9d9] px-6 py-8 shadow-[8px_8px_0_0_#000] animate-[fadeInUp_0.3s_ease-out]">
               <div className="absolute -top-7 right-8 rounded-t-xl border-x-[6px] border-t-[6px] border-black bg-[#d9d9d9] px-6 py-1 text-lg font-black tracking-widest text-black">
@@ -220,7 +277,6 @@ export default function HelpdeskGameFlow() {
             </div>
           )}
 
-          {/* AI 発話中 */}
           {gamePhase === 'support-speaking' && (
             <div className="relative rounded-[24px] border-[6px] border-black bg-[#d9d9d9] px-6 py-8 shadow-[8px_8px_0_0_#000] animate-[scaleIn_0.2s_ease-out]">
               <div className="absolute -top-7 right-8 rounded-t-xl border-x-[6px] border-t-[6px] border-black bg-[#d9d9d9] px-6 py-1 text-lg font-black tracking-widest text-black">
@@ -231,7 +287,6 @@ export default function HelpdeskGameFlow() {
                   ? chatHistory[chatHistory.length - 1].text
                   : ''}
               </p>
-              {/* ▼ 進むアイコン風 */}
               <div className="absolute bottom-4 right-6 animate-bounce">
                 <svg
                   width="24"
@@ -248,10 +303,8 @@ export default function HelpdeskGameFlow() {
             </div>
           )}
 
-          {/* ユーザー入力中（ストーリーモード風 2段） */}
           {gamePhase === 'user-input' && (
             <>
-              {/* 上段：AIの直前の発言履歴 */}
               <div className="relative rounded-[24px] border-[6px] border-black bg-[#a6a6a6] px-6 py-4 shadow-[8px_8px_0_0_#000] opacity-90 mx-4 animate-[fadeInDown_0.3s_ease-out]">
                 <div className="absolute -bottom-7 right-8 rounded-b-xl border-x-[6px] border-b-[6px] border-black bg-[#a6a6a6] px-4 py-1 text-sm font-black tracking-widest text-black">
                   AI
@@ -263,7 +316,6 @@ export default function HelpdeskGameFlow() {
                 </p>
               </div>
 
-              {/* 下段：あなたの現在の入力 */}
               <div className="relative mt-6 rounded-[24px] border-[6px] border-black bg-[#d9d9d9] px-6 py-8 shadow-[8px_8px_0_0_#000] animate-[fadeInUp_0.3s_ease-out]">
                 <div className="absolute -top-7 left-8 rounded-t-xl border-x-[6px] border-t-[6px] border-black bg-[#d9d9d9] px-6 py-1 text-lg font-black tracking-widest text-black">
                   あなた
@@ -281,9 +333,10 @@ export default function HelpdeskGameFlow() {
                       </p>
                       <button
                         type="button"
-                        onClick={() =>
-                          setHintIndex((prev) => (prev + 1) % hints.length)
-                        }
+                        onClick={() => {
+                          playSE('/sounds/general-button-se.mp3');
+                          setHintIndex((prev) => (prev + 1) % hints.length);
+                        }}
                         className="mt-0.5 shrink-0 rounded-full border-2 border-black bg-gray-100 p-1 hover:bg-gray-200 transition-colors"
                       >
                         <svg
@@ -341,7 +394,6 @@ export default function HelpdeskGameFlow() {
                   </div>
                 )}
 
-                {/* 音声入力時の送信ボタン */}
                 {inputMethod === 'voice' && speech.isListening && (
                   <div className="mt-6 flex justify-between items-end">
                     <div className="text-xs font-bold text-red-600 animate-pulse">

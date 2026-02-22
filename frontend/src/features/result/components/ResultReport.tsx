@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   LucideIcon,
   Activity,
@@ -17,6 +17,12 @@ import OverviewTab from './OverviewTab';
 import SharePanel from './SharePanel';
 
 type TabId = 'overview' | 'game_1' | 'game_2' | 'game_3';
+
+const SOUNDS = {
+  BGM: '/sounds/result-bgm.mp3',
+  TAB_CLICK: '/sounds/general-button-se.mp3',
+  RETAKE: '/sounds/start-se.mp3',
+};
 
 const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
   { id: 'overview', label: '総合診断', icon: Activity },
@@ -38,12 +44,59 @@ type ResultReportProps = {
 export default function ResultReport({ data }: ResultReportProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+
+  // SE再生用ヘルパー
+  const playSE = (path: string) => {
+    const audio = new Audio(path);
+    audio.volume = 0.5;
+    audio.play().catch((e) => console.warn('SE playback failed:', e));
+  };
+
+  // BGMの開始・停止管理
+  useEffect(() => {
+    const bgm = new Audio(SOUNDS.BGM);
+    bgm.loop = true;
+    bgm.volume = 0.3;
+    bgmRef.current = bgm;
+
+    // ユーザーがブラウザで何かしら操作した後に再生されるようにする
+    const startBGM = () => {
+      bgm.play().catch(() => {
+        /* 自動再生制限用 */
+      });
+      window.removeEventListener('click', startBGM);
+    };
+
+    window.addEventListener('click', startBGM);
+    startBGM(); // すでに操作済みなら即再生
+
+    return () => {
+      bgm.pause();
+      bgmRef.current = null;
+    };
+  }, []);
+
+  const handleTabChange = (tabId: TabId) => {
+    // 1. SEをロードして再生
+    const se = new Audio('/sounds/general-button-se.mp3');
+    se.volume = 0.5;
+    se.play().catch(() => {
+      /* 自動再生制限などで失敗してもエラーを出さない */
+    });
+
+    // 2. タブを切り替える
+    setActiveTab(tabId);
+  };
 
   const handleRetake = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('user_id');
-    }
-    router.push('/');
+    playSE(SOUNDS.RETAKE);
+    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user_id');
+      }
+      router.push('/');
+    }, 500);
   }, [router]);
 
   return (
@@ -79,7 +132,7 @@ export default function ResultReport({ data }: ResultReportProps) {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`relative flex-1 py-3 px-1 mx-1 rounded-t-2xl font-black text-xs sm:text-base transition-all transform duration-200 border-x-4 border-t-4 border-black
                   ${
                     isActive

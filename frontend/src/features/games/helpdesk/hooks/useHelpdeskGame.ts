@@ -330,6 +330,7 @@ export function useHelpdeskGame(options: {
       const utterance = new SpeechSynthesisUtterance(supportText);
       utterance.lang = 'ja-JP';
       utterance.rate = 1.3;
+      utterance.volume = 1.0;
       utterance.onend = transitionToInput;
       utterance.onerror = transitionToInput;
       window.speechSynthesis.speak(utterance);

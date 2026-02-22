@@ -24,6 +24,36 @@ export default function GroupChatGameFlow() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('loading');
   const pendingDataRef = useRef<Game3Data | null>(null);
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+
+  const playSE = useCallback((path: string) => {
+    const audio = new Audio(path);
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+  }, []);
+
+  // BGMの初期化と再生管理
+  useEffect(() => {
+    // 指示はgame2でしたが、Game3の画面のためgame3-bgm.mp3を適用します
+    const bgm = new Audio('/sounds/game3-bgm.mp3');
+    bgm.loop = true;
+    bgm.volume = 0.3;
+    bgmRef.current = bgm;
+
+    const playBGM = () => {
+      bgm.play().catch(() => {});
+      window.removeEventListener('click', playBGM);
+    };
+
+    window.addEventListener('click', playBGM);
+    // 前の画面から継続している場合は即再生
+    playBGM();
+
+    return () => {
+      bgm.pause();
+      window.removeEventListener('click', playBGM);
+    };
+  }, []);
 
   const submitGame3 = useCallback(async (data: Game3Data) => {
     const userId = localStorage.getItem('user_id');
@@ -43,6 +73,7 @@ export default function GroupChatGameFlow() {
       try {
         await submitGame3(data);
         setSubmitStatus('success');
+        bgmRef.current?.pause();
         setTimeout(() => {
           router.push('/result');
         }, 2000);
@@ -54,19 +85,21 @@ export default function GroupChatGameFlow() {
   );
 
   const handleRetry = useCallback(async () => {
+    playSE('/sounds/general-button-se.mp3'); // リトライ音
     const data = pendingDataRef.current;
     if (!data) return;
     setSubmitStatus('loading');
     try {
       await submitGame3(data);
       setSubmitStatus('success');
+      bgmRef.current?.pause();
       setTimeout(() => {
         router.push('/result');
       }, 2000);
     } catch {
       setSubmitStatus('error');
     }
-  }, [router, submitGame3]);
+  }, [router, submitGame3, playSE]);
 
   const {
     gamePhase,
@@ -76,13 +109,27 @@ export default function GroupChatGameFlow() {
     remainingTimeMs,
     isTypingIndicatorVisible,
     typingBotName,
-    startGame,
-    selectOption,
+    startGame: originalStartGame, // 名前を変更してラップ
+    selectOption: originalSelectOption, // 名前を変更してラップ
     handleOptionHover,
     stageTimeLimitMs,
     groupName,
     groupMemberCount,
   } = useGroupChatGame({ onComplete: handleComplete });
+
+  // サウンドを鳴らすようにラップ
+  const startGame = useCallback(() => {
+    playSE('/sounds/general-button-se.mp3');
+    originalStartGame();
+  }, [originalStartGame, playSE]);
+
+  const selectOption = useCallback(
+    (optionId: number) => {
+      playSE('/sounds/general-button-se.mp3');
+      originalSelectOption(optionId);
+    },
+    [originalSelectOption, playSE]
+  );
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });

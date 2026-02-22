@@ -35,6 +35,9 @@ export default function TermsGameFlow() {
   // ゲーム完了フラグ（trueで完了画面を表示→次のゲームへ遷移）
   const [isCompleted, setIsCompleted] = useState(false);
 
+  //BGM再生用のref
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+
   // --- 以下は再レンダリング不要なデータをrefで管理 ---
   // ゲーム開始時刻（totalTime算出用）
   const startTimeRef = useRef(0);
@@ -62,6 +65,27 @@ export default function TermsGameFlow() {
     mailMagazine: false,
     thirdPartyShare: false,
   });
+
+  useEffect(() => {
+    const bgm = new Audio('/sounds/start-bgm.mp3');
+    bgm.loop = true;
+    bgm.volume = 0.3;
+    bgmRef.current = bgm;
+
+    const playBGM = () => {
+      bgm.play().catch(() => {
+        /* 自動再生制限用 */
+      });
+      window.removeEventListener('click', playBGM);
+    };
+
+    window.addEventListener('click', playBGM);
+
+    return () => {
+      bgm.pause();
+      window.removeEventListener('click', playBGM);
+    };
+  }, []);
 
   useEffect(() => {
     startTimeRef.current = Date.now();
@@ -104,6 +128,9 @@ export default function TermsGameFlow() {
       key: 'readConfirm' | 'mailMagazine' | 'thirdPartyShare',
       checked: boolean
     ) => {
+      const se = new Audio('/sounds/check-box-se.mp3');
+      se.volume = 0.4;
+      se.play().catch(() => {});
       checkboxChangedRef.current[key] = true;
       setCheckboxStates((prev) => ({ ...prev, [key]: checked }));
     },
@@ -171,10 +198,18 @@ export default function TermsGameFlow() {
 
   const handleAction = useCallback(
     (action: 'agree' | 'disagree') => {
+      const se = new Audio('/sounds/general-button-se.mp3');
+      se.play().catch(() => {});
+
       const data = buildGame1Data(action);
       setGame1Data(data);
 
       setIsCompleted(true);
+
+      if (bgmRef.current) {
+        bgmRef.current.pause();
+      }
+
       setTimeout(() => {
         router.push('/diagnosis');
       }, 2000);
