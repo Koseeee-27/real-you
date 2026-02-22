@@ -27,7 +27,7 @@ export default function BaselineSurvey() {
   const playSE = useCallback((path: string) => {
     const audio = new Audio(path);
     audio.volume = 0.5;
-    audio.play().catch(() => { });
+    audio.play().catch(() => {});
   }, []);
 
   // BGMの初期化と再生管理
@@ -38,7 +38,7 @@ export default function BaselineSurvey() {
     bgmRef.current = bgm;
 
     const playBGM = () => {
-      bgm.play().catch(() => { });
+      bgm.play().catch(() => {});
       window.removeEventListener('click', playBGM);
     };
 
@@ -163,8 +163,9 @@ export default function BaselineSurvey() {
           {Array.from({ length: totalQuestions }).map((_, i) => (
             <div
               key={i}
-              className={`h-6 w-8 rounded-lg transition-colors ${i <= currentIndex ? 'bg-rose-400' : 'bg-gray-200'
-                }`}
+              className={`h-6 w-8 rounded-lg transition-colors ${
+                i <= currentIndex ? 'bg-rose-400' : 'bg-gray-200'
+              }`}
             />
           ))}
         </div>

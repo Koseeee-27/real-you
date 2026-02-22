@@ -44,7 +44,7 @@ export default function MbtiSelect() {
   const playSE = useCallback((path: string) => {
     const audio = new Audio(path);
     audio.volume = 0.5;
-    audio.play().catch(() => { });
+    audio.play().catch(() => {});
   }, []);
 
   // BGMの初期化と再生管理
@@ -56,7 +56,7 @@ export default function MbtiSelect() {
     bgmRef.current = bgm;
 
     const playBGM = () => {
-      bgm.play().catch(() => { });
+      bgm.play().catch(() => {});
       window.removeEventListener('click', playBGM);
     };
 
@@ -156,8 +156,9 @@ export default function MbtiSelect() {
               key={group}
               type="button"
               onClick={() => handleTabClick(index)}
-              className={`relative z-10 cursor-pointer rounded-t-lg border-4 border-b-0 border-gray-800 px-4 py-2 text-base font-semibold text-gray-800 ${GROUP_COLORS[index]
-                } ${groupIndex === index ? 'mb-[-4px]' : ''}`}
+              className={`relative z-10 cursor-pointer rounded-t-lg border-4 border-b-0 border-gray-800 px-4 py-2 text-base font-semibold text-gray-800 ${
+                GROUP_COLORS[index]
+              } ${groupIndex === index ? 'mb-[-4px]' : ''}`}
               animate={{
                 y: groupIndex === index ? 2 : 0,
                 boxShadow:
@@ -274,13 +275,14 @@ export default function MbtiSelect() {
           aria-labelledby="mbti-confirm-title"
         >
           <div
-            className={`mx-4 w-full max-w-md rounded-2xl border-4 border-gray-800 p-6 shadow-xl ${GROUP_COLORS[
-              Math.max(
-                0,
-                MBTI_GROUPS.findIndex((g) => g === selectedType.group)
-              )
+            className={`mx-4 w-full max-w-md rounded-2xl border-4 border-gray-800 p-6 shadow-xl ${
+              GROUP_COLORS[
+                Math.max(
+                  0,
+                  MBTI_GROUPS.findIndex((g) => g === selectedType.group)
+                )
               ]
-              }`}
+            }`}
           >
             <p
               id="mbti-confirm-title"

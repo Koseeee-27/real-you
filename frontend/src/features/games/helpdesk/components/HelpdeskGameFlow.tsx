@@ -22,7 +22,7 @@ export default function HelpdeskGameFlow() {
   const playSE = useCallback((path: string) => {
     const audio = new Audio(path);
     audio.volume = 0.5;
-    audio.play().catch(() => { });
+    audio.play().catch(() => {});
   }, []);
 
   // BGMの初期化と再生管理
@@ -33,7 +33,7 @@ export default function HelpdeskGameFlow() {
     bgmRef.current = bgm;
 
     const playBGM = () => {
-      bgm.play().catch(() => { });
+      bgm.play().catch(() => {});
       window.removeEventListener('click', playBGM);
     };
 
