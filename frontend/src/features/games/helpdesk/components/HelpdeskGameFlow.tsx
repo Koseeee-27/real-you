@@ -92,14 +92,14 @@ export default function HelpdeskGameFlow() {
   if (gamePhase === 'completed') {
     if (submitStatus === 'loading') {
       return (
-        <div className="flex min-h-screen items-center justify-center">
+        <div className="flex min-h-dvh items-center justify-center bg-top-pattern">
           <Spinner message="送信中..." />
         </div>
       );
     }
     if (submitStatus === 'error') {
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-top-pattern">
           <p className="text-lg font-semibold text-red-600">
             通信に失敗しました
           </p>
@@ -113,7 +113,7 @@ export default function HelpdeskGameFlow() {
       );
     }
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center bg-top-pattern">
         <div className="text-center">
           <p className="text-lg font-bold">完了しました</p>
           <p className="mt-2 text-sm text-gray-500">
@@ -126,7 +126,7 @@ export default function HelpdeskGameFlow() {
 
   // --- チャット画面 ---
   return (
-    <div className="relative flex h-screen flex-col bg-gray-50">
+    <div className="relative flex min-h-dvh flex-col bg-top-pattern">
       {/* --- AI応答取得失敗オーバーレイ --- */}
       {gamePhase === 'voice-api-error' && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/30 px-6">
