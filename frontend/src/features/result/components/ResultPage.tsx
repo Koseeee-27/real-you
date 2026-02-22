@@ -5,13 +5,14 @@ import { resultAtom } from '@/stores/result';
 import { useResult } from '../hooks/useResult';
 import AnalyzingView from './AnalyzingView';
 import ResultReport from './ResultReport';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 export default function ResultPage() {
   const { status, errorMessage, retry } = useResult();
   const result = useAtomValue(resultAtom);
 
   if (status === 'loading') {
-    return <AnalyzingView status="loading" />;
+    return <LoadingScreen message="分析中..." />;
   }
 
   if (status === 'error') {
@@ -28,5 +29,5 @@ export default function ResultPage() {
     return <ResultReport data={result} />;
   }
 
-  return <AnalyzingView status="loading" />;
+  return <LoadingScreen message="分析中..." />;
 }

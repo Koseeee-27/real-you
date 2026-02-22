@@ -7,6 +7,7 @@ import type { Game1Data, ScrollEvent } from '@/features/games/types';
 import { game1DataAtom } from '@/stores/games';
 import PopupAd from './PopupAd';
 import PopupTerms from './PopupTerms';
+import LoadingScreen from '@/components/common/LoadingScreen';
 // TODO: バックエンド接続時にコメントアウトを解除する
 // import { submitGame } from '@/lib/api';
 
@@ -218,16 +219,7 @@ export default function TermsGameFlow() {
   );
 
   if (isCompleted) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg font-bold">完了しました</p>
-          <p className="mt-2 text-sm text-gray-500">
-            次のゲームに移動します...
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="MBTI診断へ移動中..." />;
   }
 
   return (

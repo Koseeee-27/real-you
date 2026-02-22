@@ -11,7 +11,7 @@ import {
   type BaselineAnswers,
   type AnswerOption,
 } from '@/features/diagnosis/types';
-import Spinner from '@/components/ui/Spinner';
+import LoadingScreen from '@/components/common/LoadingScreen';
 import { postRegister, submitGame } from '@/lib/api';
 
 type Status = 'answering' | 'loading' | 'error' | 'success';
@@ -110,11 +110,7 @@ export default function BaselineSurvey() {
   };
 
   if (status === 'loading') {
-    return (
-      <div className="flex w-full max-w-md flex-col items-center gap-4">
-        <Spinner message="送信中..." />
-      </div>
-    );
+    return <LoadingScreen message="送信中..." />;
   }
 
   if (status === 'error') {
@@ -132,19 +128,7 @@ export default function BaselineSurvey() {
   }
 
   if (status === 'success') {
-    return (
-      <div className="flex w-full max-w-md flex-col items-center gap-4">
-        <h2 className="text-2xl font-bold">診断完了！</h2>
-        <p className="text-center text-gray-600">
-          これからゲームが始まります。
-          <br />
-          ゲームでのあなたの行動から、本当の性格を分析します。
-        </p>
-        <p className="text-sm text-gray-400">
-          まもなくゲーム画面に移動します...
-        </p>
-      </div>
-    );
+    return <LoadingScreen message="ゲームに移動中..." />;
   }
 
   return (
