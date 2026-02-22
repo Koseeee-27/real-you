@@ -139,7 +139,7 @@ export default function MbtiSelect() {
 
         {/* カード本体 - items-center 親でも幅を確保するため w-full */}
         <div
-          className={`relative flex w-full min-h-[70vh] max-h-[85vh] flex-1 flex-col justify-center items-center overflow-visible rounded-lg rounded-tl-none border-4 border-gray-800 shadow-lg ${GROUP_COLORS[groupIndex]}`}
+          className={`relative flex w-full min-h-[70vh] max-h-[85vh] flex-1 flex-col justify-center items-center overflow-visible rounded-4xl rounded-tl-none border-4 border-gray-800 shadow-lg ${GROUP_COLORS[groupIndex]}`}
         >
           {/* わからないボタン - カード内右上 */}
           <button
@@ -150,7 +150,7 @@ export default function MbtiSelect() {
             わからない
           </button>
           <p className="shrink-0 mb-2 pb-1 text-center text-5xl font-bold text-gray-900">
-            MBTIを選んでね
+            あなたのMBTIを選んでね！！
           </p>
 
           {/* キャラ表示エリア + 左右矢印 - グリッドでボタンとカードを分離 */}
@@ -185,7 +185,7 @@ export default function MbtiSelect() {
                         key={type.code}
                         type="button"
                         onClick={() => setSelected(type.code)}
-                        className="relative flex flex-1 basis-0 flex-col cursor-pointer items-center justify-center overflow-hidden rounded-4xl bg-transparent outline-none ring-0"
+                        className="relative z-0 flex flex-1 basis-0 flex-col cursor-pointer items-center justify-center overflow-hidden rounded-4xl border-2 border-gray-800 bg-white/80 outline-none ring-0 hover:z-50"
                         whileHover={{
                           scale: 1.2,
                           y: -16,
