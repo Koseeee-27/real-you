@@ -88,18 +88,32 @@ export default function HelpdeskGameFlow() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
 
+  const backgroundStyle = {
+    backgroundColor: '#f0f380',
+    backgroundImage: `radial-gradient(circle, rgba(255, 255, 255, 0.8) 1px, transparent 4px), url('/images/bg-pattern.svg')`,
+    backgroundSize: '16px 16px, cover',
+    backgroundPosition: '0 0, center',
+    backgroundRepeat: 'repeat, no-repeat',
+  };
+
   // --- 完了画面 ---
   if (gamePhase === 'completed') {
     if (submitStatus === 'loading') {
       return (
-        <div className="flex min-h-dvh items-center justify-center bg-top-pattern">
+        <div
+          className="flex min-h-dvh items-center justify-center"
+          style={backgroundStyle}
+        >
           <Spinner message="送信中..." />
         </div>
       );
     }
     if (submitStatus === 'error') {
       return (
-        <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-top-pattern">
+        <div
+          className="flex min-h-dvh flex-col items-center justify-center gap-4"
+          style={backgroundStyle}
+        >
           <p className="text-lg font-semibold text-red-600">
             通信に失敗しました
           </p>
@@ -113,7 +127,10 @@ export default function HelpdeskGameFlow() {
       );
     }
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-top-pattern">
+      <div
+        className="flex min-h-dvh items-center justify-center"
+        style={backgroundStyle}
+      >
         <div className="text-center">
           <p className="text-lg font-bold">完了しました</p>
           <p className="mt-2 text-sm text-gray-500">
@@ -126,7 +143,10 @@ export default function HelpdeskGameFlow() {
 
   // --- チャット画面 ---
   return (
-    <div className="relative flex min-h-dvh flex-col bg-top-pattern">
+    <div
+      className="relative flex min-h-dvh flex-col"
+      style={backgroundStyle}
+    >
       {/* --- AI応答取得失敗オーバーレイ --- */}
       {gamePhase === 'voice-api-error' && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/30 px-6">
