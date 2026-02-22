@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSetAtom } from 'jotai';
@@ -39,6 +39,36 @@ export default function MbtiSelect() {
   const [transitionVia, setTransitionVia] = useState<
     'tab' | 'arrow-left' | 'arrow-right'
   >('tab');
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+
+  const playSE = useCallback((path: string) => {
+    const audio = new Audio(path);
+    audio.volume = 0.5;
+    audio.play().catch(() => { });
+  }, []);
+
+  // BGMの初期化と再生管理
+  useEffect(() => {
+    // TopPageと同じ start-bgm を使用
+    const bgm = new Audio('/sounds/start-bgm.mp3');
+    bgm.loop = true;
+    bgm.volume = 0.4;
+    bgmRef.current = bgm;
+
+    const playBGM = () => {
+      bgm.play().catch(() => { });
+      window.removeEventListener('click', playBGM);
+    };
+
+    window.addEventListener('click', playBGM);
+    // すでに他のページでインタラクションがあれば即再生される
+    playBGM();
+
+    return () => {
+      bgm.pause();
+      window.removeEventListener('click', playBGM);
+    };
+  }, []);
 
   const currentGroup = MBTI_GROUPS[groupIndex];
   const currentTypes = getTypesByGroup(currentGroup);
@@ -54,33 +84,39 @@ export default function MbtiSelect() {
       flushSync(() => setTransitionVia('tab'));
       setGroupIndex(index);
       setSelected(null);
+      playSE('/sounds/general-button-se.mp3');
     },
-    [groupIndex]
+    [groupIndex, playSE]
   );
 
   const handleArrowPrev = useCallback(() => {
     setTransitionVia('arrow-right'); // コンテンツは右から入る
     setGroupIndex((i) => (i - 1 + MBTI_GROUPS.length) % MBTI_GROUPS.length);
     setSelected(null);
-  }, []);
+    playSE('/sounds/general-button-se.mp3');
+  }, [playSE]);
 
   const handleArrowNext = useCallback(() => {
     setTransitionVia('arrow-left'); // コンテンツは左から入る
     setGroupIndex((i) => (i + 1) % MBTI_GROUPS.length);
     setSelected(null);
-  }, []);
+    playSE('/sounds/general-button-se.mp3');
+  }, [playSE]);
 
   const handleConfirm = () => {
+    playSE('/sounds/general-button-se.mp3');
     if (!selected) return;
     setMbti(selected);
     setStep('quiz');
   };
 
   const handleReselect = () => {
+    playSE('/sounds/general-button-se.mp3');
     setSelected(null);
   };
 
   const handleSkip = () => {
+    playSE('/sounds/general-button-se.mp3');
     setMbti(null);
     setStep('quiz');
   };
@@ -120,9 +156,8 @@ export default function MbtiSelect() {
               key={group}
               type="button"
               onClick={() => handleTabClick(index)}
-              className={`relative z-10 cursor-pointer rounded-t-lg border-4 border-b-0 border-gray-800 px-4 py-2 text-base font-semibold text-gray-800 ${
-                GROUP_COLORS[index]
-              } ${groupIndex === index ? 'mb-[-4px]' : ''}`}
+              className={`relative z-10 cursor-pointer rounded-t-lg border-4 border-b-0 border-gray-800 px-4 py-2 text-base font-semibold text-gray-800 ${GROUP_COLORS[index]
+                } ${groupIndex === index ? 'mb-[-4px]' : ''}`}
               animate={{
                 y: groupIndex === index ? 2 : 0,
                 boxShadow:
@@ -184,7 +219,10 @@ export default function MbtiSelect() {
                       <motion.button
                         key={type.code}
                         type="button"
-                        onClick={() => setSelected(type.code)}
+                        onClick={() => {
+                          setSelected(type.code);
+                          playSE('/sounds/general-button-se.mp3');
+                        }}
                         className="relative z-0 flex flex-1 basis-0 flex-col cursor-pointer items-center justify-center overflow-hidden rounded-4xl border-2 border-gray-800 bg-white/80 outline-none ring-0 hover:z-50"
                         whileHover={{
                           scale: 1.2,
@@ -236,14 +274,13 @@ export default function MbtiSelect() {
           aria-labelledby="mbti-confirm-title"
         >
           <div
-            className={`mx-4 w-full max-w-md rounded-2xl border-4 border-gray-800 p-6 shadow-xl ${
-              GROUP_COLORS[
-                Math.max(
-                  0,
-                  MBTI_GROUPS.findIndex((g) => g === selectedType.group)
-                )
+            className={`mx-4 w-full max-w-md rounded-2xl border-4 border-gray-800 p-6 shadow-xl ${GROUP_COLORS[
+              Math.max(
+                0,
+                MBTI_GROUPS.findIndex((g) => g === selectedType.group)
+              )
               ]
-            }`}
+              }`}
           >
             <p
               id="mbti-confirm-title"

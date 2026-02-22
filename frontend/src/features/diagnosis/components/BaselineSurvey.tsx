@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { mbtiAtom } from '@/stores/diagnosis';
@@ -21,6 +21,35 @@ export default function BaselineSurvey() {
   const router = useRouter();
   const mbti = useAtomValue(mbtiAtom);
   const game1Data = useAtomValue(game1DataAtom);
+
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+
+  const playSE = useCallback((path: string) => {
+    const audio = new Audio(path);
+    audio.volume = 0.5;
+    audio.play().catch(() => { });
+  }, []);
+
+  // BGMの初期化と再生管理
+  useEffect(() => {
+    const bgm = new Audio('/sounds/start-bgm.mp3');
+    bgm.loop = true;
+    bgm.volume = 0.4;
+    bgmRef.current = bgm;
+
+    const playBGM = () => {
+      bgm.play().catch(() => { });
+      window.removeEventListener('click', playBGM);
+    };
+
+    window.addEventListener('click', playBGM);
+    playBGM();
+
+    return () => {
+      bgm.pause();
+      window.removeEventListener('click', playBGM);
+    };
+  }, []);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<
@@ -66,6 +95,7 @@ export default function BaselineSurvey() {
   const handleAnswer = (value: AnswerOption) => {
     const newAnswers = { ...answers, [currentQuestion.key]: value };
     setAnswers(newAnswers);
+    playSE('/sounds/general-button-se.mp3');
 
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex((prev) => prev + 1);
@@ -75,6 +105,7 @@ export default function BaselineSurvey() {
   };
 
   const handleRetry = () => {
+    playSE('/sounds/general-button-se.mp3');
     submitToApi(answers as BaselineAnswers);
   };
 
@@ -132,9 +163,8 @@ export default function BaselineSurvey() {
           {Array.from({ length: totalQuestions }).map((_, i) => (
             <div
               key={i}
-              className={`h-6 w-8 rounded-lg transition-colors ${
-                i <= currentIndex ? 'bg-rose-400' : 'bg-gray-200'
-              }`}
+              className={`h-6 w-8 rounded-lg transition-colors ${i <= currentIndex ? 'bg-rose-400' : 'bg-gray-200'
+                }`}
             />
           ))}
         </div>
