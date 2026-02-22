@@ -122,7 +122,6 @@ export default function BaselineSurvey() {
       <div className="mb-0 flex items-start justify-between gap-4">
         {/* タイトルエリア - メインカードに少し重なる */}
         <div className="relative z-10 flex flex-col">
-          <p className="mb-1 text-sm text-gray-500">質問コーナー4択ver</p>
           <div className="rounded-2xl border-4 border-gray-800 bg-white px-6 py-3 shadow-md">
             <h1 className="text-xl font-bold text-gray-900">質問コーナー</h1>
           </div>
