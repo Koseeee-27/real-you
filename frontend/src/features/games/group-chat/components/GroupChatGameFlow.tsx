@@ -123,10 +123,13 @@ export default function GroupChatGameFlow() {
     originalStartGame();
   }, [originalStartGame, playSE]);
 
-  const selectOption = useCallback((optionId: number) => {
-    playSE('/sounds/general-button-se.mp3');
-    originalSelectOption(optionId);
-  }, [originalSelectOption, playSE]);
+  const selectOption = useCallback(
+    (optionId: number) => {
+      playSE('/sounds/general-button-se.mp3');
+      originalSelectOption(optionId);
+    },
+    [originalSelectOption, playSE]
+  );
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });

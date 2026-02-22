@@ -60,7 +60,7 @@ const SparklesExplosion = () => {
 export default function TopPage() {
   const router = useRouter();
   const [showExplosion, setShowExplosion] = useState(false);
-  
+
   // BGMを保持するための Ref
   const bgmRef = useRef<HTMLAudioElement | null>(null);
 
@@ -81,7 +81,7 @@ export default function TopPage() {
     };
 
     window.addEventListener('click', playBGM);
-    
+
     // クリーンアップ
     return () => {
       bgm.pause();
@@ -111,8 +111,9 @@ export default function TopPage() {
   };
 
   return (
-    <div className="flex h-dvh w-full flex-col items-center justify-center overflow-hidden bg-top-pattern"
-    style={{
+    <div
+      className="flex h-dvh w-full flex-col items-center justify-center overflow-hidden bg-top-pattern"
+      style={{
         backgroundImage: `
           radial-gradient(circle, rgba(255,255,255,0.8) 1.0px, transparent 4px),
           url('/images/bg-pattern.svg')
@@ -122,7 +123,6 @@ export default function TopPage() {
         backgroundRepeat: 'repeat, no-repeat',
       }}
     >
-      
       <div className="flex flex-col items-center gap-[2vh] w-full">
         <Image
           src="/images/RealYouLogo.png"

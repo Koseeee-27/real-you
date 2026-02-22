@@ -206,7 +206,9 @@ export default function HelpdeskGameFlow() {
             >
               ×
             </button>
-            <h2 className="mb-4 text-center text-2xl font-black tracking-widest text-black">ルール</h2>
+            <h2 className="mb-4 text-center text-2xl font-black tracking-widest text-black">
+              ルール
+            </h2>
             <div className="rounded-xl border-[4px] border-black bg-[#d9d9d9] p-4 text-sm font-bold leading-relaxed text-black h-48 overflow-y-auto">
               {instructionText}
             </div>
@@ -227,7 +229,9 @@ export default function HelpdeskGameFlow() {
               <br />
               を相談せよ！
             </p>
-            <p className="mt-8 animate-pulse text-sm font-bold text-white/70 tracking-widest">▶︎ タップして開始</p>
+            <p className="mt-8 animate-pulse text-sm font-bold text-white/70 tracking-widest">
+              ▶︎ タップして開始
+            </p>
           </div>
         </button>
       )}
@@ -241,11 +245,20 @@ export default function HelpdeskGameFlow() {
             </div>
           ) : submitStatus === 'error' ? (
             <div className="flex flex-col items-center gap-6">
-              <h2 className="text-3xl font-black text-red-500 drop-shadow-md">通信に失敗しました</h2>
-              <button onClick={handleRetry} className="rounded-xl border-[4px] border-black bg-[#3b82f6] px-8 py-3 text-xl font-bold text-white shadow-[4px_4px_0_0_#000] transition-transform hover:translate-y-1 hover:shadow-none">リトライ</button>
+              <h2 className="text-3xl font-black text-red-500 drop-shadow-md">
+                通信に失敗しました
+              </h2>
+              <button
+                onClick={handleRetry}
+                className="rounded-xl border-[4px] border-black bg-[#3b82f6] px-8 py-3 text-xl font-bold text-white shadow-[4px_4px_0_0_#000] transition-transform hover:translate-y-1 hover:shadow-none"
+              >
+                リトライ
+              </button>
             </div>
           ) : (
-            <h2 className="text-6xl font-black tracking-widest text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] animate-[scaleIn_0.5s_ease-out]">終了！</h2>
+            <h2 className="text-6xl font-black tracking-widest text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] animate-[scaleIn_0.5s_ease-out]">
+              終了！
+            </h2>
           )}
         </div>
       )}
@@ -255,19 +268,37 @@ export default function HelpdeskGameFlow() {
         <div className="mx-auto max-w-2xl flex flex-col gap-6">
           {gamePhase === 'awaiting-api' && (
             <div className="relative rounded-[24px] border-[6px] border-black bg-[#d9d9d9] px-6 py-8 shadow-[8px_8px_0_0_#000] animate-[fadeInUp_0.3s_ease-out]">
-              <div className="absolute -top-7 right-8 rounded-t-xl border-x-[6px] border-t-[6px] border-black bg-[#d9d9d9] px-6 py-1 text-lg font-black tracking-widest text-black">AI</div>
-              <p className="text-xl font-bold leading-relaxed text-black">少々お待ちください。</p>
+              <div className="absolute -top-7 right-8 rounded-t-xl border-x-[6px] border-t-[6px] border-black bg-[#d9d9d9] px-6 py-1 text-lg font-black tracking-widest text-black">
+                AI
+              </div>
+              <p className="text-xl font-bold leading-relaxed text-black">
+                少々お待ちください。
+              </p>
             </div>
           )}
 
           {gamePhase === 'support-speaking' && (
             <div className="relative rounded-[24px] border-[6px] border-black bg-[#d9d9d9] px-6 py-8 shadow-[8px_8px_0_0_#000] animate-[scaleIn_0.2s_ease-out]">
-              <div className="absolute -top-7 right-8 rounded-t-xl border-x-[6px] border-t-[6px] border-black bg-[#d9d9d9] px-6 py-1 text-lg font-black tracking-widest text-black">AI</div>
+              <div className="absolute -top-7 right-8 rounded-t-xl border-x-[6px] border-t-[6px] border-black bg-[#d9d9d9] px-6 py-1 text-lg font-black tracking-widest text-black">
+                AI
+              </div>
               <p className="text-xl font-bold leading-relaxed text-black">
-                {chatHistory.length > 0 ? chatHistory[chatHistory.length - 1].text : ''}
+                {chatHistory.length > 0
+                  ? chatHistory[chatHistory.length - 1].text
+                  : ''}
               </p>
               <div className="absolute bottom-4 right-6 animate-bounce">
-                <svg width="24" height="20" viewBox="0 0 24 20" fill="none" stroke="black" strokeWidth="4" strokeLinejoin="round"><path d="M2 2L12 16L22 2" /></svg>
+                <svg
+                  width="24"
+                  height="20"
+                  viewBox="0 0 24 20"
+                  fill="none"
+                  stroke="black"
+                  strokeWidth="4"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 2L12 16L22 2" />
+                </svg>
               </div>
             </div>
           )}
@@ -275,21 +306,31 @@ export default function HelpdeskGameFlow() {
           {gamePhase === 'user-input' && (
             <>
               <div className="relative rounded-[24px] border-[6px] border-black bg-[#a6a6a6] px-6 py-4 shadow-[8px_8px_0_0_#000] opacity-90 mx-4 animate-[fadeInDown_0.3s_ease-out]">
-                <div className="absolute -bottom-7 right-8 rounded-b-xl border-x-[6px] border-b-[6px] border-black bg-[#a6a6a6] px-4 py-1 text-sm font-black tracking-widest text-black">AI</div>
+                <div className="absolute -bottom-7 right-8 rounded-b-xl border-x-[6px] border-b-[6px] border-black bg-[#a6a6a6] px-4 py-1 text-sm font-black tracking-widest text-black">
+                  AI
+                </div>
                 <p className="text-lg font-bold leading-relaxed text-black">
-                  {chatHistory.length > 0 ? chatHistory[chatHistory.length - 1].text : ''}
+                  {chatHistory.length > 0
+                    ? chatHistory[chatHistory.length - 1].text
+                    : ''}
                 </p>
               </div>
 
               <div className="relative mt-6 rounded-[24px] border-[6px] border-black bg-[#d9d9d9] px-6 py-8 shadow-[8px_8px_0_0_#000] animate-[fadeInUp_0.3s_ease-out]">
-                <div className="absolute -top-7 left-8 rounded-t-xl border-x-[6px] border-t-[6px] border-black bg-[#d9d9d9] px-6 py-1 text-lg font-black tracking-widest text-black">あなた</div>
+                <div className="absolute -top-7 left-8 rounded-t-xl border-x-[6px] border-t-[6px] border-black bg-[#d9d9d9] px-6 py-1 text-lg font-black tracking-widest text-black">
+                  あなた
+                </div>
 
                 {/* --- ヒント表示領域 --- */}
                 <div className="absolute -right-4 -top-12 z-10 w-64 animate-[fadeIn_0.5s_ease-out] lg:-right-12">
                   <div className="relative rounded-2xl border-[4px] border-black bg-white p-3 shadow-[4px_4px_0_0_#000]">
-                    <div className="absolute -top-3 left-3 bg-[#f0f380] px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-black border-[2px] border-black rounded-lg">Advice</div>
+                    <div className="absolute -top-3 left-3 bg-[#f0f380] px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-black border-[2px] border-black rounded-lg">
+                      Advice
+                    </div>
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-[11px] font-bold leading-snug text-gray-800">{hints[hintIndex]}</p>
+                      <p className="text-[11px] font-bold leading-snug text-gray-800">
+                        {hints[hintIndex]}
+                      </p>
                       <button
                         type="button"
                         onClick={() => {
@@ -298,18 +339,35 @@ export default function HelpdeskGameFlow() {
                         }}
                         className="mt-0.5 shrink-0 rounded-full border-2 border-black bg-gray-100 p-1 hover:bg-gray-200 transition-colors"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /><path d="m9 10 3 3 3-3" /></svg>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="10"
+                          height="10"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          <path d="m9 10 3 3 3-3" />
+                        </svg>
                       </button>
                     </div>
                   </div>
                   <div className="mt-1 text-right">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-black/30">Mission: {gameTopic.replace('【トラブル】', '')}</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest text-black/30">
+                      Mission: {gameTopic.replace('【トラブル】', '')}
+                    </p>
                   </div>
                 </div>
 
                 {inputMethod === 'voice' ? (
                   <p className="min-h-[3rem] text-xl font-bold leading-relaxed text-black">
-                    {speech.interimText || <span className="text-gray-400">（お話ください...）</span>}
+                    {speech.interimText || (
+                      <span className="text-gray-400">（お話ください...）</span>
+                    )}
                   </p>
                 ) : (
                   <div className="flex gap-2">
@@ -319,19 +377,35 @@ export default function HelpdeskGameFlow() {
                       onChange={(e) => setTextInput(e.target.value)}
                       onKeyDown={(e) => {
                         onKeyDown();
-                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) { handleTextSubmit(); }
+                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                          handleTextSubmit();
+                        }
                       }}
                       placeholder="キーボードで入力..."
                       className="flex-1 rounded-xl border-[4px] border-black bg-white px-4 py-3 text-lg font-bold text-black outline-none focus:bg-[#f0f0f0]"
                     />
-                    <button type="button" onClick={handleTextSubmit} className="rounded-xl border-[4px] border-black bg-[#57d071] px-6 py-2 text-lg font-black text-black shadow-[4px_4px_0_0_#000] transition-transform hover:translate-y-1 hover:shadow-none">送信</button>
+                    <button
+                      type="button"
+                      onClick={handleTextSubmit}
+                      className="rounded-xl border-[4px] border-black bg-[#57d071] px-6 py-2 text-lg font-black text-black shadow-[4px_4px_0_0_#000] transition-transform hover:translate-y-1 hover:shadow-none"
+                    >
+                      送信
+                    </button>
                   </div>
                 )}
 
                 {inputMethod === 'voice' && speech.isListening && (
                   <div className="mt-6 flex justify-between items-end">
-                    <div className="text-xs font-bold text-red-600 animate-pulse">● 録音中... 残り {Math.ceil(remainingTimeMs / 1000)}秒</div>
-                    <button type="button" onClick={endVoiceTurnManually} className="rounded-xl border-[4px] border-black bg-[#57d071] px-8 py-2 text-lg font-black text-black shadow-[4px_4px_0_0_#000] transition-transform hover:translate-y-1 hover:shadow-none">送信</button>
+                    <div className="text-xs font-bold text-red-600 animate-pulse">
+                      ● 録音中... 残り {Math.ceil(remainingTimeMs / 1000)}秒
+                    </div>
+                    <button
+                      type="button"
+                      onClick={endVoiceTurnManually}
+                      className="rounded-xl border-[4px] border-black bg-[#57d071] px-8 py-2 text-lg font-black text-black shadow-[4px_4px_0_0_#000] transition-transform hover:translate-y-1 hover:shadow-none"
+                    >
+                      送信
+                    </button>
                   </div>
                 )}
               </div>

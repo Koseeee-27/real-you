@@ -198,14 +198,14 @@ export default function TermsGameFlow() {
 
   const handleAction = useCallback(
     (action: 'agree' | 'disagree') => {
-    const se = new Audio('/sounds/general-button-se.mp3');
+      const se = new Audio('/sounds/general-button-se.mp3');
       se.play().catch(() => {});
 
       const data = buildGame1Data(action);
       setGame1Data(data);
 
       setIsCompleted(true);
-      
+
       if (bgmRef.current) {
         bgmRef.current.pause();
       }

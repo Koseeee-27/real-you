@@ -67,7 +67,7 @@ export default function ResultReport({ data }: ResultReportProps) {
       });
       window.removeEventListener('click', startBGM);
     };
-    
+
     window.addEventListener('click', startBGM);
     startBGM(); // すでに操作済みなら即再生
 
@@ -76,7 +76,7 @@ export default function ResultReport({ data }: ResultReportProps) {
       bgmRef.current = null;
     };
   }, []);
-    
+
   const handleTabChange = (tabId: TabId) => {
     // 1. SEをロードして再生
     const se = new Audio('/sounds/general-button-se.mp3');
