@@ -139,11 +139,9 @@ export default function LoadingScreen({
             // 文字間隔（tracking）を wider から wide や normal に少し狭めると、文字同士がくっついてより「丸っこく」見えます
             className="text-4xl font-black tracking-wide sm:text-5xl"
             style={{
-              fontFamily:
-                '"Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif',
+                fontFamily: '"Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif',
               color: '#222222',
 
-              // --- ここからが丸っこく太くするための魔法の調整です ---
               // 縁取りを文字の「外側」に広げます（中の文字が潰れません）
               paintOrder: 'stroke fill',
               // 白い縁取りを思い切って太くします（丸みがグッと増します）
