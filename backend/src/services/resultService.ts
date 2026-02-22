@@ -14,14 +14,22 @@ export const resultService = {
             throw { status: 404, code: 'user_not_found', message: 'User not found' };
         }
 
-        // ベースラインスコア組み立て（キャッシュ有無に関わらず必要）
-        const baseline_scores: BaselineScores = {
+        // 1. ベースラインスコア取得 (アンケート結果)
+        let baseline_scores: BaselineScores = {
             caution: user.baseline_caution,
             calmness: user.baseline_calmness,
             logic: user.baseline_logic,
             cooperativeness: user.baseline_coop,
             positivity: user.baseline_positive,
         };
+
+        // 2. MBTI理論値スコア取得
+        const mbti_scores = user.self_mbti ? getMbtiScores(user.self_mbti) : null;
+
+        // 3. MBTIが回答されている場合、ベースラインを理論値で補正する（極端な値を抑える）
+        if (mbti_scores) {
+            baseline_scores = this.blendScores(baseline_scores, mbti_scores);
+        }
 
         // キャッシュ確認：analysis_results にあればそこから返す
         const cached = await analysisResultRepository.findByUserId(userId);
@@ -48,9 +56,6 @@ export const resultService = {
             game3Data?.raw_data,
             baseline_scores
         );
-
-        // MBTI理論値スコア
-        const mbti_scores = user.self_mbti ? getMbtiScores(user.self_mbti) : null;
 
         // analysis_results にキャッシュとして保存
         const cacheRow: AnalysisResultRow = {
@@ -131,6 +136,22 @@ export const resultService = {
             accuracy_score: cached.accuracy_score,
             phase_summaries: cached.phase_summaries,
             details: cached.details,
+        };
+    },
+
+    /**
+     * アンケート結果とMBTI理論値をブレンドして、ベースラインの極端な値を調整する
+     */
+    blendScores(survey: BaselineScores, mbti: BaselineScores): BaselineScores {
+        // 比重: アンケート 70%, 理論値 30%
+        const blend = (s: number, m: number) => Math.round(s * 0.7 + m * 0.3);
+
+        return {
+            caution: blend(survey.caution, mbti.caution),
+            calmness: blend(survey.calmness, mbti.calmness),
+            logic: blend(survey.logic, mbti.logic),
+            cooperativeness: blend(survey.cooperativeness, mbti.cooperativeness),
+            positivity: blend(survey.positivity, mbti.positivity),
         };
     },
 };
