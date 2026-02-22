@@ -11,7 +11,6 @@ import {
   type BaselineAnswers,
   type AnswerOption,
 } from '@/features/diagnosis/types';
-import Spinner from '@/components/common/Spinner';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import { postRegister, submitGame } from '@/lib/api';
 
