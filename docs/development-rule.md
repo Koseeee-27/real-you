@@ -59,6 +59,50 @@ git checkout -b feature/add-share-button
 - 「あれもこれも」と 1 コミットに詰め込まない
 - こまめにコミットする（変更を放置しない）
 
+## 開発コマンド
+
+### Frontend
+
+```bash
+cd frontend
+```
+
+| コマンド | 用途 | いつ使う？ |
+|---------|------|----------|
+| `npm run dev` | 開発サーバー起動（ホットリロードあり） | 普段の開発 |
+| `npm run build` | 本番用ビルド | PR 前チェック、デプロイ前 |
+| `npm start` | ビルド済みアプリを本番モードで起動 | build の成果物を確認したいとき |
+| `npm run lint` | ESLint でコードチェック | PR 前チェック |
+| `npm run format` | Prettier でコード整形 | コード整形したいとき |
+| `npm run format:check` | Prettier で整形チェック（変更なし） | CI 用 |
+
+### Backend
+
+```bash
+cd backend
+```
+
+| コマンド | 用途 | いつ使う？ |
+|---------|------|----------|
+| `npm run dev` | 開発サーバー起動（自動リロードあり） | 普段の開発 |
+| `npm run build` | TypeScript → JavaScript にコンパイル | PR 前チェック、デプロイ前 |
+| `npm start` | ビルド済みアプリを起動 | build の成果物を確認したいとき |
+
+### PR 前チェック
+
+PR を出す前に以下を実行してエラーがないことを確認する。
+
+```bash
+# Frontend
+cd frontend
+npm run lint
+npm run build
+
+# Backend
+cd ../backend
+npm run build
+```
+
 ## Pull Request
 
 - 基本的には `develop` ブランチに向けて PR を出す
