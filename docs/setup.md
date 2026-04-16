@@ -9,8 +9,8 @@
 ## 1. リポジトリのクローン
 
 ```bash
-git clone https://github.com/kc3hack/2026_team6.git
-cd 2026_team6
+git clone https://github.com/Koseeee-27/real-you.git
+cd real-you
 ```
 
 ## 2. Frontend のセットアップ
