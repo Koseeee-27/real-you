@@ -1,0 +1,12 @@
+language: ja-JP
+
+reviews:
+  auto_review:
+    enabled: true
+  path_filters:
+    - "!**/package-lock.json"
+    - "!frontend/public/**"
+  profile: assertive
+
+chat:
+  auto_reply: true
