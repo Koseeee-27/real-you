@@ -22,9 +22,10 @@ export const errorHandler = (
     res: Response,
     _next: NextFunction,
 ): void => {
-    console.error('Error:', err);
-
+    // ZodError（入力検証失敗）は 400 系の想定挙動なので warn、それ以外は error で記録する
     if (err instanceof ZodError) {
+        console.warn('Validation failed:', err.issues);
+
         const apiError: ApiError = {
             status: 'error',
             error: resolveZodErrorCode(err),
@@ -34,20 +35,41 @@ export const errorHandler = (
         return;
     }
 
-    // 既存の { status, code, message } 形式の業務エラー
-    const legacy = err as { status?: number; code?: string; message?: string };
-    const status = legacy?.status ?? 500;
-    const code: string = legacy?.code ?? ERROR_CODES.SERVER_ERROR;
-    const message = legacy?.message ?? 'Internal server error';
+    console.error('Error:', err);
+
+    // service 層で投げる業務エラーは { status, code, message } 形式。
+    // status と code の両方が揃っているときだけ業務エラーとして扱い、
+    // それ以外（Error インスタンスや未知オブジェクト）は 500 server_error 固定で返す。
+    // message をそのまま返してしまうと DB 由来のエラー文などの内部情報が漏れうるため。
+    if (isBusinessError(err)) {
+        const apiError: ApiError = {
+            status: 'error',
+            error: err.code,
+            message: err.message ?? 'Internal server error',
+        };
+        res.status(err.status).json(apiError);
+        return;
+    }
 
     const apiError: ApiError = {
         status: 'error',
-        error: code,
-        message,
+        error: ERROR_CODES.SERVER_ERROR,
+        message: 'Internal server error',
     };
-
-    res.status(status).json(apiError);
+    res.status(500).json(apiError);
 };
+
+/**
+ * service 層が throw する業務エラー形式か判定する。
+ * `status`（数値）と `code`（文字列）の両方が揃っていることを必須とする。
+ */
+function isBusinessError(
+    err: unknown,
+): err is { status: number; code: string; message?: string } {
+    if (typeof err !== 'object' || err === null) return false;
+    const e = err as { status?: unknown; code?: unknown };
+    return typeof e.status === 'number' && typeof e.code === 'string';
+}
 
 /**
  * ZodError の issue からエラーコードを決定する。
@@ -57,6 +79,11 @@ export const errorHandler = (
  * - `mbti` フィールドのフォーマット違反 → `invalid_mbti`
  *   （型違反＝未指定は後段で `invalid_request` として扱う）
  * - 上記以外 → `invalid_request`
+ *
+ * 注: 現状は register endpoint 向けのヒューリスティックなマッピング。
+ * 他 endpoint の validate 差し込みが進んだ段階で、スキーマ側にエラーコードの
+ * メタ情報を持たせる設計（例: .refine の params で errorCode を宣言）への
+ * 移行を検討する（Issue #6 の PR 6「仕上げ」で再評価）。
  */
 function resolveZodErrorCode(error: ZodError): ErrorCode {
     const baselineAnswerIssue = error.issues.some(
