@@ -1,0 +1,22 @@
+name: 機能追加・改善
+description: 新機能の追加や既存機能の改善
+labels: ["type: feature"]
+body:
+  - type: textarea
+    attributes:
+      label: 概要
+      description: 何をしたいか
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 背景・理由
+      description: なぜ必要か
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 実現イメージ
+      description: スクリーンショットやモックがあれば貼ってください
+    validations:
+      required: false
