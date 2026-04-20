@@ -53,3 +53,23 @@ export const answerOptionSchema = z
             (ANSWER_OPTIONS as readonly string[]).includes(val),
         { error: '回答は A / B / C / D のいずれかで指定してください' },
     );
+
+/**
+ * 5 軸スコア（慎重さ / 冷静さ / 論理性 / 協調性 / 積極性）。
+ *
+ * 本スキーマは以下のいずれの用途にも再利用する:
+ * - baseline_scores / scores / mbti_scores（0-100 の正値）
+ * - gaps（実測 - 自己申告の差分。負値を取りうる）
+ *
+ * そのため範囲制約（min/max）は付けず `z.number()` とする。
+ * 型は既存の `BaselineScores` interface と構造的に同一になる。
+ */
+export const baselineScoresSchema = z.object({
+    caution: z.number(),
+    calmness: z.number(),
+    logic: z.number(),
+    cooperativeness: z.number(),
+    positivity: z.number(),
+});
+
+export type BaselineScores = z.infer<typeof baselineScoresSchema>;
