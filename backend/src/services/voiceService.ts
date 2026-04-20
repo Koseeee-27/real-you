@@ -6,6 +6,13 @@
  * 2. 失敗時はエラーをスロー（モック/フォールバックは使用しない）
  */
 
+import {
+    ConversationMessage,
+    VoiceEmotion,
+    VoiceRespondResponse,
+} from '../schemas/voice';
+import { getKeywordFallback } from './fallbackService';
+
 const GEMINI_TIMEOUT_MS = 5000;
 
 // プロンプトは短く・速く
@@ -13,18 +20,7 @@ const SYSTEM_PROMPT = `あなたはカスタマーサポート担当です。少
 
 const PRIMARY_MODEL = 'gemini-2.0-flash-lite';
 
-interface ConversationMessage {
-    role: 'user' | 'assistant';
-    content: string;
-}
-
-interface VoiceResponse {
-    response: string;
-    emotion: string;
-    confidence: number;
-}
-
-function estimateEmotion(text: string): string {
+function estimateEmotion(text: string): VoiceEmotion {
     if (text.includes('多分') || text.includes('思います') || text.includes('かも')) return 'confused';
     if (text.includes('ありがとう') || text.includes('承りました')) return 'confident';
     if (text.includes('すみません') || text.includes('申し訳')) return 'apologetic';
@@ -40,7 +36,7 @@ async function requestToModel(
     contents: any[],
     apiKey: string,
     signal: AbortSignal,
-): Promise<VoiceResponse> {
+): Promise<VoiceRespondResponse> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
@@ -78,7 +74,7 @@ async function callGeminiSequential(
     message: string,
     conversationHistory: ConversationMessage[],
     apiKey: string,
-): Promise<VoiceResponse> {
+): Promise<VoiceRespondResponse> {
     // 会話履歴は直近1件のみ（速度優先）
     const recentHistory = conversationHistory.slice(-1);
     const contents: any[] = [];
@@ -110,17 +106,12 @@ async function callGeminiSequential(
 // メインの voiceService
 // ============================
 
-import { getKeywordFallback } from './fallbackService';
-
 export const voiceService = {
     async generateAiResponse(
         message: string,
         conversationHistory?: ConversationMessage[],
-    ): Promise<VoiceResponse> {
-        if (!message) {
-            throw { status: 400, code: 'invalid_request', message: 'message is required' };
-        }
-
+    ): Promise<VoiceRespondResponse> {
+        // message の必須・空文字チェックは route 層の zod スキーマに一元化済み
         const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey) {

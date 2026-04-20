@@ -9,9 +9,11 @@
  * ラリー3: ユーザーが諦める・怒る・別手段を探す
  */
 
+import { VoiceEmotion } from '../schemas/voice';
+
 export interface FallbackEntry {
   keywords: string[];
-  responses: Array<{ response: string; emotion: string }>;
+  responses: Array<{ response: string; emotion: VoiceEmotion }>;
 }
 
 export const FALLBACK_TABLE: FallbackEntry[] = [
@@ -164,7 +166,7 @@ export const FALLBACK_TABLE: FallbackEntry[] = [
   },
 ];
 
-export const DEFAULT_RESPONSES: Array<{ response: string; emotion: string }> = [
+export const DEFAULT_RESPONSES: Array<{ response: string; emotion: VoiceEmotion }> = [
   { response: 'なるほど、少々お待ちください。今確認しております。', emotion: 'confused' },
   { response: 'ご状況は承りました。弊社のご案内ページをご確認いただけますでしょうか。', emotion: 'confident' },
   { response: 'そのお問い合わせは担当者が対応いたします。', emotion: 'apologetic' },

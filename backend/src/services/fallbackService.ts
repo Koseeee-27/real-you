@@ -4,12 +4,14 @@
  */
 
 import { FALLBACK_TABLE, DEFAULT_RESPONSES } from './fallbackData';
+import { VoiceRespondResponse } from '../schemas/voice';
 
-export interface FallbackResponse {
-  response: string;
-  emotion: string;
-  confidence: number;
-}
+/**
+ * フォールバック返答の型。
+ * voice API の外向きレスポンス型（VoiceRespondResponse）と完全一致させ、
+ * voiceService 側で型アサーションなしでそのまま返せるようにしている。
+ */
+export type FallbackResponse = VoiceRespondResponse;
 
 /**
  * メッセージのキーワードをもとにフォールバック返答を返す。
