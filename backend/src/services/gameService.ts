@@ -1,32 +1,28 @@
 import { userRepository } from '../repositories/userRepository';
 import { gameRepository } from '../repositories/gameRepository';
-import { GameType, GAME_TYPES } from '../types';
+import { GameType } from '../types';
+import { ERROR_CODES } from '../schemas/errorCodes';
 
 export const gameService = {
-    async submitGame(userId: string, gameType: GameType, data: Record<string, any>) {
-        // バリデーション
-        if (!userId || !gameType || !data) {
-            throw { status: 400, code: 'invalid_request', message: 'user_id, game_type, and data are required' };
-        }
-
-        if (Object.keys(data).length === 0) {
-            throw { status: 400, code: 'invalid_request', message: 'data cannot be empty' };
-        }
-
-        if (!Object.values(GAME_TYPES).includes(gameType)) {
-            throw { status: 400, code: 'invalid_game_type', message: `game_type must be one of: ${Object.values(GAME_TYPES).join(', ')}` };
-        }
-
+    /**
+     * ゲームプレイデータを保存する。
+     *
+     * リクエスト形状の検証（必須・型・game_type の範囲・data が空でないこと）は
+     * route 層の zod ミドルウェアで完了している前提。
+     * ここでは DB を参照しないと判定できない業務ルール
+     * （ユーザー存在確認・同一ゲーム重複送信）のみを行う。
+     */
+    async submitGame(userId: string, gameType: GameType, data: Record<string, unknown>) {
         // ユーザー存在確認
         const exists = await userRepository.exists(userId);
         if (!exists) {
-            throw { status: 400, code: 'invalid_user_id', message: 'User not found' };
+            throw { status: 400, code: ERROR_CODES.INVALID_USER_ID, message: 'User not found' };
         }
 
         // 重複送信チェック
         const alreadySubmitted = await gameRepository.existsLog(userId, gameType);
         if (alreadySubmitted) {
-            throw { status: 409, code: 'duplicate_submission', message: `Game ${gameType} is already submitted` };
+            throw { status: 409, code: ERROR_CODES.DUPLICATE_SUBMISSION, message: `Game ${gameType} is already submitted` };
         }
 
         // 保存
