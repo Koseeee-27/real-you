@@ -10,25 +10,15 @@ export interface BaselineScores {
   positivity: number;
 }
 
-export type AnswerOption = 'A' | 'B' | 'C' | 'D';
+// AnswerOption は zod の answerOptionSchema から導出した型を再エクスポート
+export type { AnswerOption } from '../schemas/common';
 
-export interface BaselineAnswers {
-  q1_caution: AnswerOption;
-  q2_calmness: AnswerOption;
-  q3_logic: AnswerOption;
-  q4_cooperativeness: AnswerOption;
-  q5_positivity: AnswerOption;
-}
-
-export interface RegisterRequest {
-  mbti?: string | null; // オプショナル
-  baseline_answers: BaselineAnswers; // 必須
-}
-
-export interface RegisterResponse {
-  user_id: string; // UUID
-  status: "success";
-}
+// register エンドポイントの型は schemas/register.ts に集約済み
+export type {
+  BaselineAnswers,
+  RegisterRequest,
+  RegisterResponse,
+} from '../schemas/register';
 
 export type GameType = 1 | 2 | 3;
 
