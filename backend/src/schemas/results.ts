@@ -32,14 +32,11 @@ export const resultsParamsSchema = z.object({
  *
  * ゲームごとにどの軸を測るかが異なるため（例: game_1 は caution/logic/calmness のみ）、
  * Partial 相当として各軸を optional にしている。
+ *
+ * `baselineScoresSchema.partial()` を使うことで、キー定義の単一ソース化と
+ * 0-100 の範囲制約の継承を同時に実現している。
  */
-const partialBaselineScoresSchema = z.object({
-    caution: z.number().optional(),
-    calmness: z.number().optional(),
-    logic: z.number().optional(),
-    cooperativeness: z.number().optional(),
-    positivity: z.number().optional(),
-});
+const partialBaselineScoresSchema = baselineScoresSchema.partial();
 
 /**
  * ゲームごとのスコア内訳。
