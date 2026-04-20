@@ -22,16 +22,11 @@ export type {
 
 export type GameType = 1 | 2 | 3;
 
-export interface SubmitGameRequest {
-  user_id: string;
-  game_type: GameType;
-  data: Record<string, any>;
-}
-
-export interface SubmitGameResponse {
-  status: "success" | "error";
-  message: string;
-}
+// games エンドポイントの型は schemas/games.ts に集約済み
+export type {
+  SubmitGameRequest,
+  SubmitGameResponse,
+} from '../schemas/games';
 
 export interface DiagnosisFeedback {
   title: string;
