@@ -57,5 +57,13 @@ export const submitGameResponseSchema = z.object({
     message: z.string(),
 });
 
+/**
+ * ゲーム種別（1/2/3）の TS 型。
+ * `gameTypeSchema` から `z.infer` で導出するため、値の追加時は
+ * `types/index.ts` の `GAME_TYPES` と本スキーマの z.literal 配列を同期すれば
+ * 本型も自動で追随する。
+ */
+export type GameType = z.infer<typeof gameTypeSchema>;
+
 export type SubmitGameRequest = z.infer<typeof submitGameRequestSchema>;
 export type SubmitGameResponse = z.infer<typeof submitGameResponseSchema>;

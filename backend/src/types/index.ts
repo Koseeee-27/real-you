@@ -15,10 +15,10 @@ export type {
   RegisterResponse,
 } from '../schemas/register';
 
-export type GameType = 1 | 2 | 3;
-
 // games エンドポイントの型は schemas/games.ts に集約済み
+// GameType は gameTypeSchema（= GAME_TYPES の z.literal 展開）からの導出型を再エクスポート
 export type {
+  GameType,
   SubmitGameRequest,
   SubmitGameResponse,
 } from '../schemas/games';
@@ -39,11 +39,8 @@ export type {
   VoiceRespondResponse,
 } from '../schemas/voice';
 
-export interface ApiError {
-  status: "error";
-  error: string;
-  message: string;
-}
+// ApiError は schemas/errorCodes.ts の apiErrorSchema から導出した型を再エクスポート
+export type { ApiError } from '../schemas/errorCodes';
 
 // ========================================
 // DB型定義

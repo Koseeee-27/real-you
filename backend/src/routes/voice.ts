@@ -7,6 +7,7 @@ import {
     VoiceRespondRequest,
     VoiceRespondResponse,
 } from '../schemas/voice';
+import { ERROR_CODES } from '../schemas/errorCodes';
 
 const router = Router();
 
@@ -24,7 +25,7 @@ router.post(
             if (!exists) {
                 throw {
                     status: 400,
-                    code: 'invalid_user_id',
+                    code: ERROR_CODES.INVALID_USER_ID,
                     message: 'ユーザーIDが存在しません',
                 };
             }

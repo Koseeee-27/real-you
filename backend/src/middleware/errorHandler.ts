@@ -62,14 +62,26 @@ export const errorHandler = (
 
 /**
  * service 層が throw する業務エラー形式か判定する。
- * `status`（数値）と `code`（文字列）の両方が揃っていることを必須とする。
+ *
+ * `status`（数値）と `code`（ERROR_CODES のいずれか）が揃っていることを必須とする。
+ * code を ErrorCode に narrowing することで、ApiError.error（ErrorCode 型）への
+ * 代入がキャストなしで通る。
+ *
+ * code が ERROR_CODES に含まれない値（定義ミス・typo）だった場合は本関数で false を返し、
+ * errorHandler 側で 500 server_error に振り分けられる（内部情報の漏洩を防ぐ）。
  */
+const ERROR_CODE_VALUES: readonly string[] = Object.values(ERROR_CODES);
+
 function isBusinessError(
     err: unknown,
-): err is { status: number; code: string; message?: string } {
+): err is { status: number; code: ErrorCode; message?: string } {
     if (typeof err !== 'object' || err === null) return false;
     const e = err as { status?: unknown; code?: unknown };
-    return typeof e.status === 'number' && typeof e.code === 'string';
+    return (
+        typeof e.status === 'number' &&
+        typeof e.code === 'string' &&
+        ERROR_CODE_VALUES.includes(e.code)
+    );
 }
 
 /**
