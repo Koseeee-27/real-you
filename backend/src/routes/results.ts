@@ -12,9 +12,13 @@ const router = Router();
 router.get(
     '/:user_id',
     validate({ params: resultsParamsSchema }),
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (
+        req: Request<ResultsParams>,
+        res: Response,
+        next: NextFunction,
+    ) => {
         try {
-            const { user_id } = req.params as unknown as ResultsParams;
+            const { user_id } = req.params;
             const result: ResultResponse = await resultService.getResult(user_id);
 
             res.json(result);

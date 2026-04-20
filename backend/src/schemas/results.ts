@@ -79,7 +79,7 @@ export const phaseSummariesSchema = z.object({
  *   （Issue #6 の実装計画「論点」参照）
  */
 export const resultsResponseSchema = z.object({
-    user_id: z.string(),
+    user_id: userIdSchema,
     self_mbti: mbtiSchema.nullable(),
     mbti_scores: baselineScoresSchema.nullable(),
     scores: baselineScoresSchema,
