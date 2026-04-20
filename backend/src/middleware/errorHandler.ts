@@ -82,6 +82,16 @@ function isBusinessError(
  * - `baseline_answers` 配下のフィールド:
  *   - キー欠落（invalid_type、値が undefined）→ invalid_request
  *   - 値違反（custom、A-D 以外の文字列）→ invalid_answers
+ * - `user_id` フィールド:
+ *   - 型違反・UUID 形式違反・キー欠落 → invalid_user_id
+ *     （mbti パターンと同じく、フィールド単位でエラーコードを寄せる方針。
+ *      旧手書き実装の「user_id が存在しない → invalid_user_id」と同じカテゴリ）
+ * - `game_type` フィールド:
+ *   - 型違反・値違反（invalid_union）・キー欠落 → invalid_game_type
+ *     （mbti パターン踏襲）
+ * - `data` フィールド（および配下）:
+ *   - 型違反・空オブジェクト違反・キー欠落 → invalid_request
+ *     （data は構造がゲームごとに異なるためフィールド固有コードを用意しない）
  * - その他（ネスト親レベルの必須欠落など）→ invalid_request
  *
  * 共通スキーマ（schemas/common.ts）が issue.code を区別できる形で設計されている
@@ -94,8 +104,11 @@ function isBusinessError(
  *   両方 invalid_type として扱われる。旧実装では後者を invalid_answers に
  *   振り分けていたため厳密にはリグレッションだが、FE は TypeScript 型で
  *   文字列を強制しており実運用では発生しない（明示的妥協）。
+ * - user_id / game_type の「キー欠落」は旧実装では invalid_request にしていたが、
+ *   フィールド単位で寄せる方針に統一したため invalid_user_id / invalid_game_type
+ *   として扱う。FE は TS 型で必須を強制しており実運用では発生しない（明示的妥協）。
  *
- * エンドポイント（user_id / game_type 等）が増えた場合は、本関数に
+ * エンドポイント（results / voice 等）が増えた場合は、本関数に
  * 対応するマッピング分岐を 1 行ずつ追加する。
  *
  * 優先度制御について:
@@ -127,6 +140,24 @@ function resolveZodErrorCode(error: ZodError): ErrorCode {
             if (issue.code === 'invalid_type') return ERROR_CODES.INVALID_REQUEST;
             // それ以外（custom など）= A-D 以外の値違反
             return ERROR_CODES.INVALID_ANSWERS;
+        }
+
+        // user_id フィールドのエラー（型違反・UUID 形式違反・キー欠落）
+        if (top === 'user_id') {
+            return ERROR_CODES.INVALID_USER_ID;
+        }
+
+        // game_type フィールドのエラー（型違反・値違反・キー欠落）
+        // z.union の値違反は issue.code = 'invalid_union' で届く
+        if (top === 'game_type') {
+            return ERROR_CODES.INVALID_GAME_TYPE;
+        }
+
+        // data フィールドのエラー（型違反・空オブジェクト違反・ネスト配下）
+        // data は構造がゲーム依存のためフィールド固有コードは持たず、
+        // すべて invalid_request に寄せる（仕様書「data が空 → 400」に合致）
+        if (top === 'data') {
+            return ERROR_CODES.INVALID_REQUEST;
         }
     }
     return ERROR_CODES.INVALID_REQUEST;
