@@ -76,15 +76,24 @@ function isBusinessError(
  * ZodError の issue から API 設計書のエラーコードを決定する。
  *
  * 判定ルール（仕様書 notion-docs/api-design.md のエラーコード表に準拠）:
- * - `mbti` フィールドの形式違反（invalid_format）→ invalid_mbti
+ * - `mbti` フィールド:
+ *   - 形式違反（invalid_format、"XXXX" 等）→ invalid_mbti
+ *   - 型違反（invalid_type、数値等）→ invalid_mbti（旧手書き実装互換）
  * - `baseline_answers` 配下のフィールド:
- *   - キー欠落（invalid_type）→ invalid_request
- *   - 値違反（custom, A-D 以外）→ invalid_answers
+ *   - キー欠落（invalid_type、値が undefined）→ invalid_request
+ *   - 値違反（custom、A-D 以外の文字列）→ invalid_answers
  * - その他（ネスト親レベルの必須欠落など）→ invalid_request
  *
  * 共通スキーマ（schemas/common.ts）が issue.code を区別できる形で設計されている
  * ことを前提とする。特に answerOptionSchema は z.string().refine() を使い、
  * 必須欠落と値違反で異なる issue.code を返すようにしている。
+ *
+ * 既知の妥協（実運用で影響なし）:
+ * - baseline_answers 配下に数値等の非文字列が来た場合、z.string() では
+ *   「キー欠落（undefined）」と「型違反」を issue.code で区別できず、
+ *   両方 invalid_type として扱われる。旧実装では後者を invalid_answers に
+ *   振り分けていたため厳密にはリグレッションだが、FE は TypeScript 型で
+ *   文字列を強制しており実運用では発生しない（明示的妥協）。
  *
  * エンドポイント（user_id / game_type 等）が増えた場合は、本関数に
  * 対応するマッピング分岐を 1 行ずつ追加する。
@@ -94,16 +103,18 @@ function resolveZodErrorCode(error: ZodError): ErrorCode {
         const top = issue.path[0];
         const isNested = issue.path.length > 1;
 
-        // mbti フィールドの形式違反
-        if (top === 'mbti' && issue.code === 'invalid_format') {
+        // mbti フィールドのエラー
+        // 形式違反 ("XXXX" 等) と型違反 (数値等) の両方を invalid_mbti に寄せる
+        if (top === 'mbti' && (issue.code === 'invalid_format' || issue.code === 'invalid_type')) {
             return ERROR_CODES.INVALID_MBTI;
         }
 
         // baseline_answers 配下のフィールドエラー
         if (top === 'baseline_answers' && isNested) {
-            // invalid_type = キー欠落（値が undefined で z.string() が弾いた）
+            // invalid_type = キー欠落 (undefined) または非文字列型違反
+            // （上述の通り区別不可のため一律 invalid_request に寄せる）
             if (issue.code === 'invalid_type') return ERROR_CODES.INVALID_REQUEST;
-            // それ以外（custom など）= 値違反
+            // それ以外（custom など）= A-D 以外の値違反
             return ERROR_CODES.INVALID_ANSWERS;
         }
     }
