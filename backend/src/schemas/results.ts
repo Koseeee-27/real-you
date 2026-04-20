@@ -85,7 +85,7 @@ export const resultsResponseSchema = z.object({
     gaps: gapScoresSchema,
     game_breakdown: gameBreakdownSchema,
     feedback: diagnosisFeedbackSchema,
-    accuracy_score: z.number(),
+    accuracy_score: z.number().int().min(0).max(100),
     phase_summaries: phaseSummariesSchema,
     details: z.unknown(),
 });

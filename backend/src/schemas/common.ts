@@ -55,10 +55,14 @@ export const answerOptionSchema = z
     );
 
 /**
- * 5 軸各軸のスコア値（0-100 の正値）。
+ * 5 軸各軸のスコア値（0-100 の整数）。
  * baseline_scores / scores / mbti_scores の各軸で共通利用する。
+ *
+ * 整数制約を付ける理由:
+ * - 仕様書「DB 設計書」で baseline_* / score_* カラムはすべて `INT` 型
+ * - 値の生成経路はすべて `Math.round` または整数定数のため常に整数
  */
-const boundedScoreSchema = z.number().min(0).max(100);
+const boundedScoreSchema = z.number().int().min(0).max(100);
 
 /**
  * 5 軸スコア（慎重さ / 冷静さ / 論理性 / 協調性 / 積極性）。
@@ -88,13 +92,14 @@ export type BaselineScores = z.infer<typeof baselineScoresSchema>;
  *
  * `baselineScoresSchema` と構造は同一だが、負値を取りうるため
  * 範囲制約（0-100）を付けない別スキーマとして分離している。
+ * 整数制約は維持する（仕様書「DB 設計書」で gap_* カラムは `INT` 型）。
  */
 export const gapScoresSchema = z.object({
-    caution: z.number(),
-    calmness: z.number(),
-    logic: z.number(),
-    cooperativeness: z.number(),
-    positivity: z.number(),
+    caution: z.number().int(),
+    calmness: z.number().int(),
+    logic: z.number().int(),
+    cooperativeness: z.number().int(),
+    positivity: z.number().int(),
 });
 
 export type GapScores = z.infer<typeof gapScoresSchema>;
