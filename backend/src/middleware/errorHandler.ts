@@ -97,6 +97,14 @@ function isBusinessError(
  *
  * エンドポイント（user_id / game_type 等）が増えた場合は、本関数に
  * 対応するマッピング分岐を 1 行ずつ追加する。
+ *
+ * 優先度制御について:
+ * 複数 issue が同時に存在する場合（例: mbti と baseline_answers の両方にエラー）、
+ * 最初にマッチした issue で即 return するため、結果は zod の issue 順序
+ * （スキーマ定義順、今回は mbti → baseline_answers）に従う。
+ * 現状のスキーマ定義順で API 設計書上も自然な優先度になっており実害はないが、
+ * 将来エンドポイントが増え明示的な優先度制御が必要になった場合は、
+ * 全 issue を走査した後に優先度リストで選ぶ方式へリファクタする。
  */
 function resolveZodErrorCode(error: ZodError): ErrorCode {
     for (const issue of error.issues) {
@@ -110,6 +118,9 @@ function resolveZodErrorCode(error: ZodError): ErrorCode {
         }
 
         // baseline_answers 配下のフィールドエラー
+        // 注: baseline_answers 自体の欠落（path が ['baseline_answers'] のみ）は
+        // isNested=false のため本分岐には入らず、ループ末尾の fallthrough で
+        // INVALID_REQUEST として扱われる（仕様書「必須フィールド欠落」に合致）。
         if (top === 'baseline_answers' && isNested) {
             // invalid_type = キー欠落 (undefined) または非文字列型違反
             // （上述の通り区別不可のため一律 invalid_request に寄せる）
