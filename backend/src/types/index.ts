@@ -31,6 +31,14 @@ export type {
   ResultResponse,
 } from '../schemas/results';
 
+// voice エンドポイントの型は schemas/voice.ts に集約済み
+export type {
+  ConversationMessage,
+  VoiceEmotion,
+  VoiceRespondRequest,
+  VoiceRespondResponse,
+} from '../schemas/voice';
+
 export interface ApiError {
   status: "error";
   error: string;
