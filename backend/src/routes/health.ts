@@ -37,7 +37,10 @@ router.get('/', async (_req: Request, res: Response) => {
             uptime: Math.round(process.uptime()),
         };
         res.status(200).json(response);
-    } catch (_err) {
+    } catch (err) {
+        // /health は死活監視で最も参照されるエンドポイント。503 を返した原因を
+        // 運用側で追えるよう、errorHandler に委譲しない代わりにここで必ずログに残す
+        console.error('Health check failed:', err);
         // 仕様: DB 切断は 503 + ApiError ではなく health 固有の形状で返す
         const response: HealthErrorResponse = {
             status: 'error',
