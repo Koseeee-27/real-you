@@ -8,7 +8,8 @@ import { ERROR_CODES, ErrorCode } from '../schemas/errorCodes';
  *
  * 対応するエラー:
  * - ZodError: validate ミドルウェアから来る検証失敗。
- *   path / code から適切な ErrorCode にマッピングして 400 で返す。
+ *   path / code から API 設計書のエラーコードへマッピングして 400 で返す
+ *   （resolveZodErrorCode 参照）。
  * - { status, code, message } 形式のオブジェクト: service 層で throw される業務エラー。
  *   status / code をそのまま使う。
  * - その他: 500 server_error として返す。
@@ -72,30 +73,40 @@ function isBusinessError(
 }
 
 /**
- * ZodError の issue からエラーコードを決定する。
+ * ZodError の issue から API 設計書のエラーコードを決定する。
  *
- * - `baseline_answers` 配下のフィールドエラー → `invalid_answers`
- *   （必須キー欠落や A-D 以外の値が該当）
- * - `mbti` フィールドのフォーマット違反 → `invalid_mbti`
- *   （型違反＝未指定は後段で `invalid_request` として扱う）
- * - 上記以外 → `invalid_request`
+ * 判定ルール（仕様書 notion-docs/api-design.md のエラーコード表に準拠）:
+ * - `mbti` フィールドの形式違反（invalid_format）→ invalid_mbti
+ * - `baseline_answers` 配下のフィールド:
+ *   - キー欠落（invalid_type）→ invalid_request
+ *   - 値違反（custom, A-D 以外）→ invalid_answers
+ * - その他（ネスト親レベルの必須欠落など）→ invalid_request
  *
- * 注: 現状は register endpoint 向けのヒューリスティックなマッピング。
- * 他 endpoint の validate 差し込みが進んだ段階で、スキーマ側にエラーコードの
- * メタ情報を持たせる設計（例: .refine の params で errorCode を宣言）への
- * 移行を検討する（Issue #6 の PR 6「仕上げ」で再評価）。
+ * 共通スキーマ（schemas/common.ts）が issue.code を区別できる形で設計されている
+ * ことを前提とする。特に answerOptionSchema は z.string().refine() を使い、
+ * 必須欠落と値違反で異なる issue.code を返すようにしている。
+ *
+ * エンドポイント（user_id / game_type 等）が増えた場合は、本関数に
+ * 対応するマッピング分岐を 1 行ずつ追加する。
  */
 function resolveZodErrorCode(error: ZodError): ErrorCode {
-    const baselineAnswerIssue = error.issues.some(
-        (issue) => issue.path.length > 1 && issue.path[0] === 'baseline_answers',
-    );
-    if (baselineAnswerIssue) return ERROR_CODES.INVALID_ANSWERS;
+    for (const issue of error.issues) {
+        const top = issue.path[0];
+        const isNested = issue.path.length > 1;
 
-    const mbtiFormatIssue = error.issues.some(
-        (issue) => issue.path[0] === 'mbti' && issue.code !== 'invalid_type',
-    );
-    if (mbtiFormatIssue) return ERROR_CODES.INVALID_MBTI;
+        // mbti フィールドの形式違反
+        if (top === 'mbti' && issue.code === 'invalid_format') {
+            return ERROR_CODES.INVALID_MBTI;
+        }
 
+        // baseline_answers 配下のフィールドエラー
+        if (top === 'baseline_answers' && isNested) {
+            // invalid_type = キー欠落（値が undefined で z.string() が弾いた）
+            if (issue.code === 'invalid_type') return ERROR_CODES.INVALID_REQUEST;
+            // それ以外（custom など）= 値違反
+            return ERROR_CODES.INVALID_ANSWERS;
+        }
+    }
     return ERROR_CODES.INVALID_REQUEST;
 }
 
