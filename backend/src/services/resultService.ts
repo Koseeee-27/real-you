@@ -5,13 +5,14 @@ import { analysisResultRepository, AnalysisResultRow } from '../repositories/ana
 
 import { getMbtiScores } from '../analysis/mbtiScoreTable';
 import { BaselineScores, ResultResponse } from '../types';
+import { ERROR_CODES } from '../schemas/errorCodes';
 
 export const resultService = {
     async getResult(userId: string): Promise<ResultResponse> {
         // ユーザー取得
         const user = await userRepository.findById(userId);
         if (!user) {
-            throw { status: 404, code: 'user_not_found', message: 'User not found' };
+            throw { status: 404, code: ERROR_CODES.USER_NOT_FOUND, message: 'User not found' };
         }
 
         // 1. ベースラインスコア取得 (アンケート結果)
@@ -40,7 +41,7 @@ export const resultService = {
         // キャッシュなし → ゲームログから計算
         const gameLogs = await gameRepository.findLogsByUserId(userId);
         if (gameLogs.length < 3) {
-            throw { status: 400, code: 'incomplete_games', message: 'All games must be completed' };
+            throw { status: 400, code: ERROR_CODES.INCOMPLETE_GAMES, message: 'All games must be completed' };
         }
 
         // 分析（analysis/ に委譲）
