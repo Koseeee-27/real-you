@@ -24,9 +24,12 @@ const router = Router();
  */
 router.get('/', async (_req: Request, res: Response) => {
     try {
+        // head: true だけで「PostgREST → DB」の接続確認は成立する。
+        // count: 'exact' を付けると毎回 SELECT COUNT(*) が走りテーブル成長時に負荷が出るため外す。
+        // カラムは最小の 'id' に絞る（head: true で行データは返らないが意図を明確化する目的）。
         const { error } = await supabase
             .from('users')
-            .select('*', { count: 'exact', head: true });
+            .select('id', { head: true });
 
         if (error) throw error;
 
