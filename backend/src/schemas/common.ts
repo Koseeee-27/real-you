@@ -55,16 +55,41 @@ export const answerOptionSchema = z
     );
 
 /**
+ * 5 軸各軸のスコア値（0-100 の正値）。
+ * baseline_scores / scores / mbti_scores の各軸で共通利用する。
+ */
+const boundedScoreSchema = z.number().min(0).max(100);
+
+/**
  * 5 軸スコア（慎重さ / 冷静さ / 論理性 / 協調性 / 積極性）。
  *
- * 本スキーマは以下のいずれの用途にも再利用する:
- * - baseline_scores / scores / mbti_scores（0-100 の正値）
- * - gaps（実測 - 自己申告の差分。負値を取りうる）
+ * 用途: baseline_scores / scores / mbti_scores（0-100 の正値）
+ * gaps は負値を取りうるため別途 `gapScoresSchema` を用意する。
  *
- * そのため範囲制約（min/max）は付けず `z.number()` とする。
- * 型は既存の `BaselineScores` interface と構造的に同一になる。
+ * 範囲制約を付ける理由:
+ * - 仕様書「API 設計書」で各軸は 0-100 と明示されている
+ * - Issue #5（OpenAPI 化）で zod スキーマを API 仕様に流用するため、
+ *   制約をスキーマに乗せておくと OpenAPI の number/minimum/maximum に反映される
+ * - `z.infer` の結果型は `number` のままで既存コードへの影響はない
+ *   （`.min/.max` はランタイム検証にのみ作用）
  */
 export const baselineScoresSchema = z.object({
+    caution: boundedScoreSchema,
+    calmness: boundedScoreSchema,
+    logic: boundedScoreSchema,
+    cooperativeness: boundedScoreSchema,
+    positivity: boundedScoreSchema,
+});
+
+export type BaselineScores = z.infer<typeof baselineScoresSchema>;
+
+/**
+ * 5 軸ギャップ（実測 - 自己申告の差分）。
+ *
+ * `baselineScoresSchema` と構造は同一だが、負値を取りうるため
+ * 範囲制約（0-100）を付けない別スキーマとして分離している。
+ */
+export const gapScoresSchema = z.object({
     caution: z.number(),
     calmness: z.number(),
     logic: z.number(),
@@ -72,4 +97,4 @@ export const baselineScoresSchema = z.object({
     positivity: z.number(),
 });
 
-export type BaselineScores = z.infer<typeof baselineScoresSchema>;
+export type GapScores = z.infer<typeof gapScoresSchema>;

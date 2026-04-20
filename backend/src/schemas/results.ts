@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
     baselineScoresSchema,
+    gapScoresSchema,
     mbtiSchema,
     userIdSchema,
 } from './common';
@@ -84,7 +85,7 @@ export const resultsResponseSchema = z.object({
     mbti_scores: baselineScoresSchema.nullable(),
     scores: baselineScoresSchema,
     baseline_scores: baselineScoresSchema,
-    gaps: baselineScoresSchema,
+    gaps: gapScoresSchema,
     game_breakdown: gameBreakdownSchema,
     feedback: diagnosisFeedbackSchema,
     accuracy_score: z.number(),
