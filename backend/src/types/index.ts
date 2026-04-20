@@ -39,11 +39,8 @@ export type {
   VoiceRespondResponse,
 } from '../schemas/voice';
 
-export interface ApiError {
-  status: "error";
-  error: string;
-  message: string;
-}
+// ApiError は schemas/errorCodes.ts の apiErrorSchema から導出した型を再エクスポート
+export type { ApiError } from '../schemas/errorCodes';
 
 // ========================================
 // DB型定義
