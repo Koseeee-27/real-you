@@ -29,9 +29,6 @@ export function buildOpenApiDocument(): OpenAPIObject {
         info: {
             title: 'Real You API',
             version: '1.0.0',
-            description:
-                'MBTI 診断ゲーム「Real You」のバックエンド API 仕様。\n' +
-                '詳細はプロジェクトの「API 設計書」を参照してください。',
         },
         servers: [
             {
