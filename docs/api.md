@@ -18,9 +18,11 @@ http://localhost:3001/api-docs
 
 Swagger UI 上の「Try it out」ボタンからその場で API を叩いて挙動を確認することもできます。
 
-### 本番環境などで公開したくないとき
+### 本番環境での扱い
 
-`ENABLE_SWAGGER_UI=false` を明示的に指定した場合のみ `/api-docs` のマウントが無効化されます。未設定や他の値では有効のままです（`backend/.env.example` 参照）。
+**本番環境では `ENABLE_SWAGGER_UI=false` を設定し、Swagger UI を無効化します。** API 仕様を外部に公開する必要がないこと、および攻撃面を減らすことが理由です。
+
+`false` を明示的に指定した場合のみ無効化され、未設定や他の値では有効のままです（`backend/.env.example` 参照）。
 
 ## 仕組み
 
