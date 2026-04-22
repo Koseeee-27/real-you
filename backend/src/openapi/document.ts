@@ -6,10 +6,17 @@ import { registry } from './registry';
 // 本ファイルがエントリーポイント（index.ts）から import されることで、
 // 関連スキーマが OpenAPI ドキュメントに取り込まれる。
 //
-// PR-2 で各エンドポイントのスキーマ（register / games / results / voice / health）と
-// ルート登録モジュールを追加する際は、本ファイルに追記する。
+// 共通コンポーネント（other schema から参照されない可能性があるもの）は
+// ここで明示的に import する。エンドポイントのスキーマは paths/*.ts 側の
+// import 連鎖で評価されるため、paths/*.ts を import するだけで足りる。
 import '../schemas/common';
 import '../schemas/errorCodes';
+
+// パス登録（POST 系: Issue #5 PR-2a で追加）。
+// GET 系（results / health）は PR-2b で追記する。
+import './paths/register';
+import './paths/games';
+import './paths/voice';
 
 /**
  * Real You API の OpenAPI ドキュメントを生成する。
