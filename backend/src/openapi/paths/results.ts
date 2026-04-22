@@ -42,8 +42,8 @@ registry.registerPath({
         400: {
             description:
                 'リクエスト不正。主な業務エラーコード: ' +
-                'invalid_user_id（UUID 形式違反）/ ' +
-                'incomplete_games（3 ゲーム全て完了していない）',
+                'invalid_user_id（UUID 形式違反。path params の validate ミドルウェアで検出し errorHandler が 400 にマップ） / ' +
+                'incomplete_games（3 ゲーム全て完了していない。resultService で throw）',
             content: {
                 'application/json': {
                     schema: apiErrorSchema,

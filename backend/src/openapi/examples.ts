@@ -202,12 +202,14 @@ export const voiceRespondResponseExample = {
 /**
  * GET /api/results/:user_id のレスポンス例（200 OK）。
  *
- * 仕様書「API 設計書」→ GET /api/results/:user_id に記載された JSON をそのまま転記している。
- * 値は「形を示すための代表値」で、特定ユーザーの実測値ではない。
+ * 仕様書「API 設計書」→ GET /api/results/:user_id の JSON と仕様書「データ構造」→ GameDetail を
+ * 参考にしつつ、タイトル等の文字列は `analysis/scoreCalculator.ts` の実装値と揃えている
+ * （Swagger UI の閲覧者が実際のレスポンスと突合しても齟齬が出ないようにするため）。
+ * 値自体は「形を示すための代表値」で、特定ユーザーの実測値ではない。
  *
- * `details` は仕様書「データ構造」の `GameDetail` 構造に従う。本 example では
- * 各ゲームについて最小限の feature_scores / metrics を 1 件ずつ提示する
- * （網羅すると肥大化するため代表例のみ）。
+ * `details.game_*.feature_scores` は実装側では複数軸（game_1: 3 軸 / game_2: 3 軸 /
+ * game_3: 2 軸）を返す。本 example は肥大化を避けて各ゲーム 1 軸のみ掲載しているが、
+ * 実際のレスポンスでは複数要素の配列になる点に注意。
  */
 export const resultsResponseExample = {
     user_id: SAMPLE_USER_ID,
@@ -257,6 +259,8 @@ export const resultsResponseExample = {
         phase_3: 'グループの空気を読みつつ、自分の意見も主張していました。',
     },
     details: {
+        // タイトル文字列は analysis/scoreCalculator.ts の実装値に合わせる
+        // （game_2: 'AIカスタマーサポート' / game_3: '空気読みグループチャット'）
         game_1: {
             title: '利用規約ゲーム',
             feature_scores: [
@@ -267,7 +271,7 @@ export const resultsResponseExample = {
             ],
         },
         game_2: {
-            title: 'AI カスタマーサポート',
+            title: 'AIカスタマーサポート',
             feature_scores: [
                 { axis: 'positivity', name: '積極性', score: 70 },
             ],
@@ -276,7 +280,7 @@ export const resultsResponseExample = {
             ],
         },
         game_3: {
-            title: 'グループチャット',
+            title: '空気読みグループチャット',
             feature_scores: [
                 { axis: 'cooperativeness', name: '協調性', score: 60 },
             ],
