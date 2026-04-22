@@ -3,19 +3,18 @@ import {
     submitGameRequestSchema,
     submitGameResponseSchema,
 } from '../../schemas/games';
-import { apiErrorSchema } from '../../schemas/errorCodes';
+import { apiErrorSchema, ERROR_CODES } from '../../schemas/errorCodes';
 import { apiErrorExamples } from '../examples';
 
 /**
  * POST /api/games/submit のパス登録。
  *
  * 設計方針:
- * - 仕様書「API 設計書」準拠で 200 / 400 / 404 / 409 を定義する
- * - 404 は仕様書では「user_id の存在確認 → 存在しない → 400」として扱われるが、
- *   実装側（gameService.submitGame / userRepository.exists）の整理で今後 404 になりうる
- *   フロー（ユーザー削除後の送信等）を見越して 404 も登録する
- *   → 現状の実装（2026-04-22 時点）では 400 `invalid_user_id` を返すため、
- *     404 の example も `user_not_found` を明示する
+ * - 仕様書「API 設計書」準拠で 200 / 400 / 409 を定義する
+ * - user_id が見つからない場合も仕様書・実装ともに 400 `invalid_user_id` を返すため、
+ *   404 レスポンスは定義しない（OpenAPI を Single Source of Truth とするため、
+ *   実装と乖離する予測を書かない）。仕様変更で 404 を返すようになったら
+ *   まず仕様書を更新してから本ファイルに追記する。
  */
 registry.registerPath({
     method: 'post',
@@ -48,34 +47,25 @@ registry.registerPath({
             description:
                 'リクエスト不正。主な業務エラーコード: ' +
                 'invalid_request（必須フィールド欠落 / data が空）/ ' +
-                'invalid_user_id（user_id が存在しない）/ ' +
+                'invalid_user_id（user_id が不正 = 形式違反 / 欠落 / 存在しない）/ ' +
                 'invalid_game_type（game_type が 1-3 の範囲外）',
             content: {
                 'application/json': {
                     schema: apiErrorSchema,
                     examples: {
-                        invalidRequest: {
+                        invalid_request: {
                             summary: '必須フィールド欠落 / data が空',
-                            value: apiErrorExamples.invalidRequest,
+                            value: apiErrorExamples[ERROR_CODES.INVALID_REQUEST],
                         },
-                        invalidUserId: {
-                            summary: 'user_id が存在しない',
-                            value: apiErrorExamples.invalidUserId,
+                        invalid_user_id: {
+                            summary: 'user_id が不正（形式違反 / 欠落 / 存在しない）',
+                            value: apiErrorExamples[ERROR_CODES.INVALID_USER_ID],
                         },
-                        invalidGameType: {
+                        invalid_game_type: {
                             summary: 'game_type 範囲外',
-                            value: apiErrorExamples.invalidGameType,
+                            value: apiErrorExamples[ERROR_CODES.INVALID_GAME_TYPE],
                         },
                     },
-                },
-            },
-        },
-        404: {
-            description: '指定されたユーザーが見つからない',
-            content: {
-                'application/json': {
-                    schema: apiErrorSchema,
-                    example: apiErrorExamples.userNotFound,
                 },
             },
         },
@@ -84,7 +74,7 @@ registry.registerPath({
             content: {
                 'application/json': {
                     schema: apiErrorSchema,
-                    example: apiErrorExamples.duplicateSubmission,
+                    example: apiErrorExamples[ERROR_CODES.DUPLICATE_SUBMISSION],
                 },
             },
         },

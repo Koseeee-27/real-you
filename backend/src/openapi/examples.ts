@@ -1,5 +1,4 @@
-import { ERROR_CODES } from '../schemas/errorCodes';
-import type { ApiError } from '../schemas/errorCodes';
+import { ERROR_CODES, type ApiError, type ErrorCode } from '../schemas/errorCodes';
 
 /**
  * OpenAPI ドキュメント用のサンプル値。
@@ -36,52 +35,65 @@ export const SAMPLE_USER_ID = '550e8400-e29b-41d4-a716-446655440000';
 /**
  * 業務エラーコードごとのサンプルレスポンス。
  *
- * 本定数は `ApiError` 型で縛ることで、`ERROR_CODES` 追加時の example 追加忘れを
- * コンパイルエラーとして検知できる（未対応コードは Record の値として必要なため）。
+ * 型設計:
+ * - キーは `ErrorCode`（`ERROR_CODES` の値、snake_case 文字列）に揃える。
+ *   `satisfies Record<ErrorCode, ApiError>` で縛ることで、
+ *   `ERROR_CODES` に新しいコードを追加したとき example 追加忘れを
+ *   「Property 'xxx' is missing」としてコンパイルエラーで検知できる。
+ *   （`Record<string, ApiError>` ではキー側の網羅性が効かないので注意）
+ * - 値の `error` フィールドもキーと同じコードを指す形に統一しているが、
+ *   コンパイラに「キー名と error 値が一致」を強制する仕組みは入れていない。
+ *   入れるとキーごとに型を書き分ける必要があり、取扱いが重くなるため見送り。
+ *
  * message 文言は errorHandler / service 層で実際に返す日本語メッセージに合わせる。
  */
 export const apiErrorExamples = {
-    invalidRequest: {
+    [ERROR_CODES.INVALID_REQUEST]: {
         status: 'error',
         error: ERROR_CODES.INVALID_REQUEST,
         message: '必須フィールドが欠落しています',
     },
-    invalidMbti: {
+    [ERROR_CODES.INVALID_MBTI]: {
         status: 'error',
         error: ERROR_CODES.INVALID_MBTI,
         message: 'mbti は INTJ / ESFP などの 4 文字で指定してください',
     },
-    invalidAnswers: {
+    [ERROR_CODES.INVALID_ANSWERS]: {
         status: 'error',
         error: ERROR_CODES.INVALID_ANSWERS,
         message: '回答は A / B / C / D のいずれかで指定してください',
     },
-    invalidUserId: {
+    [ERROR_CODES.INVALID_USER_ID]: {
         status: 'error',
         error: ERROR_CODES.INVALID_USER_ID,
         message: 'ユーザーIDが存在しません',
     },
-    invalidGameType: {
+    [ERROR_CODES.INVALID_GAME_TYPE]: {
         status: 'error',
         error: ERROR_CODES.INVALID_GAME_TYPE,
         message: 'game_type は 1 / 2 / 3 のいずれかで指定してください',
     },
-    userNotFound: {
+    [ERROR_CODES.INCOMPLETE_GAMES]: {
+        status: 'error',
+        error: ERROR_CODES.INCOMPLETE_GAMES,
+        message: '3 ゲームすべて完了してから結果取得してください',
+    },
+    [ERROR_CODES.USER_NOT_FOUND]: {
         status: 'error',
         error: ERROR_CODES.USER_NOT_FOUND,
         message: '指定されたユーザーが見つかりません',
     },
-    duplicateSubmission: {
+    [ERROR_CODES.DUPLICATE_SUBMISSION]: {
         status: 'error',
         error: ERROR_CODES.DUPLICATE_SUBMISSION,
         message: '同一ゲームの重複送信です',
     },
-    serverError: {
+    [ERROR_CODES.SERVER_ERROR]: {
         status: 'error',
         error: ERROR_CODES.SERVER_ERROR,
         message: 'サーバーエラーが発生しました',
     },
-} as const satisfies Record<string, ApiError>;
+} as const satisfies Record<ErrorCode, ApiError>;
 
 // ---------------------------------------------------------------------------
 // POST /api/register

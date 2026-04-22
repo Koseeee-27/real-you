@@ -3,7 +3,7 @@ import {
     registerRequestSchema,
     registerResponseSchema,
 } from '../../schemas/register';
-import { apiErrorSchema } from '../../schemas/errorCodes';
+import { apiErrorSchema, ERROR_CODES } from '../../schemas/errorCodes';
 import { apiErrorExamples } from '../examples';
 
 /**
@@ -54,17 +54,17 @@ registry.registerPath({
                 'application/json': {
                     schema: apiErrorSchema,
                     examples: {
-                        invalidMbti: {
+                        invalid_mbti: {
                             summary: 'MBTI 形式違反',
-                            value: apiErrorExamples.invalidMbti,
+                            value: apiErrorExamples[ERROR_CODES.INVALID_MBTI],
                         },
-                        invalidAnswers: {
+                        invalid_answers: {
                             summary: '回答値違反（A-D 以外）',
-                            value: apiErrorExamples.invalidAnswers,
+                            value: apiErrorExamples[ERROR_CODES.INVALID_ANSWERS],
                         },
-                        invalidRequest: {
+                        invalid_request: {
                             summary: '必須フィールド欠落',
-                            value: apiErrorExamples.invalidRequest,
+                            value: apiErrorExamples[ERROR_CODES.INVALID_REQUEST],
                         },
                     },
                 },

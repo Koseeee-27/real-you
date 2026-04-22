@@ -3,7 +3,7 @@ import {
     voiceRespondRequestSchema,
     voiceRespondResponseSchema,
 } from '../../schemas/voice';
-import { apiErrorSchema } from '../../schemas/errorCodes';
+import { apiErrorSchema, ERROR_CODES } from '../../schemas/errorCodes';
 import { apiErrorExamples } from '../examples';
 
 /**
@@ -11,8 +11,8 @@ import { apiErrorExamples } from '../examples';
  *
  * 設計方針:
  * - 仕様書「API 設計書」準拠で 200 / 400 を定義する
- * - 実装側（routes/voice.ts）では user_id 未存在時に 400 `invalid_user_id` を返すため、
- *   400 の examples に `invalid_user_id` を含める
+ * - 実装側（routes/voice.ts）では user_id が不正（形式違反 / 欠落 / 未存在）の場合に
+ *   400 `invalid_user_id` を返すため、400 の examples に `invalid_user_id` を含める
  */
 registry.registerPath({
     method: 'post',
@@ -45,18 +45,18 @@ registry.registerPath({
             description:
                 'リクエスト不正。主な業務エラーコード: ' +
                 'invalid_request（必須フィールド欠落 / message が空）/ ' +
-                'invalid_user_id（user_id が存在しない）',
+                'invalid_user_id（user_id が不正 = 形式違反 / 欠落 / 存在しない）',
             content: {
                 'application/json': {
                     schema: apiErrorSchema,
                     examples: {
-                        invalidRequest: {
+                        invalid_request: {
                             summary: '必須フィールド欠落 / message が空',
-                            value: apiErrorExamples.invalidRequest,
+                            value: apiErrorExamples[ERROR_CODES.INVALID_REQUEST],
                         },
-                        invalidUserId: {
-                            summary: 'user_id が存在しない',
-                            value: apiErrorExamples.invalidUserId,
+                        invalid_user_id: {
+                            summary: 'user_id が不正（形式違反 / 欠落 / 存在しない）',
+                            value: apiErrorExamples[ERROR_CODES.INVALID_USER_ID],
                         },
                     },
                 },
