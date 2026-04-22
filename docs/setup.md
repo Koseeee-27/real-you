@@ -56,6 +56,8 @@ npm run dev
 
 `http://localhost:3001/health` にアクセスして、レスポンスが返ってくれば OK。
 
+`http://localhost:3001/api-docs` にアクセスすると Swagger UI で API 仕様が閲覧できます（詳細は [docs/api.md](api.md) を参照）。
+
 ### Frontend
 
 ```bash
