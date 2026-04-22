@@ -48,9 +48,19 @@ registry.registerPath({
                 'application/json': {
                     schema: apiErrorSchema,
                     examples: {
+                        // 共通の apiErrorExamples[INVALID_USER_ID] は games / voice の
+                        // 「user_id が DB に存在しない」ケース（message: 'ユーザーIDが存在しません'）に
+                        // 合わせてあるが、results では「ユーザー存在しない = 404 user_not_found」のため
+                        // 400 invalid_user_id は UUID 形式違反に限定される。共通 example をそのまま
+                        // 使うと Swagger UI 閲覧者に誤解を与えるため、ここでは errorHandler の
+                        // formatZodErrorMessage が実際に出力する文言（path プレフィックス付き）を inline で与える
                         invalid_user_id: {
                             summary: 'user_id が UUID 形式でない',
-                            value: apiErrorExamples[ERROR_CODES.INVALID_USER_ID],
+                            value: {
+                                status: 'error',
+                                error: ERROR_CODES.INVALID_USER_ID,
+                                message: 'user_id: user_id は UUID 形式で指定してください',
+                            },
                         },
                         incomplete_games: {
                             summary: '3 ゲーム未完了で結果取得',
