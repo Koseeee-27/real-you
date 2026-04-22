@@ -12,11 +12,12 @@ import { registry } from './registry';
 import '../schemas/common';
 import '../schemas/errorCodes';
 
-// パス登録（POST 系: Issue #5 PR-2a で追加）。
-// GET 系（results / health）は PR-2b で追記する。
+// パス登録。Issue #5 PR-2a で POST 系 3 本、PR-2b で GET 系 2 本を追加。
 import './paths/register';
 import './paths/games';
 import './paths/voice';
+import './paths/results';
+import './paths/health';
 
 /**
  * Real You API の OpenAPI ドキュメントを生成する。
