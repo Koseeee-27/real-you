@@ -4,12 +4,29 @@ import { ApiError } from '../types';
 import { ERROR_CODES, ErrorCode } from '../schemas/errorCodes';
 
 /**
+ * CORS による拒否を表す専用エラー。
+ *
+ * `cors` ミドルウェアの origin コールバックで `new Error(...)` を投げると、
+ * Express のエラーハンドラに流れて通常の Error と区別が付かなくなる
+ * （メッセージ文字列で判定することになり脆い）。
+ * 専用クラスを用意して `instanceof` で判定できるようにすることで、
+ * errorHandler 側で 403 系の扱いに振り分ける。
+ */
+export class CorsError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'CorsError';
+    }
+}
+
+/**
  * Express のエラーハンドラ。
  *
  * 対応するエラー:
  * - ZodError: validate ミドルウェアから来る検証失敗。
  *   path / code から API 設計書のエラーコードへマッピングして 400 で返す
  *   （resolveZodErrorCode 参照）。
+ * - CorsError: CORS 許可リスト外のオリジンからのリクエスト。403 で返す。
  * - { status, code, message } 形式のオブジェクト: service 層で throw される業務エラー。
  *   status / code をそのまま使う。
  * - その他: 500 server_error として返す。
@@ -33,6 +50,23 @@ export const errorHandler = (
             message: formatZodErrorMessage(err),
         };
         res.status(400).json(apiError);
+        return;
+    }
+
+    // CORS による拒否は設定ミスや許可外オリジンからのアクセスであり、
+    // サーバー内部エラー（500）ではなく 403 で返す。
+    // ログは warn（業務上想定しうる 4xx 挙動のため error 扱いにしない）。
+    // エラーコードは既存の `invalid_request` を流用（仕様書への新規コード追加はスコープ外）。
+    // 内部情報（許可リストの中身など）を漏らさないため、クライアントへの message は固定文言にする。
+    if (err instanceof CorsError) {
+        console.warn('CORS rejected:', err.message);
+
+        const apiError: ApiError = {
+            status: 'error',
+            error: ERROR_CODES.INVALID_REQUEST,
+            message: 'CORS によりリクエストが拒否されました',
+        };
+        res.status(403).json(apiError);
         return;
     }
 
