@@ -1,3 +1,6 @@
+// zod プロトタイプに `.openapi()` を生やすため、z 本体の import より前に
+// 拡張モジュールを副作用 import する（openapi/registry.ts 参照）。
+import '../openapi/registry';
 import { z } from 'zod';
 
 /**
@@ -11,10 +14,18 @@ import { z } from 'zod';
  *    スキーマ宣言時に業務コードを埋め込む一般的手段が存在しないため）
  *
  * zod v4 のトップレベル API（`z.uuid()` 等）と error オプションを使用する。
+ *
+ * OpenAPI メタデータ（`.openapi({ description, example })`）は Issue #5 の
+ * OpenAPI 化で付与。description は API 設計書の文言に合わせる。
  */
 
 /** user_id（UUID 文字列） */
-export const userIdSchema = z.uuid({ error: 'user_id は UUID 形式で指定してください' });
+export const userIdSchema = z
+    .uuid({ error: 'user_id は UUID 形式で指定してください' })
+    .openapi({
+        description: 'ユーザー識別子（UUID v4）',
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    });
 
 /**
  * MBTI 形式（I/E + S/N + T/F + J/P の 4 文字）。
@@ -24,6 +35,10 @@ export const mbtiSchema = z
     .string({ error: 'mbti は文字列で指定してください' })
     .regex(/^[IE][SN][TF][JP]$/i, {
         error: 'mbti は INTJ / ESFP などの 4 文字で指定してください',
+    })
+    .openapi({
+        description: 'MBTI タイプ（I/E + S/N + T/F + J/P の 4 文字、大文字小文字不問）',
+        example: 'INTJ',
     });
 
 /**
@@ -40,8 +55,8 @@ export const mbtiSchema = z
  *
  * type predicate（`val is AnswerOption`）により z.infer の型は 'A' | 'B' | 'C' | 'D' に narrowing される。
  *
- * OpenAPI 化（Issue #6 PR 6）の際は zod-openapi の .openapi({ enum: [...] }) で
- * enum 情報を補う必要がある（z.string() のままだと OpenAPI 側で enum が失われるため）。
+ * OpenAPI 化では `.openapi({ enum: [...] })` で enum 情報を補う
+ * （z.string().refine() のままだと OpenAPI 側で enum が失われるため）。
  */
 const ANSWER_OPTIONS = ['A', 'B', 'C', 'D'] as const;
 export type AnswerOption = typeof ANSWER_OPTIONS[number];
@@ -52,7 +67,12 @@ export const answerOptionSchema = z
         (val): val is AnswerOption =>
             (ANSWER_OPTIONS as readonly string[]).includes(val),
         { error: '回答は A / B / C / D のいずれかで指定してください' },
-    );
+    )
+    .openapi({
+        description: '基準値アンケートの回答選択肢（A / B / C / D のいずれか）',
+        enum: [...ANSWER_OPTIONS],
+        example: 'A',
+    });
 
 /**
  * 5 軸各軸のスコア値（0-100 の整数）。
@@ -77,13 +97,26 @@ const boundedScoreSchema = z.number().int().min(0).max(100);
  * - `z.infer` の結果型は `number` のままで既存コードへの影響はない
  *   （`.min/.max` はランタイム検証にのみ作用）
  */
-export const baselineScoresSchema = z.object({
-    caution: boundedScoreSchema,
-    calmness: boundedScoreSchema,
-    logic: boundedScoreSchema,
-    cooperativeness: boundedScoreSchema,
-    positivity: boundedScoreSchema,
-});
+export const baselineScoresSchema = z
+    .object({
+        caution: boundedScoreSchema.openapi({ description: '慎重さ（0-100）' }),
+        calmness: boundedScoreSchema.openapi({ description: '冷静さ（0-100）' }),
+        logic: boundedScoreSchema.openapi({ description: '論理性（0-100）' }),
+        cooperativeness: boundedScoreSchema.openapi({
+            description: '協調性（0-100）',
+        }),
+        positivity: boundedScoreSchema.openapi({ description: '積極性（0-100）' }),
+    })
+    .openapi({
+        description: '5 軸スコア（0-100 の整数）。baseline_scores / scores / mbti_scores で共通利用',
+        example: {
+            caution: 60,
+            calmness: 55,
+            logic: 70,
+            cooperativeness: 45,
+            positivity: 65,
+        },
+    });
 
 export type BaselineScores = z.infer<typeof baselineScoresSchema>;
 
@@ -94,12 +127,23 @@ export type BaselineScores = z.infer<typeof baselineScoresSchema>;
  * 範囲制約（0-100）を付けない別スキーマとして分離している。
  * 整数制約は維持する（仕様書「DB 設計書」で gap_* カラムは `INT` 型）。
  */
-export const gapScoresSchema = z.object({
-    caution: z.number().int(),
-    calmness: z.number().int(),
-    logic: z.number().int(),
-    cooperativeness: z.number().int(),
-    positivity: z.number().int(),
-});
+export const gapScoresSchema = z
+    .object({
+        caution: z.number().int().openapi({ description: '慎重さのギャップ（実測 - 自己申告）' }),
+        calmness: z.number().int().openapi({ description: '冷静さのギャップ' }),
+        logic: z.number().int().openapi({ description: '論理性のギャップ' }),
+        cooperativeness: z.number().int().openapi({ description: '協調性のギャップ' }),
+        positivity: z.number().int().openapi({ description: '積極性のギャップ' }),
+    })
+    .openapi({
+        description: '5 軸ギャップ（実測 - 自己申告）。負値を取りうる整数',
+        example: {
+            caution: -5,
+            calmness: 10,
+            logic: 0,
+            cooperativeness: 15,
+            positivity: -8,
+        },
+    });
 
 export type GapScores = z.infer<typeof gapScoresSchema>;
