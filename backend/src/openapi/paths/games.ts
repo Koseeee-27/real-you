@@ -74,7 +74,12 @@ registry.registerPath({
             content: {
                 'application/json': {
                     schema: apiErrorSchema,
-                    example: apiErrorExamples[ERROR_CODES.DUPLICATE_SUBMISSION],
+                    examples: {
+                        duplicate_submission: {
+                            summary: '同一ユーザー × 同一 game_type の重複送信',
+                            value: apiErrorExamples[ERROR_CODES.DUPLICATE_SUBMISSION],
+                        },
+                    },
                 },
             },
         },
