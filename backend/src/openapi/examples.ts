@@ -14,8 +14,8 @@ import { ERROR_CODES, type ApiError, type ErrorCode } from '../schemas/errorCode
  * - `apiErrorExamples` は業務コード別に揃え、各エンドポイントの responses から参照する
  *
  * PR 構成メモ（Issue #5 実装計画参照）:
- * - 本 PR（PR-2a）は POST 系 3 本（register / games / voice）の example を先行で配置
- * - GET 系 2 本（results / health）の example は PR-2b で本ファイルに追記する
+ * - POST 系 3 本（register / games / voice）の example を PR-2a で配置
+ * - GET 系 2 本（results / health）の example を PR-2b で追記
  */
 
 // ---------------------------------------------------------------------------
@@ -193,4 +193,126 @@ export const voiceRespondResponseExample = {
     response: 'パスワードリセットは設定画面から行えます。',
     emotion: 'confident',
     confidence: 0.6,
+} as const;
+
+// ---------------------------------------------------------------------------
+// GET /api/results/:user_id
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /api/results/:user_id のレスポンス例（200 OK）。
+ *
+ * 仕様書「API 設計書」→ GET /api/results/:user_id に記載された JSON をそのまま転記している。
+ * 値は「形を示すための代表値」で、特定ユーザーの実測値ではない。
+ *
+ * `details` は仕様書「データ構造」の `GameDetail` 構造に従う。本 example では
+ * 各ゲームについて最小限の feature_scores / metrics を 1 件ずつ提示する
+ * （網羅すると肥大化するため代表例のみ）。
+ */
+export const resultsResponseExample = {
+    user_id: SAMPLE_USER_ID,
+    self_mbti: 'ENTP',
+    mbti_scores: {
+        caution: 40,
+        calmness: 50,
+        logic: 70,
+        cooperativeness: 55,
+        positivity: 85,
+    },
+    scores: {
+        caution: 45,
+        calmness: 55,
+        logic: 75,
+        cooperativeness: 60,
+        positivity: 70,
+    },
+    baseline_scores: {
+        caution: 50,
+        calmness: 60,
+        logic: 65,
+        cooperativeness: 55,
+        positivity: 75,
+    },
+    gaps: {
+        caution: -5,
+        calmness: -5,
+        logic: 10,
+        cooperativeness: 5,
+        positivity: -5,
+    },
+    game_breakdown: {
+        game_1: { caution: 45, logic: 75, calmness: 55 },
+        game_2: { positivity: 70, calmness: 55, logic: 75 },
+        game_3: { cooperativeness: 60, positivity: 70, caution: 45 },
+    },
+    feedback: {
+        title: '直感ドリブン',
+        description: 'あなたは論理よりも直感を優先して意思決定する傾向があります。',
+        gap_point: '論理性',
+    },
+    accuracy_score: 78,
+    phase_summaries: {
+        phase_1: '規約を爆速でスクロールし、最後まで読まずに同意しました。',
+        phase_2: 'AI の理不尽な対応に感情的に反応する場面が見られました。',
+        phase_3: 'グループの空気を読みつつ、自分の意見も主張していました。',
+    },
+    details: {
+        game_1: {
+            title: '利用規約ゲーム',
+            feature_scores: [
+                { axis: 'caution', name: '慎重さ', score: 45 },
+            ],
+            metrics: [
+                { label: '読了速度(px/s)', user: 2500, average: 800, category: 'scroll' },
+            ],
+        },
+        game_2: {
+            title: 'AI カスタマーサポート',
+            feature_scores: [
+                { axis: 'positivity', name: '積極性', score: 70 },
+            ],
+            metrics: [
+                { label: '発話数', user: 8, average: 5, category: 'message' },
+            ],
+        },
+        game_3: {
+            title: 'グループチャット',
+            feature_scores: [
+                { axis: 'cooperativeness', name: '協調性', score: 60 },
+            ],
+            metrics: [
+                { label: '発言数', user: 4, average: 3, category: 'message' },
+            ],
+        },
+    },
+} as const;
+
+// ---------------------------------------------------------------------------
+// GET /health
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /health のレスポンス例（200 OK, DB 接続成功時）。
+ *
+ * 仕様書「API 設計書」→ GET /health の JSON を転記。`uptime` はサンプル値として
+ * 1 時間（3600 秒）を採用。
+ */
+export const healthOkResponseExample = {
+    status: 'ok',
+    timestamp: '2026-04-16T10:00:00.000Z',
+    database: 'connected',
+    uptime: 3600,
+} as const;
+
+/**
+ * GET /health のレスポンス例（503 Service Unavailable, DB 切断時）。
+ *
+ * 仕様書で /health の 503 は他エンドポイントの `ApiError` と異なる独自形を返す規定のため、
+ * `apiErrorExamples` は使わず個別の example を用意している（schemas/health.ts 冒頭コメント参照）。
+ */
+export const healthErrorResponseExample = {
+    status: 'error',
+    timestamp: '2026-04-16T10:00:00.000Z',
+    database: 'disconnected',
+    uptime: 3600,
 } as const;
