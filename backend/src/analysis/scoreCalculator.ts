@@ -51,7 +51,16 @@ const sigmoidInv = (val: number, c: number, k = 0.4) =>
 //慎重さ・論理性・冷静さを評価
 
 function calculateGame1(data: any) {
-  if (!data) return { caution: 50, logic: 50, calmness: 50 };
+  // 早期 return は通常 return と同じ shape を返す（details.metrics 側で欠損プロパティに
+  // アクセスして undefined がレスポンスに漏れるのを防ぐため）
+  if (!data) return {
+    caution: 50,
+    logic: 50,
+    calmness: 50,
+    changedCount: 0,
+    averageSpeed: 0,
+    reversalCount: 0,
+  };
 
   const totalTimeMs = (data.totalTime || 0) * 1000;
 
@@ -77,7 +86,7 @@ function calculateGame1(data: any) {
   //慎重さ: 滞在時間・スクロール速度・迷い時間・チェック変更
   const sTime = logNorm(totalTimeMs, 2000, 30000);
   const sScroll = linearInv(speed, 800, 4000);
-  const sHover = logNorm(data.agreeButtonHoverTimeMs || 0, 100, 3000);
+  const sHover = logNorm(data.agreeButtonHoverTimeMs ?? 0, 100, 3000);
   const sCheckbox = linear(checkboxChanged, 0, 3);
 
   const caution = Math.round(
@@ -94,7 +103,7 @@ function calculateGame1(data: any) {
 
   const sHidden = linear(hiddenMatch, 0, 1);
   const sReversal = linear(reversalCount, 0, 5);
-  const sPopupDelay = logNorm(data.popupStats?.timeToClose || 0, 0, 2000);
+  const sPopupDelay = logNorm(data.popupStats?.timeToClose ?? 0, 0, 2000);
 
   const logic = Math.round(
     sHidden * 0.4 +
@@ -103,38 +112,59 @@ function calculateGame1(data: any) {
   );
 
   //冷静さ: マウスブレ・無駄クリック
-  const sJitter = linearInv(data.popupStats?.mouseJitter || 0, 10, 200);
-  const sClick = linearInv(data.popupStats?.clickCount || 1, 1, 5);
+  const sJitter = linearInv(data.popupStats?.mouseJitter ?? 0, 10, 200);
+  const sClick = linearInv(data.popupStats?.clickCount ?? 1, 1, 5);
 
   const calmness = Math.round(
     sJitter * 0.6 +
     sClick * 0.4
   );
 
-  return { caution, logic, calmness, changedCount: checkboxChanged };
+  return {
+    caution,
+    logic,
+    calmness,
+    changedCount: checkboxChanged,
+    averageSpeed: speed,
+    reversalCount,
+  };
 }
 
 //Game2 AIチャット
 //積極性・冷静さ・論理性を評価
 
 function calculateGame2(data: any) {
-  if (!data) return { positivity: 50, calmness: 50, logic: 50 };
+  // 早期 return は通常 return と同じ shape を返す（details.metrics 側で欠損プロパティに
+  // アクセスして undefined がレスポンスに漏れるのを防ぐため）
+  if (!data) return {
+    positivity: 50,
+    calmness: 50,
+    logic: 50,
+    avgReact: 0,
+    totalSpeech: 0,
+    avgVolume: 0,
+    logicWordsCount: 0,
+  };
 
   const turns = data.turns || [];
 
+  // 以下の reducer の `?? 0` は NaN 伝播を防ぐ短期ガード。
+  // FE の型定義上 reactionTimeMs 等は `null`（= 発話なし/タイムアウトの正規値）が
+  // 来ることがあり、0 として扱うとスコアが歪む可能性がある。
+  // 根本対応（zod による入力検証と null の意味論的ハンドリング）は Issue #11 の派生で行う。
   const avgReact =
-    turns.reduce((a: number, t: any) => a + (t.reactionTimeMs || 0), 0) /
+    turns.reduce((a: number, t: any) => a + (t.reactionTimeMs ?? 0), 0) /
     (turns.length || 1);
 
   const totalSpeech =
-    turns.reduce((a: number, t: any) => a + (t.speechDurationMs || 0), 0);
+    turns.reduce((a: number, t: any) => a + (t.speechDurationMs ?? 0), 0);
 
   const avgVolume =
     turns.reduce((a: number, t: any) => a + (t.volumeDb ?? -30), 0) /
     (turns.length || 1);
 
   const silence =
-    turns.reduce((a: number, t: any) => a + (t.silenceDurationMs || 0), 0);
+    turns.reduce((a: number, t: any) => a + (t.silenceDurationMs ?? 0), 0);
 
   const silenceRate =
     totalSpeech > 0 ? silence / totalSpeech : 0;
@@ -157,7 +187,10 @@ function calculateGame2(data: any) {
   const sVolume = sigmoidInv(avgVolume, -15, 0.5);
   const sSilence = linearInv(silenceRate, 0.05, 0.5);
   const sTyping = linearInv(
-    data.textInputMetrics?.typingIntervalVariance || 200,
+    // 未計測時は中立値 200（linearInv の中央付近）にフォールバック。
+    // 他の reducer と違い 0 にすると「打鍵ブレ極小＝満点」扱いになり
+    // 冷静さが不当に上振れるため、意図的に ?? 0 とは揃えていない。
+    data.textInputMetrics?.typingIntervalVariance ?? 200,
     50,
     500
   );
@@ -190,7 +223,15 @@ function calculateGame2(data: any) {
 //協調性・積極性・慎重さを評価
 
 function calculateGame3(data: any) {
-  if (!data) return { cooperativeness: 50, positivity: 50, caution: 50 };
+  // 早期 return は通常 return と同じ shape を返す（details.metrics 側で欠損プロパティに
+  // アクセスして undefined がレスポンスに漏れるのを防ぐため）
+  if (!data) return {
+    cooperativeness: 50,
+    positivity: 50,
+    caution: 50,
+    conformCount: 0,
+    avgReact: 0,
+  };
 
   const stages = data.stages || [];
 
@@ -202,21 +243,19 @@ function calculateGame3(data: any) {
     conformCount / (stages.length || 1);
 
   const avgReact =
-    stages.reduce((a: number, s: any) => a + s.reactionTimeMs, 0) /
+    stages.reduce((a: number, s: any) => a + (s.reactionTimeMs ?? 0), 0) /
     (stages.length || 1);
 
   const reactionVariance =
     stages.reduce((a: number, s: any) =>
-      a + Math.pow(s.reactionTimeMs - avgReact, 2), 0) /
+      a + Math.pow((s.reactionTimeMs ?? 0) - avgReact, 2), 0) /
     (stages.length || 1);
 
   //協調性: 同調率・譲り待機・本音葛藤
   const sConform = linear(conformRate, 0, 1);
-  const sWait = logNorm(data.typingIndicatorReactTimeMs || 0, 0, 5000);
+  const sWait = logNorm(data.typingIndicatorReactTimeMs ?? 0, 0, 5000);
 
-  const hoverCount = Array.isArray(data.hoveredOptions)
-    ? data.hoveredOptions.length
-    : (data.hoveredOptions || 0);
+  const hoverCount = data.hoveredOptions ?? 0;
 
   const sHover = linear(hoverCount, 0, 5);
 
@@ -232,7 +271,7 @@ function calculateGame3(data: any) {
   );
 
   //慎重さ: チュートリアル確認・反応安定
-  const sTutorial = logNorm(data.tutorialViewTime || 0, 1000, 15000);
+  const sTutorial = logNorm(data.tutorialViewTime ?? 0, 1000, 15000);
   const sVariance = linearInv(reactionVariance, 500, 5000);
 
   const caution = Math.round(
@@ -260,7 +299,8 @@ export function generateAnalysisResult(
   const phaseSummaries = buildPhaseSummaries(
     game1Raw,
     game2Raw,
-    game3Raw
+    game3Raw,
+    { averageSpeed: g1.averageSpeed }
   );
 
   const scores = {
@@ -312,14 +352,16 @@ const feedback = generateFeedback(scores, gaps);
           { axis: "logic", name: "論理性", score: g1.logic },
           { axis: "calmness", name: "冷静さ", score: g1.calmness }
         ],
+        // g1.averageSpeed / g1.reversalCount は calculateGame1() 内で scrollEvents から算出済み
+        // （仕様書上、FE は scrollEvents のみ送信する設計のため、raw_data には scrollMetrics は無い）
         metrics: [
-          { label: "読了速度(px/s)", user: game1Raw?.scrollMetrics?.averageSpeed || 0, average: 800, category: "scroll" },
-          { label: "総滞在時間(秒)", user: Number(((game1Raw?.totalTime || 0) / 1000).toFixed(1)), average: 15.0, category: "time" },
-          { label: "決断前迷い(ms)", user: game1Raw?.agreeButtonHoverTimeMs || 0, average: 1200, category: "mouse" },
+          { label: "読了速度(px/s)", user: Math.round(g1.averageSpeed ?? 0), average: 800, category: "scroll" },
+          { label: "総滞在時間(秒)", user: Number((game1Raw?.totalTime ?? 0).toFixed(1)), average: 15.0, category: "time" },
+          { label: "決断前迷い(ms)", user: game1Raw?.agreeButtonHoverTimeMs ?? 0, average: 1200, category: "mouse" },
           { label: "チェック変更(回)", user: g1.changedCount, average: 3.2, category: "input" },
-          { label: "逆行確認(回)", user: game1Raw?.scrollMetrics?.reversalCount || 0, average: 2.1, category: "scroll" },
-          { label: "マウスブレ(px)", user: game1Raw?.popupStats?.mouseJitter || 0, average: 12.0, category: "mouse" },
-          { label: "無駄クリック(回)", user: game1Raw?.popupStats?.clickCount || 0, average: 1.5, category: "mouse" }
+          { label: "逆行確認(回)", user: g1.reversalCount ?? 0, average: 2.1, category: "scroll" },
+          { label: "マウスブレ(px)", user: game1Raw?.popupStats?.mouseJitter ?? 0, average: 12.0, category: "mouse" },
+          { label: "無駄クリック(回)", user: game1Raw?.popupStats?.clickCount ?? 0, average: 1.5, category: "mouse" }
         ]
       },
       game_2: {
@@ -331,10 +373,9 @@ const feedback = generateFeedback(scores, gaps);
         ],
         metrics: [
           { label: "反応潜時(ms)", user: Math.round(g2.avgReact ?? 0), average: 2500, category: "time" },
-          { label: "発話時間(秒)", user: Number((g2.totalSpeech / 1000).toFixed(1)), average: 4.2, category: "time" },
-          { label: "食い気味度(ms)", user: game2Raw?.interruptMs || 0, average: 800, category: "time" },
+          { label: "発話時間(秒)", user: Number(((g2.totalSpeech ?? 0) / 1000).toFixed(1)), average: 4.2, category: "time" },
           { label: "平均音量(dB)", user: Number((g2.avgVolume ?? 0).toFixed(1)), average: -25.0, category: "voice" },
-          { label: "論理的接続詞(回)", user: g2.logicWordsCount, average: 0.5, category: "logic" }
+          { label: "論理的接続詞(回)", user: g2.logicWordsCount ?? 0, average: 0.5, category: "logic" }
         ]
       },
       game_3: {
@@ -344,11 +385,10 @@ const feedback = generateFeedback(scores, gaps);
           { axis: "positivity", name: "積極性", score: g3.positivity }
         ],
         metrics: [
-          { label: "同調率(%)", user: Math.round((g3.conformCount / (game3Raw?.stages?.length || 1)) * 100), average: 75, category: "social" },
+          { label: "同調率(%)", user: Math.round(((g3.conformCount ?? 0) / (game3Raw?.stages?.length || 1)) * 100), average: 75, category: "social" },
           { label: "反応潜時(ms)", user: Math.round(g3.avgReact ?? 0), average: 3500, category: "time" },
-          { label: "本音ホバー(回)", user: game3Raw?.hoveredOptions || 0, average: 2.4, category: "mouse" },
-          { label: "譲り合い待機(ms)", user: game3Raw?.typingIndicatorReactTimeMs || 0, average: 2000, category: "time" },
-          { label: "過去ログ遡及(回)", user: game3Raw?.scrollBackCount || 0, average: 1.2, category: "scroll" }
+          { label: "本音ホバー(回)", user: game3Raw?.hoveredOptions ?? 0, average: 2.4, category: "mouse" },
+          { label: "譲り合い待機(ms)", user: game3Raw?.typingIndicatorReactTimeMs ?? 0, average: 2000, category: "time" }
         ]
       }
     }
