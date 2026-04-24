@@ -38,12 +38,15 @@ export function buildPhaseSummaries(
     if (game2Raw) {
         const method = game2Raw.inputMethod === 'voice' ? '音声で堂々と' : 'テキストで冷静に';
         const turns = game2Raw.turns || [];
-        
-        // 平均反応速度を計算（`??` で null/undefined のみフォールバック。本ファイル内での整合性のため）
+
+        // サマリーテキスト用の平均反応速度。`?? 2000` は未測定時の中立値（「慎重側」と「即応側」の境界）。
+        // scoreCalculator.ts は同じフィールドを `?? 0` で扱うため、reactionTimeMs が null（= 無発話/
+        // タイムアウトの正規値）のペイロードではテキストとスコアで評価が食い違う可能性がある。
+        // 根本対応（null を集計対象外として扱う統一ロジック）は Issue #11 の派生で行う。
         const avgReaction = turns.length > 0
             ? turns.reduce((sum: number, t: any) => sum + (t.reactionTimeMs ?? 2000), 0) / turns.length
             : 2000;
-        
+
         const reactionText = avgReaction < 800 ? 'AIの理不尽な対応に即座に反応し' : 'AIの対応に対して一呼吸おいてから';
         
         phase2Text = `${reactionText}、${method}反論を展開しました。`;
@@ -60,6 +63,8 @@ export function buildPhaseSummaries(
         
         const socialText = conformRate >= 60 ? 'グループの空気を敏感に察知して周りに合わせ' : '周りに流されず我が道をゆく選択肢を取り';
         
+        // サマリーテキスト用の平均反応速度。`?? 2000` は中立値（Phase 2 と同じ方針）。
+        // scoreCalculator.ts 側は `?? 0` のため、null 混入時の挙動差は Issue #11 派生で整合化する。
         const avgReaction = stages.length > 0
             ? stages.reduce((sum: number, s: any) => sum + (s.reactionTimeMs ?? 2000), 0) / stages.length
             : 2000;

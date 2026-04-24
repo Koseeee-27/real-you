@@ -134,7 +134,17 @@ function calculateGame1(data: any) {
 //積極性・冷静さ・論理性を評価
 
 function calculateGame2(data: any) {
-  if (!data) return { positivity: 50, calmness: 50, logic: 50 };
+  // 早期 return は通常 return と同じ shape を返す（details.metrics 側で欠損プロパティに
+  // アクセスして undefined がレスポンスに漏れるのを防ぐため）
+  if (!data) return {
+    positivity: 50,
+    calmness: 50,
+    logic: 50,
+    avgReact: 0,
+    totalSpeech: 0,
+    avgVolume: 0,
+    logicWordsCount: 0,
+  };
 
   const turns = data.turns || [];
 
@@ -177,6 +187,9 @@ function calculateGame2(data: any) {
   const sVolume = sigmoidInv(avgVolume, -15, 0.5);
   const sSilence = linearInv(silenceRate, 0.05, 0.5);
   const sTyping = linearInv(
+    // 未計測時は中立値 200（linearInv の中央付近）にフォールバック。
+    // 他の reducer と違い 0 にすると「打鍵ブレ極小＝満点」扱いになり
+    // 冷静さが不当に上振れるため、意図的に ?? 0 とは揃えていない。
     data.textInputMetrics?.typingIntervalVariance ?? 200,
     50,
     500
@@ -210,7 +223,15 @@ function calculateGame2(data: any) {
 //協調性・積極性・慎重さを評価
 
 function calculateGame3(data: any) {
-  if (!data) return { cooperativeness: 50, positivity: 50, caution: 50 };
+  // 早期 return は通常 return と同じ shape を返す（details.metrics 側で欠損プロパティに
+  // アクセスして undefined がレスポンスに漏れるのを防ぐため）
+  if (!data) return {
+    cooperativeness: 50,
+    positivity: 50,
+    caution: 50,
+    conformCount: 0,
+    avgReact: 0,
+  };
 
   const stages = data.stages || [];
 
