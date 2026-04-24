@@ -279,7 +279,7 @@ export function generateAnalysisResult(
     game1Raw,
     game2Raw,
     game3Raw,
-    { averageSpeed: g1.averageSpeed, reversalCount: g1.reversalCount }
+    { averageSpeed: g1.averageSpeed }
   );
 
   const scores = {
@@ -335,7 +335,7 @@ const feedback = generateFeedback(scores, gaps);
         // （仕様書上、FE は scrollEvents のみ送信する設計のため、raw_data には scrollMetrics は無い）
         metrics: [
           { label: "読了速度(px/s)", user: Math.round(g1.averageSpeed ?? 0), average: 800, category: "scroll" },
-          { label: "総滞在時間(秒)", user: Number(((game1Raw?.totalTime || 0) / 1000).toFixed(1)), average: 15.0, category: "time" },
+          { label: "総滞在時間(秒)", user: Number((game1Raw?.totalTime ?? 0).toFixed(1)), average: 15.0, category: "time" },
           { label: "決断前迷い(ms)", user: game1Raw?.agreeButtonHoverTimeMs ?? 0, average: 1200, category: "mouse" },
           { label: "チェック変更(回)", user: g1.changedCount, average: 3.2, category: "input" },
           { label: "逆行確認(回)", user: g1.reversalCount ?? 0, average: 2.1, category: "scroll" },

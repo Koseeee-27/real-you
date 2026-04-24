@@ -11,7 +11,7 @@ export function buildPhaseSummaries(
     game1Raw: any | undefined,
     game2Raw: any | undefined,
     game3Raw: any | undefined,
-    game1Metrics?: { averageSpeed?: number; reversalCount?: number },
+    game1Metrics?: { averageSpeed?: number },
 ): PhaseSummaries {
 
     // --- Phase 1: 利用規約ゲームの要約 ---
