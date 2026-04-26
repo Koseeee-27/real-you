@@ -54,7 +54,7 @@ const popupStatsSchema = z.object({
  */
 export const game1DataSchema = z.object({
     totalTime: z.number(),
-    finalAction: z.union([z.literal('agree'), z.literal('disagree')]),
+    finalAction: z.enum(['agree', 'disagree']),
     reachedBottom: z.boolean(),
     scrollEvents: z.array(scrollEventSchema),
     hiddenInput: z.string().nullable(),
@@ -73,10 +73,7 @@ export const game1DataSchema = z.object({
  * Game2Data 直下の `inputMethod` と各ターン（`turns[].inputMethod`）の両方で
  * 使うため、共通サブスキーマとして定義する。
  */
-const game2InputMethodSchema = z.union([
-    z.literal('voice'),
-    z.literal('text'),
-]);
+const game2InputMethodSchema = z.enum(['voice', 'text']);
 
 /**
  * Game2 の 1 ターン分のメトリクス。
@@ -116,12 +113,12 @@ export const game2DataSchema = z.object({
 /**
  * Game3 の 1 ステージ分のメトリクス。
  *
- * `selectedOptionId`: 1-4 が通常選択、タイムアウト時は 0 または null（仕様書準拠）。
+ * `selectedOptionId`: 1-4 が通常選択、タイムアウト時は 0（仕様書準拠）。
  * 値の細かい範囲制約は本スキーマでは表現しない（analysis 層で個別に扱う）。
  */
 const game3StageSchema = z.object({
     stageId: z.number(),
-    selectedOptionId: z.number().nullable(),
+    selectedOptionId: z.number(),
     reactionTimeMs: z.number(),
     isTimeout: z.boolean(),
 });
