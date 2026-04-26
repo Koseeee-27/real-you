@@ -1,6 +1,43 @@
 import { BaselineScores } from '../types';
+import { Game1Data, Game2Data, Game3Data } from '../schemas/gameData';
 import { generateFeedback } from './feedbackGenerator';
 import { buildPhaseSummaries } from "./phaseSummaryBuilder";
+
+/**
+ * 各 calculateGameN の戻り値型。
+ *
+ * 早期 return（data が undefined のとき）と通常 return の shape が一致することを
+ * TypeScript で検出可能にするため、ローカル type として明示する。
+ *
+ * 命名は `details.metrics` 等に出す統計量（changedCount / averageSpeed 等）を含む点で
+ * 5 軸スコアそのものではなく「ゲームごとの中間集計」を表す。
+ */
+type Game1Result = {
+    caution: number;
+    logic: number;
+    calmness: number;
+    changedCount: number;
+    averageSpeed: number;
+    reversalCount: number;
+};
+
+type Game2Result = {
+    positivity: number;
+    calmness: number;
+    logic: number;
+    avgReact: number;
+    totalSpeech: number;
+    avgVolume: number;
+    logicWordsCount: number;
+};
+
+type Game3Result = {
+    cooperativeness: number;
+    positivity: number;
+    caution: number;
+    conformCount: number;
+    avgReact: number;
+};
 
 /**
  * 作成日: 2026-02-20
@@ -50,7 +87,7 @@ const sigmoidInv = (val: number, c: number, k = 0.4) =>
 //Game1 利用規約ゲーム
 //慎重さ・論理性・冷静さを評価
 
-function calculateGame1(data: any) {
+function calculateGame1(data: Game1Data | undefined): Game1Result {
   // 早期 return は通常 return と同じ shape を返す（details.metrics 側で欠損プロパティに
   // アクセスして undefined がレスポンスに漏れるのを防ぐため）
   if (!data) return {
@@ -74,14 +111,20 @@ function calculateGame1(data: any) {
     if (diff < 0) reversalCount++;
   }
 
+  // 末尾要素アクセスはインデックス指定で行う（tsconfig.lib が ES2021 のため Array.prototype.at が
+  // 標準型定義に含まれない。any 経由の参照を排除した結果、`.at()` が型エラーになるため等価な
+  // 書き方に置き換えた。挙動は同一（length=0 の場合は undefined → ?? 1 / ?? 0 で 0 になる）。
+  const lastEvent = scrollEvents[scrollEvents.length - 1];
   const duration =
-    (scrollEvents.at(-1)?.timestamp || 1) -
+    (lastEvent?.timestamp || 1) -
     (scrollEvents[0]?.timestamp || 0);
 
   const speed = duration > 0 ? (totalDistance / duration) * 1000 : 0;
 
-  const checkboxChanged = Object.values(data.checkboxStates || {})
-    .filter((c: any) => c.changed).length;
+  // checkboxStates の各エントリは { checked, changed } 形式。
+  // 型は Game1Data の indexed access で導出する（gameData.ts 側に新規 export を作らない）。
+  const checkboxChanged = Object.values(data.checkboxStates)
+    .filter((c) => c.changed).length;
 
   //慎重さ: 滞在時間・スクロール速度・迷い時間・チェック変更
   const sTime = logNorm(totalTimeMs, 2000, 30000);
@@ -133,7 +176,7 @@ function calculateGame1(data: any) {
 //Game2 AIチャット
 //積極性・冷静さ・論理性を評価
 
-function calculateGame2(data: any) {
+function calculateGame2(data: Game2Data | undefined): Game2Result {
   // 早期 return は通常 return と同じ shape を返す（details.metrics 側で欠損プロパティに
   // アクセスして undefined がレスポンスに漏れるのを防ぐため）
   if (!data) return {
@@ -153,24 +196,24 @@ function calculateGame2(data: any) {
   // 来ることがあり、0 として扱うとスコアが歪む可能性がある。
   // 根本対応（zod による入力検証と null の意味論的ハンドリング）は Issue #11 の派生で行う。
   const avgReact =
-    turns.reduce((a: number, t: any) => a + (t.reactionTimeMs ?? 0), 0) /
+    turns.reduce((a, t) => a + (t.reactionTimeMs ?? 0), 0) /
     (turns.length || 1);
 
   const totalSpeech =
-    turns.reduce((a: number, t: any) => a + (t.speechDurationMs ?? 0), 0);
+    turns.reduce((a, t) => a + (t.speechDurationMs ?? 0), 0);
 
   const avgVolume =
-    turns.reduce((a: number, t: any) => a + (t.volumeDb ?? -30), 0) /
+    turns.reduce((a, t) => a + (t.volumeDb ?? -30), 0) /
     (turns.length || 1);
 
   const silence =
-    turns.reduce((a: number, t: any) => a + (t.silenceDurationMs ?? 0), 0);
+    turns.reduce((a, t) => a + (t.silenceDurationMs ?? 0), 0);
 
   const silenceRate =
     totalSpeech > 0 ? silence / totalSpeech : 0;
 
   const fullText =
-    turns.map((t: any) => t.transcribedText || "").join(" ");
+    turns.map((t) => t.transcribedText || "").join(" ");
 
   //積極性: 反応速度・発話量・音声使用
   const sReact = linearInv(avgReact, 200, 4000);
@@ -222,7 +265,7 @@ function calculateGame2(data: any) {
 //Game3 空気読みチャット
 //協調性・積極性・慎重さを評価
 
-function calculateGame3(data: any) {
+function calculateGame3(data: Game3Data | undefined): Game3Result {
   // 早期 return は通常 return と同じ shape を返す（details.metrics 側で欠損プロパティに
   // アクセスして undefined がレスポンスに漏れるのを防ぐため）
   if (!data) return {
@@ -236,18 +279,18 @@ function calculateGame3(data: any) {
   const stages = data.stages || [];
 
   const conformCount = stages.filter(
-    (s: any) => s.selectedOptionId === 1 || s.selectedOptionId === 2
+    (s) => s.selectedOptionId === 1 || s.selectedOptionId === 2
   ).length;
 
   const conformRate =
     conformCount / (stages.length || 1);
 
   const avgReact =
-    stages.reduce((a: number, s: any) => a + (s.reactionTimeMs ?? 0), 0) /
+    stages.reduce((a, s) => a + (s.reactionTimeMs ?? 0), 0) /
     (stages.length || 1);
 
   const reactionVariance =
-    stages.reduce((a: number, s: any) =>
+    stages.reduce((a, s) =>
       a + Math.pow((s.reactionTimeMs ?? 0) - avgReact, 2), 0) /
     (stages.length || 1);
 
@@ -287,9 +330,9 @@ function calculateGame3(data: any) {
 export function generateAnalysisResult(
   userId: string,
   selfMbti: string | undefined,
-  game1Raw: any,
-  game2Raw: any,
-  game3Raw: any,
+  game1Raw: Game1Data | undefined,
+  game2Raw: Game2Data | undefined,
+  game3Raw: Game3Data | undefined,
   baseline_scores: BaselineScores
 ) {
   const g1 = calculateGame1(game1Raw);

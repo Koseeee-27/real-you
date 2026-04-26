@@ -2,6 +2,7 @@ import { userRepository } from '../repositories/userRepository';
 import { gameRepository } from '../repositories/gameRepository';
 import { generateAnalysisResult } from '../analysis/scoreCalculator';
 import { analysisResultRepository, AnalysisResultRow } from '../repositories/analysisResultRepository';
+import { Game1Data, Game2Data, Game3Data } from '../schemas/gameData';
 
 import { getMbtiScores } from '../analysis/mbtiScoreTable';
 import { BaselineScores, ResultResponse } from '../types';
@@ -49,12 +50,15 @@ export const resultService = {
         const game2Data = gameLogs.find(log => log.game_type === 2);
         const game3Data = gameLogs.find(log => log.game_type === 3);
 
+        // gameRepository.findLogsByUserId の戻り値型は現状 raw_data: any のため、
+        // ここで scoreCalculator が期待する型へキャストする。repositories の戻り値型整備は
+        // 別 Issue で扱う（Issue #28 実装計画のスコープ外）。
         const analysisResult = generateAnalysisResult(
             userId,
             user.self_mbti ?? undefined,
-            game1Data?.raw_data,
-            game2Data?.raw_data,
-            game3Data?.raw_data,
+            game1Data?.raw_data as Game1Data | undefined,
+            game2Data?.raw_data as Game2Data | undefined,
+            game3Data?.raw_data as Game3Data | undefined,
             baseline_scores
         );
 
