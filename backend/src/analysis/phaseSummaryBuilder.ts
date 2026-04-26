@@ -1,4 +1,5 @@
 import { PhaseSummaries } from '../types';
+import { Game1Data, Game2Data, Game3Data } from '../schemas/gameData';
 
 /**
  * 各フェーズの行動データから、結果画面に表示するサマリーテキストを生成する
@@ -8,9 +9,9 @@ import { PhaseSummaries } from '../types';
  * - raw_data の構造は ANALYSIS_GUIDE.md を参照
  */
 export function buildPhaseSummaries(
-    game1Raw: any | undefined,
-    game2Raw: any | undefined,
-    game3Raw: any | undefined,
+    game1Raw: Game1Data | undefined,
+    game2Raw: Game2Data | undefined,
+    game3Raw: Game3Data | undefined,
     game1Metrics?: { averageSpeed?: number },
 ): PhaseSummaries {
 
@@ -44,7 +45,7 @@ export function buildPhaseSummaries(
         // タイムアウトの正規値）のペイロードではテキストとスコアで評価が食い違う可能性がある。
         // 根本対応（null を集計対象外として扱う統一ロジック）は Issue #11 の派生で行う。
         const avgReaction = turns.length > 0
-            ? turns.reduce((sum: number, t: any) => sum + (t.reactionTimeMs ?? 2000), 0) / turns.length
+            ? turns.reduce((sum, t) => sum + (t.reactionTimeMs ?? 2000), 0) / turns.length
             : 2000;
 
         const reactionText = avgReaction < 800 ? 'AIの理不尽な対応に即座に反応し' : 'AIの対応に対して一呼吸おいてから';
@@ -58,7 +59,7 @@ export function buildPhaseSummaries(
         const stages = game3Raw.stages || [];
         
         // 多数派（仮に選択肢1と2を多数派とする）を選んだ回数で同調率を算出
-        const conformCount = stages.filter((s: any) => s.selectedOptionId === 1 || s.selectedOptionId === 2).length;
+        const conformCount = stages.filter((s) => s.selectedOptionId === 1 || s.selectedOptionId === 2).length;
         const conformRate = (conformCount / (stages.length || 1)) * 100;
         
         const socialText = conformRate >= 60 ? 'グループの空気を敏感に察知して周りに合わせ' : '周りに流されず我が道をゆく選択肢を取り';
@@ -66,7 +67,7 @@ export function buildPhaseSummaries(
         // サマリーテキスト用の平均反応速度。`?? 2000` は中立値（Phase 2 と同じ方針）。
         // scoreCalculator.ts 側は `?? 0` のため、null 混入時の挙動差は Issue #11 派生で整合化する。
         const avgReaction = stages.length > 0
-            ? stages.reduce((sum: number, s: any) => sum + (s.reactionTimeMs ?? 2000), 0) / stages.length
+            ? stages.reduce((sum, s) => sum + (s.reactionTimeMs ?? 2000), 0) / stages.length
             : 2000;
         const speedText = avgReaction < 2000 ? '即決でアクションを起こしました。' : '慎重にタイミングを伺いました。';
 
