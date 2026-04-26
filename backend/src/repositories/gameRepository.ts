@@ -1,23 +1,28 @@
 import { supabase } from '../db/client';
-import { GameLog, GameType } from '../types';
+import { GAME_TYPES, GameLog, GameType } from '../types';
 import { Game1Data, Game2Data, Game3Data } from '../schemas/gameData';
 
 /**
- * 各 game_type に対応する raw_data の型 union。
+ * 各 game_type に対応する raw_data の組（判別可能 union）。
  *
- * saveLog の引数に渡す前提で、呼び出し元（service 層）が zod スキーマで parse して
- * narrow 済みであることを型レベルで担保する。repositories 層では構造検証を行わない。
+ * saveLog の引数として `gameType` と `rawData` を一緒に受け取ることで、
+ * 「Game1 の gameType に Game2 の rawData が渡る」といったミスマッチを
+ * コンパイル時に弾ける。呼び出し元（service 層）が zod スキーマで parse して
+ * narrow 済みであることを型レベルで担保する想定で、repositories 層では構造検証しない。
  */
-export type GameRawData = Game1Data | Game2Data | Game3Data;
+export type GameRawDataPayload =
+    | { gameType: typeof GAME_TYPES.TERMS_GAME; rawData: Game1Data }
+    | { gameType: typeof GAME_TYPES.AI_CHAT;    rawData: Game2Data }
+    | { gameType: typeof GAME_TYPES.GROUP_CHAT; rawData: Game3Data };
 
 export const gameRepository = {
-    async saveLog(userId: string, gameType: GameType, rawData: GameRawData) {
+    async saveLog(userId: string, payload: GameRawDataPayload) {
         const { error } = await supabase
             .from('game_logs')
             .insert({
                 user_id: userId,
-                game_type: gameType,
-                raw_data: rawData,
+                game_type: payload.gameType,
+                raw_data: payload.rawData,
             });
 
         if (error) throw error;
