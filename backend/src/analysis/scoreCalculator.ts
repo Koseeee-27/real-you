@@ -113,7 +113,7 @@ function calculateGame1(data: Game1Data | undefined): Game1Result {
 
   // 末尾要素アクセスはインデックス指定で行う（tsconfig.lib が ES2021 のため Array.prototype.at が
   // 標準型定義に含まれない。any 経由の参照を排除した結果、`.at()` が型エラーになるため等価な
-  // 書き方に置き換えた。挙動は同一（length=0 の場合は undefined → ?? 1 / ?? 0 で 0 になる）。
+  // 書き方に置き換えた。挙動は同一（length=0 の場合は undefined → || 1 / || 0 で 0 になる）。
   const lastEvent = scrollEvents[scrollEvents.length - 1];
   const duration =
     (lastEvent?.timestamp || 1) -
