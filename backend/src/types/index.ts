@@ -61,7 +61,10 @@ export interface GameLog {
   id: number;
   user_id: string;
   game_type: number;
-  raw_data: any;
+  // raw_data は JSONB カラム。型は Game1Data / Game2Data / Game3Data のいずれかで、
+  // game_type に応じて分かれるが、DB 読み出し時点では構造の整合性は未検証のため `unknown` とする。
+  // service 境界（resultService）で zod スキーマ（schemas/gameData.ts）により parse する。
+  raw_data: unknown;
   played_at: string;
 }
 

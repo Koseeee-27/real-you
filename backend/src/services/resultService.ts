@@ -1,12 +1,51 @@
+import { ZodType } from 'zod';
 import { userRepository } from '../repositories/userRepository';
 import { gameRepository } from '../repositories/gameRepository';
 import { generateAnalysisResult } from '../analysis/scoreCalculator';
 import { analysisResultRepository, AnalysisResultRow } from '../repositories/analysisResultRepository';
-import { Game1Data, Game2Data, Game3Data } from '../schemas/gameData';
+import {
+    Game1Data,
+    Game2Data,
+    Game3Data,
+    game1DataSchema,
+    game2DataSchema,
+    game3DataSchema,
+} from '../schemas/gameData';
 
 import { getMbtiScores } from '../analysis/mbtiScoreTable';
-import { BaselineScores, ResultResponse } from '../types';
+import { BaselineScores, GameLog, ResultResponse } from '../types';
 import { ERROR_CODES } from '../schemas/errorCodes';
+
+/**
+ * DB から取り出した GameLog.raw_data（unknown）を、対応する zod スキーマで parse する。
+ *
+ * ゲームログが見つからない場合は undefined を返す。parse 失敗時は DB 整合性エラーとして
+ * 500 `server_error` を throw する（運用上ほぼ起きない異常系。ログに詳細を残し、
+ * クライアントへの message は固定文言にして内部情報の漏洩を防ぐ）。
+ */
+function parseGameLogOrThrow<T>(
+    log: GameLog | undefined,
+    schema: ZodType<T>,
+    gameLabel: string,
+    userId: string,
+): T | undefined {
+    if (!log) return undefined;
+
+    const result = schema.safeParse(log.raw_data);
+    if (!result.success) {
+        console.error('Corrupted game data in DB:', {
+            gameLabel,
+            userId,
+            issues: result.error.issues,
+        });
+        throw {
+            status: 500,
+            code: ERROR_CODES.SERVER_ERROR,
+            message: 'Stored game data is corrupted',
+        };
+    }
+    return result.data;
+}
 
 export const resultService = {
     async getResult(userId: string): Promise<ResultResponse> {
@@ -46,19 +85,23 @@ export const resultService = {
         }
 
         // 分析（analysis/ に委譲）
-        const game1Data = gameLogs.find(log => log.game_type === 1);
-        const game2Data = gameLogs.find(log => log.game_type === 2);
-        const game3Data = gameLogs.find(log => log.game_type === 3);
+        const game1Log = gameLogs.find(log => log.game_type === 1);
+        const game2Log = gameLogs.find(log => log.game_type === 2);
+        const game3Log = gameLogs.find(log => log.game_type === 3);
 
-        // gameRepository.findLogsByUserId の戻り値型は現状 raw_data: any のため、
-        // ここで scoreCalculator が期待する型へキャストする。repositories の戻り値型整備は
-        // 別 Issue で扱う（Issue #28 実装計画のスコープ外）。
+        // raw_data は GameLog.raw_data: unknown のため、scoreCalculator に渡す前に
+        // game_type ごとの zod スキーマで parse する。DB 整合性が壊れていた場合は
+        // 500 `server_error` で明示的に失敗させる（parseGameLogOrThrow 内で throw）。
+        const game1Data: Game1Data | undefined = parseGameLogOrThrow(game1Log, game1DataSchema, 'game1', userId);
+        const game2Data: Game2Data | undefined = parseGameLogOrThrow(game2Log, game2DataSchema, 'game2', userId);
+        const game3Data: Game3Data | undefined = parseGameLogOrThrow(game3Log, game3DataSchema, 'game3', userId);
+
         const analysisResult = generateAnalysisResult(
             userId,
             user.self_mbti ?? undefined,
-            game1Data?.raw_data as Game1Data | undefined,
-            game2Data?.raw_data as Game2Data | undefined,
-            game3Data?.raw_data as Game3Data | undefined,
+            game1Data,
+            game2Data,
+            game3Data,
             baseline_scores
         );
 
