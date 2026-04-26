@@ -13,7 +13,7 @@ import {
 } from '../schemas/gameData';
 
 import { getMbtiScores } from '../analysis/mbtiScoreTable';
-import { BaselineScores, GameLog, ResultResponse } from '../types';
+import { BaselineScores, GAME_TYPES, GameLog, ResultResponse } from '../types';
 import { ERROR_CODES } from '../schemas/errorCodes';
 
 /**
@@ -85,9 +85,9 @@ export const resultService = {
         }
 
         // 分析（analysis/ に委譲）
-        const game1Log = gameLogs.find(log => log.game_type === 1);
-        const game2Log = gameLogs.find(log => log.game_type === 2);
-        const game3Log = gameLogs.find(log => log.game_type === 3);
+        const game1Log = gameLogs.find(log => log.game_type === GAME_TYPES.TERMS_GAME);
+        const game2Log = gameLogs.find(log => log.game_type === GAME_TYPES.AI_CHAT);
+        const game3Log = gameLogs.find(log => log.game_type === GAME_TYPES.GROUP_CHAT);
 
         // raw_data は GameLog.raw_data: unknown のため、scoreCalculator に渡す前に
         // game_type ごとの zod スキーマで parse する。DB 整合性が壊れていた場合は
