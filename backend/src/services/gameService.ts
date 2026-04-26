@@ -28,6 +28,12 @@ function parseGameData(gameType: GameType, data: Record<string, unknown>): GameR
                 return game2DataSchema.safeParse(data);
             case GAME_TYPES.GROUP_CHAT:
                 return game3DataSchema.safeParse(data);
+            default: {
+                // 網羅性チェック: GameType に新しい値を追加した際、ここで型エラーを出して
+                // case 追加を強制する（型システム上は到達不能なため、ランタイム throw も保険として残す）
+                const _exhaustive: never = gameType;
+                throw new Error(`Unknown game type: ${_exhaustive}`);
+            }
         }
     })();
 
