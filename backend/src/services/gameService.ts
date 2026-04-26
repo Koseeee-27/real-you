@@ -1,5 +1,5 @@
 import { userRepository } from '../repositories/userRepository';
-import { gameRepository, GameRawData } from '../repositories/gameRepository';
+import { gameRepository, GameRawDataPayload } from '../repositories/gameRepository';
 import { GAME_TYPES, GameType } from '../types';
 import { ERROR_CODES } from '../schemas/errorCodes';
 import {
@@ -12,44 +12,54 @@ import {
  * game_type に応じて、受け取った data を対応する zod スキーマで parse する。
  *
  * route 層の `gameDataSchema`（= `record(string, unknown)` + 「空でない」refine）では
- * data の中身までは検証されないため、ここで game_type に応じた構造検証を行うことで
- * `gameRepository.saveLog` の引数（`GameRawData` union）に narrow した値を渡す。
+ * data の中身までは検証されないため、ここで game_type に応じた構造検証を行ったうえで
+ * `gameType` と `rawData` を組（判別可能 union `GameRawDataPayload`）として返す。
+ * これにより `gameRepository.saveLog` の引数で gameType と rawData のミスマッチを
+ * 型レベルで弾ける。
  *
  * 構造違反（必須フィールド欠落・型違い等）はクライアント起因の不正リクエストとして
  * 400 `invalid_request` を throw する。詳細な issue は warn ログに残し、
  * クライアントへの message は固定文言にして内部構造の漏洩を防ぐ。
  */
-function parseGameData(gameType: GameType, data: Record<string, unknown>): GameRawData {
-    const result = (() => {
-        switch (gameType) {
-            case GAME_TYPES.TERMS_GAME:
-                return game1DataSchema.safeParse(data);
-            case GAME_TYPES.AI_CHAT:
-                return game2DataSchema.safeParse(data);
-            case GAME_TYPES.GROUP_CHAT:
-                return game3DataSchema.safeParse(data);
-            default: {
-                // 網羅性チェック: GameType に新しい値を追加した際、ここで型エラーを出して
-                // case 追加を強制する（型システム上は到達不能なため、ランタイム throw も保険として残す）
-                const _exhaustive: never = gameType;
-                throw new Error(`Unknown game type: ${_exhaustive}`);
-            }
+function parseGameData(gameType: GameType, data: Record<string, unknown>): GameRawDataPayload {
+    switch (gameType) {
+        case GAME_TYPES.TERMS_GAME: {
+            const result = game1DataSchema.safeParse(data);
+            if (!result.success) throw invalidGameDataError(gameType, result.error.issues);
+            return { gameType, rawData: result.data };
         }
-    })();
-
-    if (!result.success) {
-        console.warn('Game data validation failed:', {
-            gameType,
-            issues: result.error.issues,
-        });
-        throw {
-            status: 400,
-            code: ERROR_CODES.INVALID_REQUEST,
-            message: 'Invalid game data structure',
-        };
+        case GAME_TYPES.AI_CHAT: {
+            const result = game2DataSchema.safeParse(data);
+            if (!result.success) throw invalidGameDataError(gameType, result.error.issues);
+            return { gameType, rawData: result.data };
+        }
+        case GAME_TYPES.GROUP_CHAT: {
+            const result = game3DataSchema.safeParse(data);
+            if (!result.success) throw invalidGameDataError(gameType, result.error.issues);
+            return { gameType, rawData: result.data };
+        }
+        default: {
+            // 網羅性チェック: GameType に新しい値を追加した際、ここで型エラーを出して
+            // case 追加を強制する（型システム上は到達不能なため、ランタイム throw も保険として残す）
+            const _exhaustive: never = gameType;
+            throw new Error(`Unknown game type: ${_exhaustive}`);
+        }
     }
+}
 
-    return result.data;
+/**
+ * Game data の zod parse 失敗時に throw する API エラーオブジェクトを生成する。
+ *
+ * `parseGameData` の各 case で同じ形のエラーを throw するため、ヘルパに切り出して
+ * 詳細な issue は warn ログに残し、クライアントには固定文言だけを返す。
+ */
+function invalidGameDataError(gameType: GameType, issues: unknown) {
+    console.warn('Game data validation failed:', { gameType, issues });
+    return {
+        status: 400,
+        code: ERROR_CODES.INVALID_REQUEST,
+        message: 'Invalid game data structure',
+    };
 }
 
 export const gameService = {
@@ -75,8 +85,8 @@ export const gameService = {
             throw { status: 409, code: ERROR_CODES.DUPLICATE_SUBMISSION, message: `Game ${gameType} is already submitted` };
         }
 
-        // game_type に応じた構造検証 → narrow した値を保存
-        const parsedData = parseGameData(gameType, data);
-        await gameRepository.saveLog(userId, gameType, parsedData);
+        // game_type に応じた構造検証 → 判別可能 union として保存
+        const parsedPayload = parseGameData(gameType, data);
+        await gameRepository.saveLog(userId, parsedPayload);
     }
 };
