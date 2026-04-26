@@ -42,7 +42,7 @@ const checkboxStateSchema = z.object({
  */
 const popupStatsSchema = z.object({
     timeToClose: z.number(),
-    clickCount: z.number(),
+    clickCount: z.number().int(),
     mouseJitter: z.number(),
 });
 
@@ -82,7 +82,7 @@ const game2InputMethodSchema = z.enum(['voice', 'text']);
  * silenceDurationMs / volumeDb）が取得できないため `nullable`。
  */
 const game2TurnSchema = z.object({
-    turnIndex: z.number(),
+    turnIndex: z.number().int(),
     inputMethod: game2InputMethodSchema,
     reactionTimeMs: z.number().nullable(),
     speechDurationMs: z.number().nullable(),
@@ -105,7 +105,7 @@ const game2TextInputMetricsSchema = z.object({
  */
 export const game2DataSchema = z.object({
     inputMethod: game2InputMethodSchema,
-    turnCount: z.number(),
+    turnCount: z.number().int(),
     turns: z.array(game2TurnSchema),
     textInputMetrics: game2TextInputMetricsSchema.nullable(),
 });
@@ -114,11 +114,12 @@ export const game2DataSchema = z.object({
  * Game3 の 1 ステージ分のメトリクス。
  *
  * `selectedOptionId`: 1-4 が通常選択、タイムアウト時は 0（仕様書準拠）。
- * 値の細かい範囲制約は本スキーマでは表現しない（analysis 層で個別に扱う）。
+ * 意味的に整数のフィールドには `.int()` を付けて型レベルで小数を弾く。
+ * `min/max` 等の値の範囲制約は本スキーマでは表現せず、analysis 層で個別に扱う。
  */
 const game3StageSchema = z.object({
-    stageId: z.number(),
-    selectedOptionId: z.number(),
+    stageId: z.number().int(),
+    selectedOptionId: z.number().int(),
     reactionTimeMs: z.number(),
     isTimeout: z.boolean(),
 });
@@ -130,7 +131,7 @@ const game3StageSchema = z.object({
  */
 export const game3DataSchema = z.object({
     tutorialViewTime: z.number(),
-    hoveredOptions: z.number(),
+    hoveredOptions: z.number().int(),
     typingIndicatorReactTimeMs: z.number().nullable(),
     stages: z.array(game3StageSchema),
 });
