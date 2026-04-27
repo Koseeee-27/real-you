@@ -7,6 +7,7 @@
  */
 
 import { Content } from '@google/generative-ai';
+import { z } from 'zod';
 import {
     ConversationMessage,
     VoiceEmotion,
@@ -15,6 +16,43 @@ import {
 import { getKeywordFallback } from './fallbackService';
 
 const GEMINI_TIMEOUT_MS = 5000;
+
+/**
+ * Gemini generateContent レスポンスの最小限スキーマ。
+ *
+ * `Response.json()` は lib.dom 定義で `Promise<any>` 固定のため、any 伝染を
+ * 防ぐには受け側で検証する必要がある。voiceService からしか使わない内部用
+ * スキーマなので schemas/ には置かず本ファイル内にローカル定義する。
+ *
+ * SAFETY フィルター発動時など `candidates` が空 / `parts` が空のケースでは
+ * parse が失敗するため、requestToModel 側で ZodError を明示エラーに包んで
+ * スローし、既存 catch のフォールバック挙動を維持する。
+ */
+const GeminiResponseSchema = z.object({
+    candidates: z
+        .array(
+            z.object({
+                content: z.object({
+                    // text は SAFETY ブロックや maxOutputTokens 切り詰めで空文字 / 空白のみに
+                    // なり得る。スキーマ側で trim までやり、trim 後に空ならフォールバックへ。
+                    // 検証と正規化を 1 箇所に集約し、後段の trim 忘れ事故も防ぐ。
+                    parts: z
+                        .array(
+                            z.object({
+                                text: z
+                                    .string()
+                                    .transform((s) => s.trim())
+                                    .refine((s) => s.length > 0, {
+                                        message: 'text is empty after trim',
+                                    }),
+                            }),
+                        )
+                        .min(1),
+                }),
+            }),
+        )
+        .min(1),
+});
 
 // プロンプトは短く・速く
 const SYSTEM_PROMPT = `あなたはカスタマーサポート担当です。少し知識が中途半端で、ピントのずれた回答をします。回答は必ず「～かもしれません」「～だと思います」といった曖昧な文章で終わらせてください。短く、1〜2文（50文字程度）で返答してください。`;
@@ -58,11 +96,22 @@ async function requestToModel(
         throw new Error(`${modelName}: HTTP ${response.status}`);
     }
 
-    const data = await response.json();
-    const text: string = data.candidates[0].content.parts[0].text;
+    // Response.json() は any を返すため、ここで zod により型・ランタイム検証する
+    const parseResult = GeminiResponseSchema.safeParse(await response.json());
+    if (!parseResult.success) {
+        // ZodError の詳細はログに残しつつ、上位 catch には簡潔なメッセージで伝える
+        console.error(
+            `[voiceService] ${modelName}: invalid response shape`,
+            parseResult.error.issues,
+        );
+        throw new Error(`${modelName}: invalid response`);
+    }
+
+    // text はスキーマ側で trim 済み・空チェック済みなのでそのまま使う
+    const text = parseResult.data.candidates[0].content.parts[0].text;
 
     return {
-        response: text.trim(),
+        response: text,
         emotion: estimateEmotion(text),
         confidence: 0.6,
     };
