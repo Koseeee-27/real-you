@@ -6,6 +6,7 @@
  * 2. 失敗時はエラーをスロー（モック/フォールバックは使用しない）
  */
 
+import { Content } from '@google/generative-ai';
 import {
     ConversationMessage,
     VoiceEmotion,
@@ -33,7 +34,7 @@ function estimateEmotion(text: string): VoiceEmotion {
  */
 async function requestToModel(
     modelName: string,
-    contents: any[],
+    contents: Content[],
     apiKey: string,
     signal: AbortSignal,
 ): Promise<VoiceRespondResponse> {
@@ -77,7 +78,7 @@ async function callGeminiSequential(
 ): Promise<VoiceRespondResponse> {
     // 会話履歴は直近1件のみ（速度優先）
     const recentHistory = conversationHistory.slice(-1);
-    const contents: any[] = [];
+    const contents: Content[] = [];
     for (const msg of recentHistory) {
         contents.push({
             role: msg.role === 'assistant' ? 'model' : 'user',
@@ -95,9 +96,10 @@ async function callGeminiSequential(
         clearTimeout(timer);
         console.log(`[voiceService] Gemini (${PRIMARY_MODEL}) OK`);
         return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
         clearTimeout(timer);
-        console.error(`[voiceService] Gemini failed. Inner error:`, err.errors || err.message);
+        const detail = err instanceof Error ? err.message : String(err);
+        console.error(`[voiceService] Gemini failed. Inner error:`, detail);
         throw err;
     }
 }
@@ -121,8 +123,13 @@ export const voiceService = {
 
         try {
             return await callGeminiSequential(message, conversationHistory ?? [], apiKey);
-        } catch (err: any) {
-            const reason = err?.name === 'AbortError' ? 'タイムアウト' : err?.message || '不明なエラー';
+        } catch (err: unknown) {
+            let reason: string;
+            if (err instanceof Error) {
+                reason = err.name === 'AbortError' ? 'タイムアウト' : err.message || '不明なエラー';
+            } else {
+                reason = '不明なエラー';
+            }
             console.warn('[voiceService] Gemini failed:', reason, '- Using fallback response.');
             return getKeywordFallback(message);
         }
