@@ -33,8 +33,10 @@ const GeminiResponseSchema = z.object({
         .array(
             z.object({
                 content: z.object({
+                    // text は SAFETY ブロックや maxOutputTokens 切り詰めで空文字になり得る。
+                    // 空文字をそのままユーザーに返さないよう min(1) で弾き、フォールバックに落とす
                     parts: z
-                        .array(z.object({ text: z.string() }))
+                        .array(z.object({ text: z.string().min(1) }))
                         .min(1),
                 }),
             }),
