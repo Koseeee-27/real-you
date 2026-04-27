@@ -91,8 +91,9 @@ export function buildPhaseSummaries(
         
         const socialText = conformRate >= 60 ? 'グループの空気を敏感に察知して周りに合わせ' : '周りに流されず我が道をゆく選択肢を取り';
         
-        // サマリーテキスト用の平均反応速度。`?? 2000` は中立値（Phase 2 と同じ方針）。
-        // scoreCalculator.ts 側は `?? 0` のため、null 混入時の挙動差は Issue #11 派生で整合化する。
+        // 平均反応速度から速度感を表現する。
+        // Phase 3 の reactionTimeMs は仕様上 null が来ない（タイムアウト時も実時間 ≈ 10000ms で記録される）。
+        // 防御的に `?? 2000`（中立値）でフォールバックし、stages 0 件のときも 2000ms を使う。
         const avgReaction = stages.length > 0
             ? stages.reduce((sum, s) => sum + (s.reactionTimeMs ?? 2000), 0) / stages.length
             : 2000;
