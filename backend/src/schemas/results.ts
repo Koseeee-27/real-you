@@ -105,14 +105,90 @@ export const phaseSummariesSchema = z
     });
 
 /**
- * GET /api/results/:user_id のレスポンス（200 OK）。
+ * 各ゲーム固有の詳細情報（タイトル / 特徴スコア / 比較メトリクス）。
  *
- * `details` について（暫定定義）:
- * - 本フィールドは各ゲーム固有のメトリクスと特徴スコアを含み、構造が広く
- *   analysis 層（scoreCalculator.ts）の戻り値構造に直接依存する
- * - 現時点では `z.unknown()` とし、FE 側は既存の型定義に従って参照する
- * - 厳密化は analysis 戻り値の構造を固めてから別 Issue で対応する
- *   （Issue #6 の実装計画「論点」参照）
+ * 構造は仕様書「データ構造」→ `GameDetail` 準拠:
+ * - `title`: ゲーム名（例: '利用規約ゲーム'）
+ * - `feature_scores[]`: 当該ゲームで測定した軸ごとのスコア（0-100 整数）
+ * - `metrics[]`: ユーザー値と平均値の比較指標（読了速度 / 反応潜時 等）
+ *
+ * `axis` / `category` は仕様書上 `string` のため、リテラル union ではなく
+ * `z.string()` で受ける（実装側の `'caution'` / `'scroll'` 等の文字列が
+ * リテラル拡張で型エラーになるのを避ける）。
+ *
+ * `metrics[].user` と `metrics[].average` は ms / 秒 / dB / 回数など多様な
+ * 単位を取りうるため、整数制約や正値制約は付けない（仕様書「データ構造」も
+ * `number` 規定）。
+ */
+export const gameDetailSchema = z
+    .object({
+        title: z.string().openapi({
+            description: 'ゲーム名（例: 利用規約ゲーム / AIカスタマーサポート / 空気読みグループチャット）',
+        }),
+        feature_scores: z
+            .array(
+                z.object({
+                    axis: z.string().openapi({
+                        description: '軸キー（caution / calmness / logic / cooperativeness / positivity）',
+                    }),
+                    name: z.string().openapi({
+                        description: '軸の日本語ラベル（慎重さ / 冷静さ / 論理性 / 協調性 / 積極性）',
+                    }),
+                    score: z.number().int().min(0).max(100).openapi({
+                        description: '当該軸のゲーム単位スコア（0-100 整数）',
+                    }),
+                }),
+            )
+            .openapi({
+                description: '当該ゲームで測定した軸ごとのスコア配列（測定軸数はゲームごとに異なる）',
+            }),
+        metrics: z
+            .array(
+                z.object({
+                    label: z.string().openapi({
+                        description: '指標の表示ラベル（例: 読了速度(px/s) / 反応潜時(ms)）',
+                    }),
+                    user: z.number().openapi({
+                        description: 'ユーザーの実測値（単位は label に依存）',
+                    }),
+                    average: z.number().openapi({
+                        description: '比較対象の平均値（単位は label に依存）',
+                    }),
+                    category: z.string().openapi({
+                        description: '指標のカテゴリ（scroll / time / mouse / input / voice / logic / message / social 等）',
+                    }),
+                }),
+            )
+            .openapi({
+                description: 'ユーザー値と平均値を並べた比較指標の配列',
+            }),
+    })
+    .openapi({
+        description: 'ゲーム単位の詳細情報。仕様書「データ構造」→ GameDetail 参照',
+        example: resultsResponseExample.details.game_1,
+    });
+
+/**
+ * 全 3 ゲームの詳細情報をまとめたオブジェクト。
+ *
+ * 全フィールド必須（3 ゲーム完了が `incomplete_games` でガードされているため、
+ * results レスポンス到達時には必ず 3 ゲーム分の details が揃う前提）。
+ */
+export const detailsSchema = z
+    .object({
+        game_1: gameDetailSchema,
+        game_2: gameDetailSchema,
+        game_3: gameDetailSchema,
+    })
+    .openapi({
+        description:
+            '各ゲーム固有の詳細情報（タイトル / feature_scores / metrics）。' +
+            '構造は仕様書「データ構造」→ GameDetail を参照',
+        example: resultsResponseExample.details,
+    });
+
+/**
+ * GET /api/results/:user_id のレスポンス（200 OK）。
  */
 export const resultsResponseSchema = z
     .object({
@@ -140,18 +216,7 @@ export const resultsResponseSchema = z
             example: resultsResponseExample.accuracy_score,
         }),
         phase_summaries: phaseSummariesSchema,
-        /**
-         * 各ゲーム固有の詳細メトリクス。構造は `analysis/scoreCalculator` の戻り値に
-         * 直接依存するため現時点では `z.unknown()` で緩く定義している。
-         * 厳密化は analysis 戻り値の構造を固めてから別 Issue で対応する
-         * （本ファイル冒頭の `details` コメント参照）。
-         */
-        details: z.unknown().openapi({
-            description:
-                '各ゲーム固有の詳細メトリクス（ゲーム別タイトル / feature_scores / metrics）。' +
-                '構造の詳細は仕様書「データ構造」→ GameDetail を参照',
-            example: resultsResponseExample.details,
-        }),
+        details: detailsSchema,
     })
     .openapi({
         description: '診断結果レスポンス（200 OK）',
@@ -162,4 +227,6 @@ export type ResultsParams = z.infer<typeof resultsParamsSchema>;
 export type GameBreakdown = z.infer<typeof gameBreakdownSchema>;
 export type DiagnosisFeedback = z.infer<typeof diagnosisFeedbackSchema>;
 export type PhaseSummaries = z.infer<typeof phaseSummariesSchema>;
+export type GameDetail = z.infer<typeof gameDetailSchema>;
+export type Details = z.infer<typeof detailsSchema>;
 export type ResultResponse = z.infer<typeof resultsResponseSchema>;
