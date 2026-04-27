@@ -33,10 +33,20 @@ const GeminiResponseSchema = z.object({
         .array(
             z.object({
                 content: z.object({
-                    // text は SAFETY ブロックや maxOutputTokens 切り詰めで空文字になり得る。
-                    // 空文字をそのままユーザーに返さないよう min(1) で弾き、フォールバックに落とす
+                    // text は SAFETY ブロックや maxOutputTokens 切り詰めで空文字 / 空白のみに
+                    // なり得る。スキーマ側で trim までやり、trim 後に空ならフォールバックへ。
+                    // 検証と正規化を 1 箇所に集約し、後段の trim 忘れ事故も防ぐ。
                     parts: z
-                        .array(z.object({ text: z.string().min(1) }))
+                        .array(
+                            z.object({
+                                text: z
+                                    .string()
+                                    .transform((s) => s.trim())
+                                    .refine((s) => s.length > 0, {
+                                        message: 'text is empty after trim',
+                                    }),
+                            }),
+                        )
                         .min(1),
                 }),
             }),
@@ -97,10 +107,11 @@ async function requestToModel(
         throw new Error(`${modelName}: invalid response`);
     }
 
+    // text はスキーマ側で trim 済み・空チェック済みなのでそのまま使う
     const text = parseResult.data.candidates[0].content.parts[0].text;
 
     return {
-        response: text.trim(),
+        response: text,
         emotion: estimateEmotion(text),
         confidence: 0.6,
     };
