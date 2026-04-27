@@ -1,5 +1,5 @@
 import { supabase } from '../db/client';
-import { GameBreakdown, PhaseSummaries } from '../types';
+import { Details, GameBreakdown, PhaseSummaries } from '../types';
 
 export interface AnalysisResultRow {
     user_id: string;
@@ -29,7 +29,9 @@ export interface AnalysisResultRow {
     game_contributions: GameBreakdown;
     accuracy_score: number;
     phase_summaries: PhaseSummaries;
-    details: any; // JSONB カラム
+    // JSONB カラム。zod スキーマ（schemas/results.ts → detailsSchema）由来の
+    // 型で保持し、PostgreSQL 側の JSONB はそのまま使う（DB スキーマ変更は不要）。
+    details: Details;
     created_at?: string;
 }
 

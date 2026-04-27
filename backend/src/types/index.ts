@@ -25,8 +25,10 @@ export type {
 
 // results エンドポイントの型は schemas/results.ts に集約済み
 export type {
+  Details,
   DiagnosisFeedback,
   GameBreakdown,
+  GameDetail,
   PhaseSummaries,
   ResultResponse,
 } from '../schemas/results';
