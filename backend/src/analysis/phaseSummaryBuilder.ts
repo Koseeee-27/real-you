@@ -41,13 +41,21 @@ export function buildPhaseSummaries(
 
         // 仕様書「分析ロジック → Game 2 → Null 値（テキスト入力時）の扱い → サマリーテキスト
         // （phase_summaries）も同じ方針」に従い、null（= テキスト入力ターン）を除外して平均を取る。
-        // scoreCalculator.ts L202-208 と同じ集計方針で揃え、テキストとスコアで評価が食い違わないようにする。
+        // scoreCalculator の calculateGame2 内 reactValues 集計部分と同じ集計方針で揃え、
+        // テキストとスコアで評価が食い違わないようにする。
+        //
+        // 判定軸として `turns[i].inputMethod === 'text'` は使わず `reactionTimeMs === null`
+        // のみで判定する。これは仕様書「Game 2 Null 値の扱い → 注: ターン単位の
+        // `Game2Turn.inputMethod` について」で「現状の集計ロジックは "null 判定" で同等の効果が
+        // 得られるため、スコア計算では inputMethod を直接参照しない」と明記された方針に揃えた
+        // ためで、scoreCalculator と同じ判定基準になる。
         const reactValues = turns
             .map((t) => t.reactionTimeMs)
             .filter((v): v is number => v !== null);
 
-        // turns 0 件の場合も「反応速度を測定していない」状態として全ターンテキスト相当に扱う
-        // （scoreCalculator も avgReact=2000 にフォールバックする方針）。
+        // turns 0 件のケース（ゲーム未プレイ等）は仕様書未定義のため、便宜上「全ターンテキスト
+        // 相当」に統一して反応速度に言及しないテキストを返す。scoreCalculator も同条件で
+        // avgReact=2000 にフォールバックする方針で整合している。
         const allTextOrEmpty = reactValues.length === 0;
         const allVoice = turns.length > 0 && reactValues.length === turns.length;
 
@@ -61,7 +69,11 @@ export function buildPhaseSummaries(
             if (allVoice) {
                 phase2Text = `${reactionText}、音声で堂々と反論を展開しました。`;
             } else {
-                // 混在: null 除外平均で反応速度を判定し、method は Game2Data 直下の inputMethod を採用
+                // 混在: null 除外平均で反応速度を判定し、method は Game2Data 直下の inputMethod を採用。
+                // 直下フィールドを使う根拠は scoreCalculator の sVoice 算出と同じ方針（音声選択を 0/100
+                // で評価する積極性スコアが Game2Data.inputMethod を参照しているため、サマリー側もそろえる）。
+                // 「主に音声/テキストどちらだったか」をターン多数決で決める方が正確という議論はあるが、
+                // 仕様書未定義のためスコアと同じ判定軸に揃える。
                 const method = game2Raw.inputMethod === 'voice' ? '音声で堂々と' : 'テキストで冷静に';
                 phase2Text = `${reactionText}、${method}反論を展開しました。`;
             }
