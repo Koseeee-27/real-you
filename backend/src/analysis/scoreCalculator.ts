@@ -155,8 +155,12 @@ function calculateGame1(data: Game1Data | undefined): Game1Result {
   );
 
   //冷静さ: マウスブレ・無駄クリック
-  const sJitter = linearInv(data.popupStats?.mouseJitter ?? 0, 10, 200);
-  const sClick = linearInv(data.popupStats?.clickCount ?? 1, 1, 5);
+  // 仕様書「分析ロジック → エッジケースの扱い → Game 1 の個別フォールバック」に従い、
+  // popupStats 欠損時は worst 値（linearInv の第 3 引数）にフォールバックする。
+  // popupStats はポップアップが timeout で表示されない場合（高速スクロール時）や送信失敗時に欠損するが、
+  // どちらも「測定不能 / 冷静ではない」として 0 点扱いとする（best 値だと 100 点になり不当に高得点となる）。
+  const sJitter = linearInv(data.popupStats?.mouseJitter ?? 200, 10, 200);
+  const sClick = linearInv(data.popupStats?.clickCount ?? 5, 1, 5);
 
   const calmness = Math.round(
     sJitter * 0.6 +
