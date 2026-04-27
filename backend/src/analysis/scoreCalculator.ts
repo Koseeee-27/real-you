@@ -191,23 +191,35 @@ function calculateGame2(data: Game2Data | undefined): Game2Result {
 
   const turns = data.turns || [];
 
-  // 以下の reducer の `?? 0` は NaN 伝播を防ぐ短期ガード。
-  // FE の型定義上 reactionTimeMs 等は `null`（= 発話なし/タイムアウトの正規値）が
-  // 来ることがあり、0 として扱うとスコアが歪む可能性がある。
-  // 根本対応（zod による入力検証と null の意味論的ハンドリング）は Issue #11 の派生で行う。
+  // 仕様書「分析ロジック → Game 2 → Null 値（テキスト入力時）の扱い」に従い、
+  // null フィールドを集計対象から除外する。全ターン null（= 全ターンテキスト入力）の
+  // 場合は仕様書の代替値（avgReact=2000, totalSpeech=0, avgVolume=-30, silence=0）を返す。
+  // null 検出には `filter((v): v is number => v !== null)` で型ナローイング。
+  const reactValues = turns
+    .map((t) => t.reactionTimeMs)
+    .filter((v): v is number => v !== null);
   const avgReact =
-    turns.reduce((a, t) => a + (t.reactionTimeMs ?? 0), 0) /
-    (turns.length || 1);
+    reactValues.length > 0
+      ? reactValues.reduce((a, v) => a + v, 0) / reactValues.length
+      : 2000;
 
-  const totalSpeech =
-    turns.reduce((a, t) => a + (t.speechDurationMs ?? 0), 0);
+  const totalSpeech = turns
+    .map((t) => t.speechDurationMs)
+    .filter((v): v is number => v !== null)
+    .reduce((a, v) => a + v, 0);
 
+  const volumeValues = turns
+    .map((t) => t.volumeDb)
+    .filter((v): v is number => v !== null);
   const avgVolume =
-    turns.reduce((a, t) => a + (t.volumeDb ?? -30), 0) /
-    (turns.length || 1);
+    volumeValues.length > 0
+      ? volumeValues.reduce((a, v) => a + v, 0) / volumeValues.length
+      : -30;
 
-  const silence =
-    turns.reduce((a, t) => a + (t.silenceDurationMs ?? 0), 0);
+  const silence = turns
+    .map((t) => t.silenceDurationMs)
+    .filter((v): v is number => v !== null)
+    .reduce((a, v) => a + v, 0);
 
   const silenceRate =
     totalSpeech > 0 ? silence / totalSpeech : 0;
