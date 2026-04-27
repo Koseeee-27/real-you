@@ -37,20 +37,35 @@ export function buildPhaseSummaries(
     // --- Phase 2: AIチャットの要約 ---
     let phase2Text = 'データなし';
     if (game2Raw) {
-        const method = game2Raw.inputMethod === 'voice' ? '音声で堂々と' : 'テキストで冷静に';
         const turns = game2Raw.turns || [];
 
-        // サマリーテキスト用の平均反応速度。`?? 2000` は未測定時の中立値（「慎重側」と「即応側」の境界）。
-        // scoreCalculator.ts は同じフィールドを `?? 0` で扱うため、reactionTimeMs が null（= 無発話/
-        // タイムアウトの正規値）のペイロードではテキストとスコアで評価が食い違う可能性がある。
-        // 根本対応（null を集計対象外として扱う統一ロジック）は Issue #11 の派生で行う。
-        const avgReaction = turns.length > 0
-            ? turns.reduce((sum, t) => sum + (t.reactionTimeMs ?? 2000), 0) / turns.length
-            : 2000;
+        // 仕様書「分析ロジック → Game 2 → Null 値（テキスト入力時）の扱い → サマリーテキスト
+        // （phase_summaries）も同じ方針」に従い、null（= テキスト入力ターン）を除外して平均を取る。
+        // scoreCalculator.ts L202-208 と同じ集計方針で揃え、テキストとスコアで評価が食い違わないようにする。
+        const reactValues = turns
+            .map((t) => t.reactionTimeMs)
+            .filter((v): v is number => v !== null);
 
-        const reactionText = avgReaction < 800 ? 'AIの理不尽な対応に即座に反応し' : 'AIの対応に対して一呼吸おいてから';
-        
-        phase2Text = `${reactionText}、${method}反論を展開しました。`;
+        // turns 0 件の場合も「反応速度を測定していない」状態として全ターンテキスト相当に扱う
+        // （scoreCalculator も avgReact=2000 にフォールバックする方針）。
+        const allTextOrEmpty = reactValues.length === 0;
+        const allVoice = turns.length > 0 && reactValues.length === turns.length;
+
+        if (allTextOrEmpty) {
+            // 全ターンテキスト: 反応速度に言及しない（仕様書例文に準拠）
+            phase2Text = 'テキストで冷静に反論を展開しました。';
+        } else {
+            const avgReaction = reactValues.reduce((a, v) => a + v, 0) / reactValues.length;
+            const reactionText = avgReaction < 800 ? 'AIの理不尽な対応に即座に反応し' : 'AIの対応に対して一呼吸おいてから';
+
+            if (allVoice) {
+                phase2Text = `${reactionText}、音声で堂々と反論を展開しました。`;
+            } else {
+                // 混在: null 除外平均で反応速度を判定し、method は Game2Data 直下の inputMethod を採用
+                const method = game2Raw.inputMethod === 'voice' ? '音声で堂々と' : 'テキストで冷静に';
+                phase2Text = `${reactionText}、${method}反論を展開しました。`;
+            }
+        }
     }
 
     // --- Phase 3: グループチャットの要約 ---
