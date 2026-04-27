@@ -3,7 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSetAtom } from 'jotai';
 import { useRouter } from 'next/navigation';
-import type { Game1Data, ScrollEvent } from '@/features/games/types';
+import type {
+  Game1Data,
+  PopupStats,
+  ScrollEvent,
+} from '@/features/games/types';
 import { game1DataAtom } from '@/stores/games';
 import PopupAd from './PopupAd';
 import PopupTerms from './PopupTerms';
@@ -52,12 +56,10 @@ export default function TermsGameFlow() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   // ポップアップが表示された時刻（timeToClose算出用）。レンダー時にJSXへ渡すためstateで管理
   const [popupAppearedAt, setPopupAppearedAt] = useState(0);
-  // ポップアップへの対応データ
-  const popupStatsRef = useRef({
-    timeToClose: 0,
-    clickCount: 0,
-    mouseJitter: 0,
-  });
+  // ポップアップへの対応データ。
+  // 未表示・操作中断（閉じる前に同意/不同意）の場合は null のまま残し、
+  // 送信ペイロードから popupStats フィールドを省略する（BE 側で worst 値扱いとなる）。
+  const popupStatsRef = useRef<PopupStats | null>(null);
   // 「同意する」ボタンにホバーし始めた時刻
   const agreeHoverStartRef = useRef(0);
   // 各チェックボックスがユーザーによって変更されたかの追跡
@@ -190,7 +192,8 @@ export default function TermsGameFlow() {
             changed: checkboxChangedRef.current.thirdPartyShare,
           },
         },
-        popupStats: popupStatsRef.current,
+        // null の場合はフィールド自体を未送信にする（JSON.stringify が undefined を省略）。
+        popupStats: popupStatsRef.current ?? undefined,
         agreeButtonHoverTimeMs: getAgreeButtonHoverTimeMs(),
       };
     },
