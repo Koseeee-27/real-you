@@ -65,7 +65,8 @@ GAME1_PAYLOAD='{
       "mailMagazine": {"checked": false, "changed": true},
       "thirdPartyShare": {"checked": false, "changed": true}
     },
-    "popupStats": {"timeToClose": 1200, "clickCount": 1}
+    "popupStats": {"timeToClose": 1200, "clickCount": 1, "mouseJitter": 30},
+    "agreeButtonHoverTimeMs": 800
   }
 }'
 
@@ -110,7 +111,8 @@ GAME2_PAYLOAD='{
         "volumeDb": null,
         "transcribedText": "別の方法を試します"
       }
-    ]
+    ],
+    "textInputMetrics": {"typingIntervalVariance": 120}
   }
 }'
 
@@ -135,12 +137,14 @@ GAME3_PAYLOAD='{
   "game_type": 3,
   "data": {
     "tutorialViewTime": 5200,
+    "hoveredOptions": 4,
+    "typingIndicatorReactTimeMs": 1500,
     "stages": [
-      {"stageId": 1, "selectedOptionId": 2, "reactionTime": 3400, "isTimeout": false},
-      {"stageId": 2, "selectedOptionId": 1, "reactionTime": 1800, "isTimeout": false},
-      {"stageId": 3, "selectedOptionId": 3, "reactionTime": 4500, "isTimeout": false},
-      {"stageId": 4, "selectedOptionId": 0, "reactionTime": 10000, "isTimeout": true},
-      {"stageId": 5, "selectedOptionId": 1, "reactionTime": 2200, "isTimeout": false}
+      {"stageId": 1, "selectedOptionId": 2, "reactionTimeMs": 3400, "isTimeout": false},
+      {"stageId": 2, "selectedOptionId": 1, "reactionTimeMs": 1800, "isTimeout": false},
+      {"stageId": 3, "selectedOptionId": 3, "reactionTimeMs": 4500, "isTimeout": false},
+      {"stageId": 4, "selectedOptionId": 0, "reactionTimeMs": 10000, "isTimeout": true},
+      {"stageId": 5, "selectedOptionId": 1, "reactionTimeMs": 2200, "isTimeout": false}
     ]
   }
 }'
