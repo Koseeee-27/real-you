@@ -45,7 +45,9 @@ export interface Game1Data {
     mailMagazine: CheckboxState;
     thirdPartyShare: CheckboxState;
   };
-  popupStats: PopupStats;
+  // ポップアップ広告が表示されかつ閉じられた場合にのみ送信する。
+  // 未表示・操作中断時は未送信（undefined）とし、BE 側で worst 値フォールバックさせる。
+  popupStats?: PopupStats;
   // 「同意する」ボタンにホバーしてからクリックするまでの時間（ms）
   agreeButtonHoverTimeMs: number;
 }
