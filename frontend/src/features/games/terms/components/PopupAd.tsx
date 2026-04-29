@@ -66,7 +66,8 @@ export default function PopupAd({ onClose, appearedAt }: PopupAdProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      // 規約モーダル (PopupTerms) と重なるため z-[60] で上層に表示する
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
       onClick={handleOverlayClick}
     >
       <div
