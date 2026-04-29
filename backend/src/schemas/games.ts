@@ -2,6 +2,7 @@
 // 拡張モジュールを副作用 import する（openapi/registry.ts 参照）。
 import '../openapi/registry';
 import { z } from 'zod';
+import { registry } from '../openapi/registry';
 import { userIdSchema } from './common';
 import { GAME_TYPES } from '../types';
 import {
@@ -35,22 +36,25 @@ import {
  * OpenAPI では `.openapi({ enum: [...] })` で enum 情報を補う
  * （z.union<z.literal> のままだと OpenAPI 側で `anyOf` に落ちてしまうため）。
  */
-export const gameTypeSchema = z
-    .union([
-        z.literal(GAME_TYPES.TERMS_GAME),
-        z.literal(GAME_TYPES.AI_CHAT),
-        z.literal(GAME_TYPES.GROUP_CHAT),
-    ])
-    .openapi({
-        description:
-            'ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット',
-        enum: [
-            GAME_TYPES.TERMS_GAME,
-            GAME_TYPES.AI_CHAT,
-            GAME_TYPES.GROUP_CHAT,
-        ],
-        example: GAME_TYPES.TERMS_GAME,
-    });
+export const gameTypeSchema = registry.register(
+    'GameType',
+    z
+        .union([
+            z.literal(GAME_TYPES.TERMS_GAME),
+            z.literal(GAME_TYPES.AI_CHAT),
+            z.literal(GAME_TYPES.GROUP_CHAT),
+        ])
+        .openapi({
+            description:
+                'ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット',
+            enum: [
+                GAME_TYPES.TERMS_GAME,
+                GAME_TYPES.AI_CHAT,
+                GAME_TYPES.GROUP_CHAT,
+            ],
+            example: GAME_TYPES.TERMS_GAME,
+        }),
+);
 
 /**
  * ゲーム固有の行動データ。
@@ -74,36 +78,42 @@ export const gameDataSchema = z
 /**
  * POST /api/games/submit のリクエストボディ。
  */
-export const submitGameRequestSchema = z
-    .object({
-        user_id: userIdSchema,
-        game_type: gameTypeSchema,
-        data: gameDataSchema,
-    })
-    .openapi({
-        description:
-            '各ゲーム終了時に行動データを送信するリクエスト。' +
-            '同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す',
-        example: submitGameRequestExampleGame1,
-    });
+export const submitGameRequestSchema = registry.register(
+    'SubmitGameRequest',
+    z
+        .object({
+            user_id: userIdSchema,
+            game_type: gameTypeSchema,
+            data: gameDataSchema,
+        })
+        .openapi({
+            description:
+                '各ゲーム終了時に行動データを送信するリクエスト。' +
+                '同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す',
+            example: submitGameRequestExampleGame1,
+        }),
+);
 
 /**
  * POST /api/games/submit のレスポンス（200 OK）。
  */
-export const submitGameResponseSchema = z
-    .object({
-        status: z.literal('success').openapi({
-            description: '固定値 "success"',
+export const submitGameResponseSchema = registry.register(
+    'SubmitGameResponse',
+    z
+        .object({
+            status: z.literal('success').openapi({
+                description: '固定値 "success"',
+            }),
+            message: z.string().openapi({
+                description: '保存されたゲームを示す運用向けメッセージ',
+                example: submitGameResponseExample.message,
+            }),
+        })
+        .openapi({
+            description: 'ゲームデータ保存成功レスポンス（200 OK）',
+            example: submitGameResponseExample,
         }),
-        message: z.string().openapi({
-            description: '保存されたゲームを示す運用向けメッセージ',
-            example: submitGameResponseExample.message,
-        }),
-    })
-    .openapi({
-        description: 'ゲームデータ保存成功レスポンス（200 OK）',
-        example: submitGameResponseExample,
-    });
+);
 
 /**
  * ゲーム種別（1/2/3）の TS 型。
