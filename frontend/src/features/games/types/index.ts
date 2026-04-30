@@ -1,111 +1,36 @@
+// OpenAPI から自動生成された型を再エクスポートする。
+// 手書き定義は廃止済み。スキーマ変更は backend/src/openapi/ を更新したうえで
+// `npm run gen:api-types` で frontend/src/lib/api/generated.ts を再生成する。
+
+import type { components } from '@/lib/api/generated';
+
 // ========================================
 // Game 共通型
 // ========================================
-
-export interface SubmitGameRequest {
-  user_id: string;
-  game_type: 1 | 2 | 3;
-  data: Record<string, unknown>;
-}
-
-export interface SubmitGameResponse {
-  status: 'success' | 'error';
-  message: string;
-}
+export type SubmitGameRequest = components['schemas']['SubmitGameRequest'];
+export type SubmitGameResponse = components['schemas']['SubmitGameResponse'];
 
 // ========================================
 // Game 1: 利用規約ゲーム
 // ========================================
-
-export interface ScrollEvent {
-  position: number;
-  timestamp: number;
-}
-
-export interface CheckboxState {
-  checked: boolean;
-  changed: boolean;
-}
-
-export interface PopupStats {
-  timeToClose: number;
-  clickCount: number;
-  // ポップアップ表示中のマウス余剰移動距離（px）。総移動距離 − 最短直線距離
-  mouseJitter: number;
-}
-
-export interface Game1Data {
-  totalTime: number;
-  finalAction: 'agree' | 'disagree';
-  reachedBottom: boolean;
-  scrollEvents: ScrollEvent[];
-  hiddenInput: string | null;
-  checkboxStates: {
-    readConfirm: CheckboxState;
-    mailMagazine: CheckboxState;
-    thirdPartyShare: CheckboxState;
-  };
-  // ポップアップ広告が表示されかつ閉じられた場合にのみ送信する。
-  // 未表示・操作中断時は未送信（undefined）とし、BE 側で worst 値フォールバックさせる。
-  popupStats?: PopupStats;
-  // 「同意する」ボタンにホバーしてからクリックするまでの時間（ms）
-  agreeButtonHoverTimeMs: number;
-}
+export type ScrollEvent = components['schemas']['ScrollEvent'];
+export type CheckboxState = components['schemas']['CheckboxState'];
+export type PopupStats = components['schemas']['PopupStats'];
+export type Game1Data = components['schemas']['Game1Data'];
 
 // ========================================
 // Game 2: カスタマーサポートチャット
 // ========================================
-
-export interface Game2Turn {
-  turnIndex: number;
-  inputMethod: 'voice' | 'text';
-  reactionTimeMs: number | null;
-  speechDurationMs: number | null;
-  silenceDurationMs: number | null;
-  volumeDb: number | null;
-  transcribedText: string;
-}
-
-export interface TextInputMetrics {
-  typingIntervalVariance: number;
-}
-
-export interface Game2Data {
-  inputMethod: 'voice' | 'text';
-  turnCount: number;
-  turns: Game2Turn[];
-  textInputMetrics: TextInputMetrics | null;
-}
-
-// Game 2: AI返答生成API (POST /api/voice/respond)
-export interface VoiceRespondRequest {
-  user_id: string;
-  message: string;
-  conversation_history?: { role: 'user' | 'assistant'; content: string }[];
-}
-
-export interface VoiceRespondResponse {
-  response: string;
-  emotion: string;
-  confidence: number;
-}
+export type Game2Turn = components['schemas']['Game2Turn'];
+export type Game2TextInputMetrics =
+  components['schemas']['Game2TextInputMetrics'];
+export type Game2Data = components['schemas']['Game2Data'];
+export type VoiceRespondRequest = components['schemas']['VoiceRespondRequest'];
+export type VoiceRespondResponse =
+  components['schemas']['VoiceRespondResponse'];
 
 // ========================================
 // Game 3: グループチャット（空気読み）
 // ========================================
-
-export interface Game3StageLog {
-  stageId: number;
-  selectedOptionId: number | null;
-  reactionTimeMs: number;
-  isTimeout: boolean;
-}
-
-export interface Game3Data {
-  tutorialViewTime: number;
-  stages: Game3StageLog[];
-  /** 全ステージ通じた選択肢ホバー回数の合計 */
-  hoveredOptions: number;
-  /** ステージ3の「○○が返信中」表示〜ユーザー操作までの時間(ms) */
-  typingIndicatorReactTimeMs: number | null;
-}
+export type Game3Stage = components['schemas']['Game3Stage'];
+export type Game3Data = components['schemas']['Game3Data'];

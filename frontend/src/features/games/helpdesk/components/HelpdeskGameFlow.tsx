@@ -52,7 +52,7 @@ export default function HelpdeskGameFlow() {
     await submitGame({
       user_id: userId,
       game_type: 2,
-      data: data as unknown as Record<string, unknown>,
+      data,
     });
   }, []);
 

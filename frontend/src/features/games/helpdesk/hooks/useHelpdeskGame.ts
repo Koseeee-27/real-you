@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   Game2Data,
   Game2Turn,
-  TextInputMetrics,
+  Game2TextInputMetrics,
 } from '@/features/games/types';
 import { postVoiceRespond } from '@/lib/api';
 import {
@@ -225,7 +225,7 @@ export function useHelpdeskGame(options: {
   const buildAndSubmit = useCallback(() => {
     const currentTurns = turnsRef.current;
     const hasTextTurn = currentTurns.some((t) => t.inputMethod === 'text');
-    const textInputMetrics: TextInputMetrics | null = hasTextTurn
+    const textInputMetrics: Game2TextInputMetrics | null = hasTextTurn
       ? {
           typingIntervalVariance:
             typingVariancesRef.current.length > 0
