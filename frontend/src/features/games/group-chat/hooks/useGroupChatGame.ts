@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Game3Data, Game3StageLog } from '@/features/games/types';
+import type { Game3Data, Game3Stage } from '@/features/games/types';
 import {
   BOTS,
   STAGES,
@@ -100,7 +100,7 @@ export function useGroupChatGame(options: {
   /** ステージ3の「○○が返信中」表示〜ユーザー操作までの時間(ms) */
   const stage3TypingReactRef = useRef<number | null>(null);
   /** 各ステージの操作ログを蓄積 */
-  const stageResultsRef = useRef<Game3StageLog[]>([]);
+  const stageResultsRef = useRef<Game3Stage[]>([]);
   const tutorialViewTimeRef = useRef(0);
   const timerIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -130,15 +130,15 @@ export function useGroupChatGame(options: {
   // =========================================================
   const recordStageAndAdvance = useCallback(
     (
-      selectedOptionId: number | null,
+      selectedOptionId: number,
       reactionTimeMs: number,
       isTimeout: boolean,
       typingIndicatorReactTimeMs?: number | null
     ) => {
       const stage = STAGES[currentStageIndex];
-      const log: Game3StageLog = {
+      const log: Game3Stage = {
         stageId: stage.stageId,
-        selectedOptionId: isTimeout ? 0 : selectedOptionId,
+        selectedOptionId,
         reactionTimeMs,
         isTimeout,
       };
@@ -312,7 +312,7 @@ export function useGroupChatGame(options: {
             : undefined;
 
         // タイムアウト: selectedOptionId=0, isTimeout=true
-        recordStageAndAdvance(null, reactionTimeMs, true, typingReact);
+        recordStageAndAdvance(0, reactionTimeMs, true, typingReact);
       }
     }, 100);
 
