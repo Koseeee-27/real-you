@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
+    // `npm run gen:api-types` で OpenAPI から自動生成（手で整形しない）
+    'src/lib/api/generated.ts',
   ]),
 ]);
 
