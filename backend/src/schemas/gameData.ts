@@ -105,12 +105,13 @@ export const game1DataSchema = registry.register(
             totalTime: z.number().openapi({
                 description: '滞在時間（秒）',
             }),
-            finalAction: z
-                .union([z.literal('agree'), z.literal('disagree')])
-                .openapi({
-                    description: '最終アクション（同意 / 拒否）',
-                    enum: ['agree', 'disagree'],
-                }),
+            // 文字列リテラルかつエラーコードの個別マッピング（invalid_xxx 等）が不要なため、
+            // OpenAPI 出力をクリーンに保てる z.enum を採用する（voice.ts の voiceEmotionSchema と同方針）。
+            // data 配下のフィールドはすべて errorHandler で `invalid_request` に集約されるので、
+            // z.enum が「必須欠落と値違反を区別できない」点はここでは問題にならない。
+            finalAction: z.enum(['agree', 'disagree']).openapi({
+                description: '最終アクション（同意 / 拒否）',
+            }),
             reachedBottom: z.boolean().openapi({
                 description: '規約の最下部までスクロールしたか',
             }),
@@ -149,17 +150,15 @@ export const game1DataSchema = registry.register(
  * Game2Data 直下の `inputMethod` と各ターン（`turns[].inputMethod`）の両方で
  * 使うため、共通サブスキーマとして定義する。
  *
- * OpenAPI では `.openapi({ enum: [...] })` で enum 情報を補う
- * （z.union<z.literal> のままだと OpenAPI 側で `anyOf` に落ちてしまうため）。
+ * 文字列リテラルかつエラーコードの個別マッピング（invalid_xxx 等）が不要なため
+ * z.enum で簡潔に書く（voice.ts の voiceEmotionSchema と同方針）。OpenAPI 出力は
+ * `{ type: 'string', enum: [...] }` のクリーンな形になる。
  */
 const game2InputMethodSchema = registry.register(
     'Game2InputMethod',
-    z
-        .union([z.literal('voice'), z.literal('text')])
-        .openapi({
-            description: 'Game2 の入力方式（voice: 音声 / text: テキスト）',
-            enum: ['voice', 'text'],
-        }),
+    z.enum(['voice', 'text']).openapi({
+        description: 'Game2 の入力方式（voice: 音声 / text: テキスト）',
+    }),
 );
 
 /**
