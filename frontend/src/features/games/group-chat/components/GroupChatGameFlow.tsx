@@ -61,7 +61,7 @@ export default function GroupChatGameFlow() {
     await submitGame({
       user_id: userId,
       game_type: 3,
-      data: data as unknown as Record<string, unknown>,
+      data,
     });
   }, []);
 

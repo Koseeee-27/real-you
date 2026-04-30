@@ -76,7 +76,7 @@ export default function BaselineSurvey() {
           await submitGame({
             user_id: result.user_id,
             game_type: 1,
-            data: game1Data as unknown as Record<string, unknown>,
+            data: game1Data,
           });
         }
 
