@@ -1,87 +1,32 @@
 // ========================================
-// 5軸スコア（DiagnosisScores）
+// 結果画面で使う API 型
+// OpenAPI から自動生成された型（src/lib/api/generated.ts）を再エクスポートする。
+// 仕様書と乖離しないよう、手書き interface は置かない。
 // ========================================
 
-export interface DiagnosisScores {
-  caution: number;
-  calmness: number;
-  logic: number;
-  cooperativeness: number;
-  positivity: number;
-}
+import type { components } from '@/lib/api/generated';
 
-// ========================================
-// 診断フィードバック（DiagnosisFeedback）
-// ========================================
+// 5 軸スコア（自己申告基準値・実測値・MBTI 理論値で共通利用）
+export type DiagnosisScores = components['schemas']['BaselineScores'];
 
-export interface DiagnosisFeedback {
-  title: string;
-  description: string;
-  gap_point: string;
-}
+// 5 軸ギャップ（実測 - 自己申告。負値を取りうる）
+export type GapScores = components['schemas']['GapScores'];
 
-// ========================================
-// 詳細画面用: 特性スコア・メトリクス
-// ========================================
+// 診断フィードバック（最大ギャップ軸に基づく見出し・説明・指摘点）
+export type DiagnosisFeedback = components['schemas']['DiagnosisFeedback'];
 
-export interface FeatureScore {
-  axis: string;
-  name: string;
-  score: number;
-}
+// 各ゲーム終了後の行動を日本語テキストで振り返ったサマリー
+export type PhaseSummaries = components['schemas']['PhaseSummaries'];
 
-export type MetricCategory =
-  | 'scroll'
-  | 'time'
-  | 'mouse'
-  | 'input'
-  | 'voice'
-  | 'logic'
-  | 'social';
+// ゲーム単位の詳細情報（タイトル / feature_scores / metrics）
+export type GameDetail = components['schemas']['GameDetail'];
 
-export interface Metric {
-  label: string;
-  user: number;
-  average: number;
-  category: MetricCategory;
-}
+// 各ゲームの feature_scores / metrics は GameDetail のインライン定義から導出する
+export type FeatureScore = GameDetail['feature_scores'][number];
+export type Metric = GameDetail['metrics'][number];
 
-export interface GameDetail {
-  title: string;
-  feature_scores: FeatureScore[];
-  metrics: Metric[];
-}
+// 全ゲームの詳細情報（game_1 / game_2 / game_3）
+export type Details = components['schemas']['Details'];
 
-// ========================================
-// 各ゲームの行動要約（phase_summaries）
-// ========================================
-
-export interface PhaseSummaries {
-  phase_1: string;
-  phase_2: string;
-  phase_3: string;
-}
-
-// ========================================
-// 診断結果レスポンス（ResultResponse）
-// ========================================
-
-export interface ResultDetails {
-  game_1: GameDetail;
-  game_2: GameDetail;
-  game_3: GameDetail;
-}
-
-export interface ResultResponse {
-  user_id: string;
-  self_mbti: string | null;
-  mbti_scores: DiagnosisScores | null;
-  scores: DiagnosisScores;
-  baseline_scores: DiagnosisScores;
-  gaps: DiagnosisScores;
-  game_breakdown: Record<string, Partial<DiagnosisScores>>;
-  feedback: DiagnosisFeedback;
-  accuracy_score: number;
-  phase_summaries: PhaseSummaries;
-  details: ResultDetails;
-}
+// 診断結果レスポンス（GET /api/results/:user_id の 200 OK）
+export type ResultResponse = components['schemas']['ResultResponse'];
