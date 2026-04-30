@@ -27,7 +27,7 @@ Swagger UI 上の「Try it out」ボタンからその場で API を叩いて挙
 
 ## 仕組み
 
-zod スキーマを SoT として、Swagger UI（人間が読む用）と FE の TypeScript 型（コードが使う用）の両方を自動生成しています。
+以下のパイプラインで Swagger UI（人間が読む用）と FE の TypeScript 型（コードが使う用）を生成しています。
 
 ```
 zod スキーマ（backend/src/schemas/*.ts）  ← Single Source of Truth
