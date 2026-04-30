@@ -589,153 +589,38 @@ export interface components {
          * @enum {unknown}
          */
         GameType: 1 | 2 | 3;
-        /**
-         * @description Game1（利用規約ゲーム）の終了時に送るリクエスト
-         * @example {
-         *       "user_id": "550e8400-e29b-41d4-a716-446655440000",
-         *       "game_type": 1,
-         *       "data": {
-         *         "totalTime": 42.5,
-         *         "finalAction": "agree",
-         *         "reachedBottom": true,
-         *         "scrollEvents": [
-         *           {
-         *             "position": 0,
-         *             "timestamp": 0
-         *           },
-         *           {
-         *             "position": 1200,
-         *             "timestamp": 2500
-         *           }
-         *         ],
-         *         "hiddenInput": null,
-         *         "checkboxStates": {
-         *           "readConfirm": {
-         *             "checked": true,
-         *             "changed": true
-         *           },
-         *           "mailMagazine": {
-         *             "checked": true,
-         *             "changed": false
-         *           },
-         *           "thirdPartyShare": {
-         *             "checked": false,
-         *             "changed": true
-         *           }
-         *         },
-         *         "popupStats": {
-         *           "timeToClose": 850,
-         *           "clickCount": 1,
-         *           "mouseJitter": 42.3
-         *         },
-         *         "agreeButtonHoverTimeMs": 1200
-         *       }
-         *     }
-         */
-        SubmitGameRequestGame1: {
+        /** @description 各ゲーム終了時に行動データを送信するリクエスト。game_type を discriminator として data 構造が決まる。同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す */
+        SubmitGameRequest: {
             /**
              * Format: uuid
              * @description ユーザー識別子（UUID v4）
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             user_id: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            game_type: "1";
+            /** @enum {number} */
+            game_type: 1;
             data: components["schemas"]["Game1Data"];
-        };
-        /**
-         * @description Game2（AI カスタマーサポート）の終了時に送るリクエスト
-         * @example {
-         *       "user_id": "550e8400-e29b-41d4-a716-446655440000",
-         *       "game_type": 2,
-         *       "data": {
-         *         "inputMethod": "voice",
-         *         "turnCount": 2,
-         *         "turns": [
-         *           {
-         *             "turnIndex": 1,
-         *             "inputMethod": "voice",
-         *             "reactionTimeMs": 850,
-         *             "speechDurationMs": 3200,
-         *             "silenceDurationMs": 400,
-         *             "volumeDb": -18.5,
-         *             "transcribedText": "パスワードを忘れました"
-         *           },
-         *           {
-         *             "turnIndex": 2,
-         *             "inputMethod": "text",
-         *             "reactionTimeMs": null,
-         *             "speechDurationMs": null,
-         *             "silenceDurationMs": null,
-         *             "volumeDb": null,
-         *             "transcribedText": "メールアドレスは abc@example.com です"
-         *           }
-         *         ],
-         *         "textInputMetrics": {
-         *           "typingIntervalVariance": 120.5
-         *         }
-         *       }
-         *     }
-         */
-        SubmitGameRequestGame2: {
+        } | {
             /**
              * Format: uuid
              * @description ユーザー識別子（UUID v4）
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             user_id: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            game_type: "2";
+            /** @enum {number} */
+            game_type: 2;
             data: components["schemas"]["Game2Data"];
-        };
-        /**
-         * @description Game3（グループチャット）の終了時に送るリクエスト
-         * @example {
-         *       "user_id": "550e8400-e29b-41d4-a716-446655440000",
-         *       "game_type": 3,
-         *       "data": {
-         *         "tutorialViewTime": 8500,
-         *         "hoveredOptions": 7,
-         *         "typingIndicatorReactTimeMs": 1450,
-         *         "stages": [
-         *           {
-         *             "stageId": 1,
-         *             "selectedOptionId": 2,
-         *             "reactionTimeMs": 3200,
-         *             "isTimeout": false
-         *           },
-         *           {
-         *             "stageId": 2,
-         *             "selectedOptionId": 0,
-         *             "reactionTimeMs": 10000,
-         *             "isTimeout": true
-         *           }
-         *         ]
-         *       }
-         *     }
-         */
-        SubmitGameRequestGame3: {
+        } | {
             /**
              * Format: uuid
              * @description ユーザー識別子（UUID v4）
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             user_id: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            game_type: "3";
+            /** @enum {number} */
+            game_type: 3;
             data: components["schemas"]["Game3Data"];
         };
-        /** @description 各ゲーム終了時に行動データを送信するリクエスト。game_type を discriminator として data 構造が決まる。同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す */
-        SubmitGameRequest: components["schemas"]["SubmitGameRequestGame1"] | components["schemas"]["SubmitGameRequestGame2"] | components["schemas"]["SubmitGameRequestGame3"];
         /**
          * @description ゲームデータ保存成功レスポンス（200 OK）
          * @example {
