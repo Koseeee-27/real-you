@@ -6,7 +6,14 @@ import { registry } from '../openapi/registry';
 import { userIdSchema } from './common';
 import { GAME_TYPES } from '../types';
 import {
+    game1DataSchema,
+    game2DataSchema,
+    game3DataSchema,
+} from './gameData';
+import {
     submitGameRequestExampleGame1,
+    submitGameRequestExampleGame2,
+    submitGameRequestExampleGame3,
     submitGameResponseExample,
 } from '../openapi/examples';
 
@@ -33,6 +40,11 @@ import {
  * types/index.ts と本スキーマの両方を更新すること（将来的には
  * GAME_TYPES の値を自動展開する形にリファクタ可）。
  *
+ * `submitGameRequestSchema` は discriminatedUnion 化（Issue #58）したため
+ * `game_type` は各 branch で `z.literal(...)` に展開される。本 `gameTypeSchema`
+ * は OpenAPI 公開用の独立コンポーネント（GameType）として残し、他エンドポイントや
+ * FE 生成型から再利用可能にする。
+ *
  * OpenAPI では `.openapi({ enum: [...] })` で enum 情報を補う
  * （z.union<z.literal> のままだと OpenAPI 側で `anyOf` に落ちてしまうため）。
  */
@@ -57,40 +69,64 @@ export const gameTypeSchema = registry.register(
 );
 
 /**
- * ゲーム固有の行動データ。
- * 構造はゲームごとに大きく異なるため、スキーマ層では空でないオブジェクトであることのみを検証する。
- * 各ゲームの `data` 構造の検証は analysis 層の責務（別 Issue で型化予定）。
- *
- * OpenAPI 上は自由形式オブジェクト（`additionalProperties: true`）として表現される。
- * 具体的な各ゲームの data 構造は仕様書「データ構造」を参照（examples に game_1 の例を掲載）。
- */
-export const gameDataSchema = z
-    .record(z.string(), z.unknown())
-    .refine((d) => Object.keys(d).length > 0, {
-        error: 'data は空オブジェクトにできません',
-    })
-    .openapi({
-        description:
-            'ゲーム固有の行動データ。game_type ごとに構造が異なる（仕様書「データ構造」参照）。空オブジェクト不可',
-        example: submitGameRequestExampleGame1.data,
-    });
-
-/**
  * POST /api/games/submit のリクエストボディ。
+ *
+ * `z.discriminatedUnion('game_type', [...])` で `game_type` × `data` の対応を
+ * 型レベルで強制する（Issue #58）:
+ * - game_type === 1 のとき data は Game1Data
+ * - game_type === 2 のとき data は Game2Data
+ * - game_type === 3 のとき data は Game3Data
+ *
+ * これにより OpenAPI 上は `oneOf` + discriminator として表現され、Swagger UI / 生成型
+ * からも game_type 別の構造が見える。
+ *
+ * 入口バリデーション（discriminatedUnion）で既に data 構造は検証済みだが、
+ * 既存挙動の維持を優先して `gameService.parseGameData` 側でも safeParse を残す
+ * （多重防御 + 将来 service が他経路から呼ばれた場合の安全策）。
  */
 export const submitGameRequestSchema = registry.register(
     'SubmitGameRequest',
     z
-        .object({
-            user_id: userIdSchema,
-            game_type: gameTypeSchema,
-            data: gameDataSchema,
-        })
+        .discriminatedUnion('game_type', [
+            z
+                .object({
+                    user_id: userIdSchema,
+                    game_type: z.literal(GAME_TYPES.TERMS_GAME),
+                    data: game1DataSchema,
+                })
+                .openapi({
+                    description:
+                        'Game1（利用規約ゲーム）の終了時に送るリクエスト',
+                    example: submitGameRequestExampleGame1,
+                }),
+            z
+                .object({
+                    user_id: userIdSchema,
+                    game_type: z.literal(GAME_TYPES.AI_CHAT),
+                    data: game2DataSchema,
+                })
+                .openapi({
+                    description:
+                        'Game2（AI カスタマーサポート）の終了時に送るリクエスト',
+                    example: submitGameRequestExampleGame2,
+                }),
+            z
+                .object({
+                    user_id: userIdSchema,
+                    game_type: z.literal(GAME_TYPES.GROUP_CHAT),
+                    data: game3DataSchema,
+                })
+                .openapi({
+                    description:
+                        'Game3（グループチャット）の終了時に送るリクエスト',
+                    example: submitGameRequestExampleGame3,
+                }),
+        ])
         .openapi({
             description:
                 '各ゲーム終了時に行動データを送信するリクエスト。' +
+                'game_type を discriminator として data 構造が決まる。' +
                 '同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す',
-            example: submitGameRequestExampleGame1,
         }),
 );
 

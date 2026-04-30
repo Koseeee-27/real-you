@@ -11,11 +11,13 @@ import {
 /**
  * game_type に応じて、受け取った data を対応する zod スキーマで parse する。
  *
- * route 層の `gameDataSchema`（= `record(string, unknown)` + 「空でない」refine）では
- * data の中身までは検証されないため、ここで game_type に応じた構造検証を行ったうえで
- * `gameType` と `rawData` を組（判別可能 union `GameRawDataPayload`）として返す。
- * これにより `gameRepository.saveLog` の引数で gameType と rawData のミスマッチを
- * 型レベルで弾ける。
+ * route 層の `submitGameRequestSchema`（discriminatedUnion 化済み）で data の
+ * 構造は既に検証されているため、本関数の safeParse は実質的にはパススルーになる。
+ * ただし以下の理由で safeParse + switch の構造を残している:
+ * - service が将来 route 以外（CLI / batch ジョブ等）から呼ばれた場合の防御
+ * - `gameType` と `rawData` を組（判別可能 union `GameRawDataPayload`）として
+ *   返すことで、`gameRepository.saveLog` の引数で gameType と rawData の
+ *   ミスマッチを型レベルで弾く
  *
  * 構造違反（必須フィールド欠落・型違い等）はクライアント起因の不正リクエストとして
  * 400 `invalid_request` を throw する。詳細な issue は warn ログに残し、
