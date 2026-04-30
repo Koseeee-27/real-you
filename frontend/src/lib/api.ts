@@ -1,4 +1,3 @@
-import type { BaselineAnswers } from '@/features/diagnosis/types';
 import type {
   SubmitGameRequest,
   SubmitGameResponse,
@@ -6,18 +5,12 @@ import type {
   VoiceRespondResponse,
 } from '@/features/games/types';
 import type { ResultResponse } from '@/features/result/types';
+import type { components } from '@/lib/api/generated';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-type RegisterRequest = {
-  mbti: string | null;
-  baseline_answers: BaselineAnswers;
-};
-
-type RegisterResponse = {
-  user_id: string;
-  status: 'success';
-};
+type RegisterRequest = components['schemas']['RegisterRequest'];
+type RegisterResponse = components['schemas']['RegisterResponse'];
 
 export async function postRegister(
   body: RegisterRequest

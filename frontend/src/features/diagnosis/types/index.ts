@@ -1,14 +1,21 @@
-export type AnswerOption = 'A' | 'B' | 'C' | 'D';
+// OpenAPI から自動生成された型を再エクスポートする。
+// 手書き定義は廃止済み。スキーマ変更は backend/src/openapi/ を更新したうえで
+// `npm run gen:api-types` で frontend/src/lib/api/generated.ts を再生成する。
 
-export type QuestionKey =
-  | 'q1_caution'
-  | 'q2_calmness'
-  | 'q3_logic'
-  | 'q4_cooperativeness'
-  | 'q5_positivity';
+import type { components } from '@/lib/api/generated';
 
-export type BaselineAnswers = Record<QuestionKey, AnswerOption>;
+// ========================================
+// 自己申告アンケートの API 型
+// ========================================
+export type AnswerOption = components['schemas']['AnswerOption'];
+export type BaselineAnswers = components['schemas']['BaselineAnswers'];
 
+// QuestionKey は API I/O ではなく FE 内部のキー定義。BaselineAnswers から導出する。
+export type QuestionKey = keyof BaselineAnswers;
+
+// ========================================
+// FE 内部データ（API I/O ではない）
+// ========================================
 export type QuestionOption = {
   value: AnswerOption;
   label: string;
