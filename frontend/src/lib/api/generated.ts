@@ -460,54 +460,136 @@ export interface components {
             status: "success";
         };
         /**
+         * @description Game1 のスクロールイベント（200ms 間隔のサンプリングログ）
+         * @example {
+         *       "position": 1200,
+         *       "timestamp": 2500
+         *     }
+         */
+        ScrollEvent: {
+            /** @description スクロール位置（px） */
+            position: number;
+            /** @description ゲーム開始からの経過時間（ms） */
+            timestamp: number;
+        };
+        /**
+         * @description Game1 のチェックボックス状態（readConfirm / mailMagazine / thirdPartyShare で共通）
+         * @example {
+         *       "checked": true,
+         *       "changed": true
+         *     }
+         */
+        CheckboxState: {
+            /** @description 最終的なチェック状態 */
+            checked: boolean;
+            /** @description ユーザーが初期状態から変更したか */
+            changed: boolean;
+        };
+        /**
+         * @description Game1 のポップアップ統計。高速スクロール時はポップアップ自体が出ないため Game1Data 側で optional
+         * @example {
+         *       "timeToClose": 850,
+         *       "clickCount": 1,
+         *       "mouseJitter": 42.3
+         *     }
+         */
+        PopupStats: {
+            /** @description ポップアップ表示から閉じるまでの時間（ms） */
+            timeToClose: number;
+            /** @description ポップアップ閉じるまでのクリック回数 */
+            clickCount: number;
+            /** @description マウス余剰移動距離（px） */
+            mouseJitter: number;
+        };
+        /** @description Game1（利用規約ゲーム）の行動データ。仕様書「データ構造 → Game1Data」準拠 */
+        Game1Data: {
+            /** @description 滞在時間（秒） */
+            totalTime: number;
+            /**
+             * @description 最終アクション（同意 / 拒否）
+             * @enum {unknown}
+             */
+            finalAction: "agree" | "disagree";
+            /** @description 規約の最下部までスクロールしたか */
+            reachedBottom: boolean;
+            /** @description スクロールイベントの時系列ログ */
+            scrollEvents: components["schemas"]["ScrollEvent"][];
+            /** @description 隠しテキスト入力欄の値（未入力なら null） */
+            hiddenInput: string | null;
+            /** @description 3 つのチェックボックスの最終状態と変更有無 */
+            checkboxStates: {
+                readConfirm: components["schemas"]["CheckboxState"];
+                mailMagazine: components["schemas"]["CheckboxState"];
+                thirdPartyShare: components["schemas"]["CheckboxState"];
+            };
+            popupStats?: components["schemas"]["PopupStats"] & unknown;
+            /** @description 同意ボタンホバー → クリックの迷い時間（ms） */
+            agreeButtonHoverTimeMs: number;
+        };
+        /**
+         * @description Game2 の入力方式（voice: 音声 / text: テキスト）
+         * @enum {unknown}
+         */
+        Game2InputMethod: "voice" | "text";
+        /** @description Game2 の 1 ターン分のメトリクス。テキスト入力時は音声系フィールドが null */
+        Game2Turn: {
+            /** @description ターン番号（1 始まり） */
+            turnIndex: number;
+            inputMethod: components["schemas"]["Game2InputMethod"];
+            /** @description 喋り出しまでの反応速度（ms）。テキスト入力時は null */
+            reactionTimeMs: number | null;
+            /** @description 発話時間（ms）。テキスト入力時は null */
+            speechDurationMs: number | null;
+            /** @description 発話中の沈黙合計（ms）。テキスト入力時は null */
+            silenceDurationMs: number | null;
+            /** @description 平均音量（dB）。テキスト入力時は null */
+            volumeDb: number | null;
+            /** @description 文字起こし結果 or テキスト入力内容 */
+            transcribedText: string;
+        };
+        /** @description Game2 のテキスト入力メトリクス。全ターン音声入力の場合は Game2Data 側で null */
+        Game2TextInputMetrics: {
+            /** @description タイピング間隔の分散 */
+            typingIntervalVariance: number;
+        };
+        /** @description Game2（AI カスタマーサポート）の行動データ。仕様書「データ構造 → Game2Data」準拠 */
+        Game2Data: {
+            inputMethod: components["schemas"]["Game2InputMethod"];
+            /** @description 実施ターン数 */
+            turnCount: number;
+            /** @description 各ターンのメトリクス（turnCount 件） */
+            turns: components["schemas"]["Game2Turn"][];
+            textInputMetrics: components["schemas"]["Game2TextInputMetrics"] & (Record<string, never> | null);
+        };
+        /** @description Game3 の 1 ステージ分のメトリクス */
+        Game3Stage: {
+            /** @description ステージ ID（1-5） */
+            stageId: number;
+            /** @description 選択した選択肢 ID（1-4 が通常選択、タイムアウト時は 0） */
+            selectedOptionId: number;
+            /** @description ステージ表示から選択までの反応時間（ms） */
+            reactionTimeMs: number;
+            /** @description タイムアウトしたか */
+            isTimeout: boolean;
+        };
+        /** @description Game3（空気読みグループチャット）の行動データ。仕様書「データ構造 → Game3Data」準拠 */
+        Game3Data: {
+            /** @description チュートリアル閲覧時間（ms） */
+            tutorialViewTime: number;
+            /** @description 全ステージ通じた選択肢ホバー回数の合計 */
+            hoveredOptions: number;
+            /** @description ステージ 3 / 5 で「入力中...」表示後の操作時間（ms）。未計測時は null */
+            typingIndicatorReactTimeMs: number | null;
+            /** @description 各ステージのメトリクス */
+            stages: components["schemas"]["Game3Stage"][];
+        };
+        /**
          * @description ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット
          * @example 1
          * @enum {unknown}
          */
         GameType: 1 | 2 | 3;
-        /**
-         * @description 各ゲーム終了時に行動データを送信するリクエスト。同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す
-         * @example {
-         *       "user_id": "550e8400-e29b-41d4-a716-446655440000",
-         *       "game_type": 1,
-         *       "data": {
-         *         "totalTime": 42.5,
-         *         "finalAction": "agree",
-         *         "reachedBottom": true,
-         *         "scrollEvents": [
-         *           {
-         *             "position": 0,
-         *             "timestamp": 0
-         *           },
-         *           {
-         *             "position": 1200,
-         *             "timestamp": 2500
-         *           }
-         *         ],
-         *         "hiddenInput": null,
-         *         "checkboxStates": {
-         *           "readConfirm": {
-         *             "checked": true,
-         *             "changed": true
-         *           },
-         *           "mailMagazine": {
-         *             "checked": true,
-         *             "changed": false
-         *           },
-         *           "thirdPartyShare": {
-         *             "checked": false,
-         *             "changed": true
-         *           }
-         *         },
-         *         "popupStats": {
-         *           "timeToClose": 850,
-         *           "clickCount": 1,
-         *           "mouseJitter": 42.3
-         *         },
-         *         "agreeButtonHoverTimeMs": 1200
-         *       }
-         *     }
-         */
+        /** @description 各ゲーム終了時に行動データを送信するリクエスト。game_type を discriminator として data 構造が決まる。同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す */
         SubmitGameRequest: {
             /**
              * Format: uuid
@@ -515,49 +597,29 @@ export interface components {
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             user_id: string;
-            game_type: components["schemas"]["GameType"];
+            /** @enum {number} */
+            game_type: 1;
+            data: components["schemas"]["Game1Data"];
+        } | {
             /**
-             * @description ゲーム固有の行動データ。game_type ごとに構造が異なる（仕様書「データ構造」参照）。空オブジェクト不可
-             * @example {
-             *       "totalTime": 42.5,
-             *       "finalAction": "agree",
-             *       "reachedBottom": true,
-             *       "scrollEvents": [
-             *         {
-             *           "position": 0,
-             *           "timestamp": 0
-             *         },
-             *         {
-             *           "position": 1200,
-             *           "timestamp": 2500
-             *         }
-             *       ],
-             *       "hiddenInput": null,
-             *       "checkboxStates": {
-             *         "readConfirm": {
-             *           "checked": true,
-             *           "changed": true
-             *         },
-             *         "mailMagazine": {
-             *           "checked": true,
-             *           "changed": false
-             *         },
-             *         "thirdPartyShare": {
-             *           "checked": false,
-             *           "changed": true
-             *         }
-             *       },
-             *       "popupStats": {
-             *         "timeToClose": 850,
-             *         "clickCount": 1,
-             *         "mouseJitter": 42.3
-             *       },
-             *       "agreeButtonHoverTimeMs": 1200
-             *     }
+             * Format: uuid
+             * @description ユーザー識別子（UUID v4）
+             * @example 550e8400-e29b-41d4-a716-446655440000
              */
-            data: {
-                [key: string]: unknown;
-            };
+            user_id: string;
+            /** @enum {number} */
+            game_type: 2;
+            data: components["schemas"]["Game2Data"];
+        } | {
+            /**
+             * Format: uuid
+             * @description ユーザー識別子（UUID v4）
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            user_id: string;
+            /** @enum {number} */
+            game_type: 3;
+            data: components["schemas"]["Game3Data"];
         };
         /**
          * @description ゲームデータ保存成功レスポンス（200 OK）
