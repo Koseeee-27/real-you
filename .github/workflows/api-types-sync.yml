@@ -1,0 +1,57 @@
+name: API Types Sync
+
+# BE の zod スキーマ変更で `frontend/src/lib/api/generated.ts` の再生成を忘れた PR を検知する。
+# 失敗した場合はローカルで `cd frontend && npm run gen:api-types` を実行してコミットする。
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "backend/**"
+      - "frontend/scripts/**"
+      - "frontend/src/lib/api/generated.ts"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - ".github/workflows/api-types-sync.yml"
+  pull_request:
+    branches: [develop]
+    paths:
+      - "backend/**"
+      - "frontend/scripts/**"
+      - "frontend/src/lib/api/generated.ts"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - ".github/workflows/api-types-sync.yml"
+
+jobs:
+  verify:
+    name: Verify generated.ts is up-to-date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Verify generated.ts is up-to-date
+        run: npm run check:api-types
+        working-directory: frontend
+
+      - name: Hint on failure
+        if: failure()
+        run: |
+          echo "::error::generated.ts が BE スキーマと同期していません。ローカルで 'cd frontend && npm run gen:api-types' を実行し、差分をコミットしてください。"
