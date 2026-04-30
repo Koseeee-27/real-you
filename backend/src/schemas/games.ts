@@ -69,60 +69,6 @@ export const gameTypeSchema = registry.register(
 );
 
 /**
- * POST /api/games/submit の game_type 別リクエスト branch。
- *
- * 各 branch を `registry.register()` で名前付きコンポーネント化することで、
- * zod-to-openapi が `discriminator: { propertyName: 'game_type', mapping }` を
- * OpenAPI ドキュメントに出力する（branch が登録されていないと discriminator が
- * 自動付与されないため。zod-to-openapi v8 のソース参照）。
- *
- * 各 branch は `SubmitGameRequest` の oneOf 要素として独立コンポーネント化されるが、
- * FE/BE どちらも基本は親の `SubmitGameRequest` 型を介して扱うため、ここで生成される
- * 個別型は OpenAPI ドキュメント表示と discriminator マッピング用の副産物と捉える。
- */
-const submitGameRequestGame1Schema = registry.register(
-    'SubmitGameRequestGame1',
-    z
-        .object({
-            user_id: userIdSchema,
-            game_type: z.literal(GAME_TYPES.TERMS_GAME),
-            data: game1DataSchema,
-        })
-        .openapi({
-            description: 'Game1（利用規約ゲーム）の終了時に送るリクエスト',
-            example: submitGameRequestExampleGame1,
-        }),
-);
-
-const submitGameRequestGame2Schema = registry.register(
-    'SubmitGameRequestGame2',
-    z
-        .object({
-            user_id: userIdSchema,
-            game_type: z.literal(GAME_TYPES.AI_CHAT),
-            data: game2DataSchema,
-        })
-        .openapi({
-            description: 'Game2（AI カスタマーサポート）の終了時に送るリクエスト',
-            example: submitGameRequestExampleGame2,
-        }),
-);
-
-const submitGameRequestGame3Schema = registry.register(
-    'SubmitGameRequestGame3',
-    z
-        .object({
-            user_id: userIdSchema,
-            game_type: z.literal(GAME_TYPES.GROUP_CHAT),
-            data: game3DataSchema,
-        })
-        .openapi({
-            description: 'Game3（グループチャット）の終了時に送るリクエスト',
-            example: submitGameRequestExampleGame3,
-        }),
-);
-
-/**
  * POST /api/games/submit のリクエストボディ。
  *
  * `z.discriminatedUnion('game_type', [...])` で `game_type` × `data` の対応を
@@ -131,8 +77,8 @@ const submitGameRequestGame3Schema = registry.register(
  * - game_type === 2 のとき data は Game2Data
  * - game_type === 3 のとき data は Game3Data
  *
- * これにより OpenAPI 上は `oneOf` + `discriminator: { propertyName: 'game_type' }`
- * として表現され、Swagger UI / 生成型からも game_type 別の構造が見える。
+ * これにより OpenAPI 上は `oneOf` + discriminator として表現され、Swagger UI / 生成型
+ * からも game_type 別の構造が見える。
  *
  * 入口バリデーション（discriminatedUnion）で既に data 構造は検証済みだが、
  * 既存挙動の維持を優先して `gameService.parseGameData` 側でも safeParse を残す
@@ -142,9 +88,39 @@ export const submitGameRequestSchema = registry.register(
     'SubmitGameRequest',
     z
         .discriminatedUnion('game_type', [
-            submitGameRequestGame1Schema,
-            submitGameRequestGame2Schema,
-            submitGameRequestGame3Schema,
+            z
+                .object({
+                    user_id: userIdSchema,
+                    game_type: z.literal(GAME_TYPES.TERMS_GAME),
+                    data: game1DataSchema,
+                })
+                .openapi({
+                    description:
+                        'Game1（利用規約ゲーム）の終了時に送るリクエスト',
+                    example: submitGameRequestExampleGame1,
+                }),
+            z
+                .object({
+                    user_id: userIdSchema,
+                    game_type: z.literal(GAME_TYPES.AI_CHAT),
+                    data: game2DataSchema,
+                })
+                .openapi({
+                    description:
+                        'Game2（AI カスタマーサポート）の終了時に送るリクエスト',
+                    example: submitGameRequestExampleGame2,
+                }),
+            z
+                .object({
+                    user_id: userIdSchema,
+                    game_type: z.literal(GAME_TYPES.GROUP_CHAT),
+                    data: game3DataSchema,
+                })
+                .openapi({
+                    description:
+                        'Game3（グループチャット）の終了時に送るリクエスト',
+                    example: submitGameRequestExampleGame3,
+                }),
         ])
         .openapi({
             description:
