@@ -1,6 +1,6 @@
 // OpenAPI から自動生成された型を再エクスポートする。
 // 手書き定義は廃止済み。スキーマ変更は backend/src/openapi/ を更新したうえで
-// `npm run gen:openapi:fe` で frontend/src/lib/api/generated.ts を再生成する。
+// `npm run gen:api-types` で frontend/src/lib/api/generated.ts を再生成する。
 
 import type { components } from '@/lib/api/generated';
 
