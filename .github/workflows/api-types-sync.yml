@@ -9,6 +9,7 @@ on:
     paths:
       - "backend/**"
       - "frontend/scripts/**"
+      - "frontend/src/lib/api/generated.ts"
       - "frontend/package.json"
       - "frontend/package-lock.json"
       - ".github/workflows/api-types-sync.yml"
@@ -17,6 +18,7 @@ on:
     paths:
       - "backend/**"
       - "frontend/scripts/**"
+      - "frontend/src/lib/api/generated.ts"
       - "frontend/package.json"
       - "frontend/package-lock.json"
       - ".github/workflows/api-types-sync.yml"
