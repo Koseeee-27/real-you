@@ -75,6 +75,8 @@ cd frontend
 | `npm run lint` | ESLint でコードチェック | PR 前チェック |
 | `npm run format` | Prettier でコード整形 | コード整形したいとき |
 | `npm run format:check` | Prettier で整形チェック（変更なし） | CI 用 |
+| `npm run gen:api-types` | BE の zod スキーマから FE の API 型 (`src/lib/api/generated.ts`) を再生成 | BE スキーマ変更後 |
+| `npm run check:api-types` | `generated.ts` が BE スキーマと同期しているか検証（差分があれば exit 1） | スキーマ変更時の確認用（CI でも自動実行） |
 
 ### Backend
 
@@ -102,6 +104,25 @@ npm run build
 cd ../backend
 npm run build
 ```
+
+### API スキーマを変更したとき
+
+BE の zod スキーマを変更した場合は、FE 側の自動生成型も再生成する。
+
+```bash
+# 1. BE 側で zod スキーマを更新
+#    backend/src/schemas/*.ts を編集
+
+# 2. FE 側で生成型を再生成
+cd frontend
+npm run gen:api-types
+
+# 3. BE と FE の変更を一緒にコミット
+```
+
+仕組みの詳細・FE での型の使い方は [docs/api.md](api.md) を参照。
+
+CI（`.github/workflows/api-types-sync.yml`）でも `generated.ts` の同期を自動検証している。BE スキーマだけ変えて FE の再生成を忘れた PR は CI が落ちる。
 
 ## Pull Request
 
