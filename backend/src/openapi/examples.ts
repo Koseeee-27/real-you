@@ -160,6 +160,74 @@ export const submitGameRequestExampleGame1 = {
 } as const;
 
 /**
+ * game_type = 2（AI カスタマーサポート）の data サンプル。
+ *
+ * 仕様書「データ構造」→ Game2Data を参照。turns は最小 2 件（音声 1 件 + テキスト 1 件）で
+ * 構造を示し、テキスト入力時は音声系メトリクスが null になる例を載せる。
+ */
+export const submitGameRequestExampleGame2 = {
+    user_id: SAMPLE_USER_ID,
+    game_type: 2,
+    data: {
+        inputMethod: 'voice',
+        turnCount: 2,
+        turns: [
+            {
+                turnIndex: 1,
+                inputMethod: 'voice',
+                reactionTimeMs: 850,
+                speechDurationMs: 3200,
+                silenceDurationMs: 400,
+                volumeDb: -18.5,
+                transcribedText: 'パスワードを忘れました',
+            },
+            {
+                turnIndex: 2,
+                inputMethod: 'text',
+                reactionTimeMs: null,
+                speechDurationMs: null,
+                silenceDurationMs: null,
+                volumeDb: null,
+                transcribedText: 'メールアドレスは abc@example.com です',
+            },
+        ],
+        textInputMetrics: {
+            typingIntervalVariance: 120.5,
+        },
+    },
+} as const;
+
+/**
+ * game_type = 3（グループチャット）の data サンプル。
+ *
+ * 仕様書「データ構造」→ Game3Data を参照。stages は 5 ステージのうち代表 2 件を載せ、
+ * `selectedOptionId: 0` でタイムアウト例も含める（仕様書準拠）。
+ */
+export const submitGameRequestExampleGame3 = {
+    user_id: SAMPLE_USER_ID,
+    game_type: 3,
+    data: {
+        tutorialViewTime: 8500,
+        hoveredOptions: 7,
+        typingIndicatorReactTimeMs: 1450,
+        stages: [
+            {
+                stageId: 1,
+                selectedOptionId: 2,
+                reactionTimeMs: 3200,
+                isTimeout: false,
+            },
+            {
+                stageId: 2,
+                selectedOptionId: 0,
+                reactionTimeMs: 10000,
+                isTimeout: true,
+            },
+        ],
+    },
+} as const;
+
+/**
  * POST /api/games/submit のレスポンス例（200 OK）。
  * message はサーバ側で `Game ${game_type} data saved` を返す（games.ts 参照）。
  */
