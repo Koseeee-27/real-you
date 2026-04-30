@@ -507,7 +507,7 @@ export interface components {
             totalTime: number;
             /**
              * @description 最終アクション（同意 / 拒否）
-             * @enum {unknown}
+             * @enum {string}
              */
             finalAction: "agree" | "disagree";
             /** @description 規約の最下部までスクロールしたか */
@@ -528,7 +528,7 @@ export interface components {
         };
         /**
          * @description Game2 の入力方式（voice: 音声 / text: テキスト）
-         * @enum {unknown}
+         * @enum {string}
          */
         Game2InputMethod: "voice" | "text";
         /** @description Game2 の 1 ターン分のメトリクス。テキスト入力時は音声系フィールドが null */
