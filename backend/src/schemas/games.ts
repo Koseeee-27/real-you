@@ -77,8 +77,18 @@ export const gameTypeSchema = registry.register(
  * - game_type === 2 のとき data は Game2Data
  * - game_type === 3 のとき data は Game3Data
  *
- * これにより OpenAPI 上は `oneOf` + discriminator として表現され、Swagger UI / 生成型
- * からも game_type 別の構造が見える。
+ * OpenAPI 上は `oneOf` で表現され、各 branch の
+ * `game_type: { type: 'number', enum: [N] }` リテラル enum で判別する形になる。
+ * 明示的な `discriminator` キーは出力しない方針:
+ * - 各 branch を named component 化すると zod-to-openapi が
+ *   `discriminator: { mapping: { '1': ..., '2': ..., '3': ... } }` を出力する
+ * - OpenAPI 仕様上 `mapping` のキーは Map<string, string> のため数値リテラルでも
+ *   文字列化される。openapi-typescript v7 はこのキーをそのまま tsLiteral に渡すため、
+ *   FE 生成型の game_type が文字列リテラル "1" / "2" / "3" になり、BE の
+ *   z.literal(1|2|3) と矛盾する（PR #64 のレビュー経緯参照）。
+ *
+ * Swagger UI / 生成型からも各 branch の game_type literal で構造が見えるため、
+ * discriminator 等価の機能は維持される。
  *
  * 入口バリデーション（discriminatedUnion）で既に data 構造は検証済みだが、
  * 既存挙動の維持を優先して `gameService.parseGameData` 側でも safeParse を残す
@@ -125,7 +135,7 @@ export const submitGameRequestSchema = registry.register(
         .openapi({
             description:
                 '各ゲーム終了時に行動データを送信するリクエスト。' +
-                'game_type を discriminator として data 構造が決まる。' +
+                'game_type の値（1 / 2 / 3）で data 構造が決まる（oneOf）。' +
                 '同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す',
         }),
 );
