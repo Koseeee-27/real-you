@@ -987,7 +987,8 @@ export interface components {
              * @example INTJ
              */
             self_mbti: string | null;
-            mbti_scores: components["schemas"]["BaselineScores"] & (Record<string, never> | null);
+            /** @description MBTI 理論値（self_mbti から導出）。self_mbti が null の場合は null */
+            mbti_scores: components["schemas"]["BaselineScores"] | null;
             scores: components["schemas"]["BaselineScores"] & unknown;
             baseline_scores: components["schemas"]["BaselineScores"] & unknown;
             gaps: components["schemas"]["GapScores"] & unknown;

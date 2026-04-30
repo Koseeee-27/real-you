@@ -214,7 +214,14 @@ export const resultsResponseSchema = registry.register(
             self_mbti: mbtiSchema.nullable().openapi({
                 description: '自己申告の MBTI タイプ。登録時にスキップした場合は null',
             }),
-            mbti_scores: baselineScoresSchema.nullable().openapi({
+            // baselineScoresSchema.nullable() ではなく z.union を使う理由:
+            // zod-to-openapi は `$ref` を持つスキーマに `.nullable()` を後付けすると
+            // `allOf: [{$ref}, {type:[object,null], description}]` を出力する。
+            // openapi-typescript はこれを `BaselineScores & (Record<string, never> | null)`
+            // という壊れた交差型に変換してしまう（Issue #61）。
+            // `z.union([X, z.null()])` にすると `oneOf: [{$ref}, {type:null}]` になり、
+            // 生成型も `BaselineScores | null` で期待通りとなる。
+            mbti_scores: z.union([baselineScoresSchema, z.null()]).openapi({
                 description: 'MBTI 理論値（self_mbti から導出）。self_mbti が null の場合は null',
             }),
             scores: baselineScoresSchema.openapi({
