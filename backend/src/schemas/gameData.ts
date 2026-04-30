@@ -129,10 +129,10 @@ export const game1DataSchema = registry.register(
                 .openapi({
                     description: '3 つのチェックボックスの最終状態と変更有無',
                 }),
-            popupStats: popupStatsSchema.optional().openapi({
-                description:
-                    'ポップアップが表示された場合の統計。高速スクロール等で表示されない場合は省略',
-            }),
+            // popupStats は popupStatsSchema 側に description を寄せている。
+            // ここで `.openapi({ description })` を付けると openapi-typescript の生成型で
+            // `PopupStats & unknown` という不自然な交差型が出るため、wrapper には description を付けない。
+            popupStats: popupStatsSchema.optional(),
             agreeButtonHoverTimeMs: z.number().openapi({
                 description: '同意ボタンホバー → クリックの迷い時間（ms）',
             }),
@@ -231,10 +231,13 @@ export const game2DataSchema = registry.register(
             turns: z.array(game2TurnSchema).openapi({
                 description: '各ターンのメトリクス（turnCount 件）',
             }),
-            textInputMetrics: game2TextInputMetricsSchema.nullable().openapi({
-                description:
-                    'テキスト入力メトリクス。全ターン音声入力の場合は null',
-            }),
+            // textInputMetrics は `z.union([..., z.null()])` で nullable にする。
+            // `.nullable()` を使うと OpenAPI 3.1 上で `allOf: [$ref, type: ['object','null']]`
+            // という形になり、openapi-typescript が `Game2TextInputMetrics & (Record<string, never> | null)`
+            // という壊れた交差型を生成する（null も具体値も代入できなくなる）。
+            // `z.union([schema, z.null()])` だと `oneOf: [$ref, type: 'null']` 形式になり、
+            // 生成型が `Game2TextInputMetrics | null` で正しく表現される。
+            textInputMetrics: z.union([game2TextInputMetricsSchema, z.null()]),
         })
         .openapi({
             description:
