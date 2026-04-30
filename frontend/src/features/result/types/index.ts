@@ -1,7 +1,9 @@
 // ========================================
 // 結果画面で使う API 型
-// OpenAPI から自動生成された型（src/lib/api/generated.ts）を再エクスポートする。
-// 仕様書と乖離しないよう、手書き interface は置かない。
+// OpenAPI から自動生成された型を再エクスポートする。
+// 手書き定義は廃止済み。スキーマ変更は backend/src/schemas/ の zod 定義を更新したうえで
+// `npm run gen:api-types` で frontend/src/lib/api/generated.ts を再生成する。
+// （新規エンドポイント追加時は backend/src/openapi/paths/ への登録も必要）
 // ========================================
 
 import type { components } from '@/lib/api/generated';
