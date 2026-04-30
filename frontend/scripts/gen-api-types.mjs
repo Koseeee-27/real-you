@@ -31,6 +31,9 @@ console.log('[gen:api-types] Building OpenAPI document from backend...');
 const openapiJson = execSync('npm run --silent dump:openapi', {
   cwd: backendDir,
   encoding: 'utf-8',
+  // execSync のデフォルト maxBuffer (1MB) は将来 OpenAPI スキーマが拡大した際に
+  // 突破する可能性があるため、明示的に大きめに確保しておく。
+  maxBuffer: 10 * 1024 * 1024,
 });
 
 console.log('[gen:api-types] Generating TypeScript types...');
