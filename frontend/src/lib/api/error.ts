@@ -82,12 +82,28 @@ export type RawApiErrorBody = {
  * 「リトライしても回復しない」業務エラーコードの一覧。
  * これらが返ってきた場合は ErrorScreen の `variant: 'restart'` を出して
  * トップ画面からのやり直しを促す。
+ *
+ * `as const satisfies readonly ApiErrorCode[]` の形にしている理由:
+ * - `as const` でリテラルタプル `readonly ['user_not_found', ...]` 型を保持する
+ *   （要素まで型情報に残るので `(typeof RESTART_CODES)[number]` で派生型が作れる）
+ * - `satisfies` は型注釈と違い、`as const` の効果を上書きしない。一方で
+ *   「`ApiErrorCode` のいずれかしか入らない」という妥当性チェックは効くため、
+ *   タイポ（例: `'user_not_foud'`）を書いた瞬間にビルドエラーになる
  */
-export const RESTART_CODES: readonly ApiErrorCode[] = [
+export const RESTART_CODES = [
   'user_not_found',
   'invalid_user_id',
   'incomplete_games',
-] as const;
+] as const satisfies readonly ApiErrorCode[];
+
+/**
+ * `isRestartCode` が `RESTART_CODES.includes(code)` で型エラーにならないよう、
+ * 内部判定用に Set 化したもの。`Set<string>.has` は string を受けるため、
+ * `ApiErrorCodeOrUnknown` を型キャストなしでそのまま渡せる。
+ *
+ * モジュール外には公開しない（外向き API は `RESTART_CODES` のまま）。
+ */
+const RESTART_CODES_SET: ReadonlySet<string> = new Set(RESTART_CODES);
 
 /**
  * 通信エラー時のリトライ上限回数。
@@ -142,17 +158,11 @@ export function isApiClientError(value: unknown): value is ApiClientError {
 /**
  * 渡された業務エラーコードが「最初からやり直す」べきものかを判定する。
  *
- * `ApiClientError.code` は `ApiErrorCodeOrUnknown | null` 型なので、
- * `RESTART_CODES.includes(err.code)` の形では TypeScript の型チェックで
- * エラーになる。後続の各画面が catch で扱う際に詰まらないよう、
- * `null` も受け取れる薄いラッパーを用意しておく。
- *
- * `RESTART_CODES` の要素型は厳格型 `ApiErrorCode`、`code` は未知コードを含む
- * `ApiErrorCodeOrUnknown` で型の幅が違うため、比較を string 同士に落として
- * 行うために `as readonly string[]` で幅キャストしている。
- * 未知コード（OpenAPI 未記載）が渡された場合は false（リトライ可能扱い）になる。
+ * `ApiClientError.code` は `ApiErrorCodeOrUnknown | null` 型のため、
+ * `null` を受けて false に短絡する薄いラッパーとして用意。
+ * 未知コード（OpenAPI 未記載）が渡された場合も false（リトライ可能扱い）になる。
  */
 export function isRestartCode(code: ApiErrorCodeOrUnknown | null): boolean {
   if (code === null) return false;
-  return (RESTART_CODES as readonly string[]).includes(code);
+  return RESTART_CODES_SET.has(code);
 }
