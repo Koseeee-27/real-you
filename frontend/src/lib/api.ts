@@ -6,7 +6,7 @@ import type {
 } from '@/features/games/types';
 import type { ResultResponse } from '@/features/result/types';
 import type { components } from '@/lib/api/generated';
-import { ApiClientError, type ApiErrorBody } from '@/lib/api/error';
+import { ApiClientError, type RawApiErrorBody } from '@/lib/api/error';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -35,6 +35,7 @@ async function buildApiClientError(
   const message = body?.message ?? fallbackMessage;
 
   console.error('[ApiClientError]', {
+    url: res.url,
     httpStatus: res.status,
     code: body?.error ?? null,
     message,
@@ -44,11 +45,18 @@ async function buildApiClientError(
 }
 
 /**
- * 受け取った値が `ApiErrorBody` の形をしているかをチェックする。
- * サーバ側の OpenAPI で型を縛っているため通常は常に true だが、
- * 想定外の JSON が返ってきたとき（プロキシが差し込んだエラー等）に備えて検証する。
+ * 受け取った値が共通エラーレスポンスの形をしているかをチェックする。
+ *
+ * 戻り値型は `RawApiErrorBody`（緩い型）。`error` フィールドは `string` の形だけ
+ * 検証して `ApiErrorCodeOrUnknown` として透過させる。これは「BE が新コードを
+ * 追加した瞬間に FE で取り落とさず、message を console に残す」ことを優先した
+ * 設計判断（詳細は `lib/api/error.ts` のモジュール JSDoc 参照）。
+ *
+ * 厳格な `ApiErrorBody`（既知 9 コードのみ）に断定する型ガードにはしない。
+ * もし「`ApiErrorBody` だけを受け入れたい」場合は呼び出し側で
+ * `RESTART_CODES.includes` 等の追加チェックを行う。
  */
-function isApiErrorBody(value: unknown): value is ApiErrorBody {
+function isApiErrorBody(value: unknown): value is RawApiErrorBody {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
