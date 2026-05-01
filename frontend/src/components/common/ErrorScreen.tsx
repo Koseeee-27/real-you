@@ -33,16 +33,29 @@ export default function ErrorScreen(props: ErrorScreenProps) {
   };
 
   return (
+    // 全画面オーバーレイで操作ボタン（リトライ / トップへ戻る）を提示するため、
+    // ライブリージョン（role="alert"）ではなく緊急ダイアログとして扱う。
+    // - role="alertdialog": 緊急性のあるモーダルダイアログ
+    // - aria-modal: 背景操作を抑止することを支援技術に伝える
+    // - aria-labelledby / aria-describedby: 見出しと本文を関連付ける
+    // 既存の MbtiSelect の決定確認モーダル（role="dialog" + aria-modal + aria-labelledby）と同じ流儀に揃えている。
     <div
-      role="alert"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="error-screen-title"
+      aria-describedby="error-screen-description"
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-white px-6 text-center"
     >
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-3xl">
         <span aria-hidden="true">!</span>
       </div>
 
-      <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-      <p className="text-base text-gray-600">{description}</p>
+      <h2 id="error-screen-title" className="text-2xl font-bold text-gray-900">
+        {title}
+      </h2>
+      <p id="error-screen-description" className="text-base text-gray-600">
+        {description}
+      </p>
 
       <button
         type="button"
