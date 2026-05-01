@@ -16,9 +16,7 @@ type ErrorScreenProps =
 export default function ErrorScreen(props: ErrorScreenProps) {
   const isRetry = props.variant === 'retry';
 
-  const title = isRetry
-    ? '通信に失敗しました'
-    : '最初からやり直してください';
+  const title = isRetry ? '通信に失敗しました' : '最初からやり直してください';
 
   const description = isRetry
     ? '少し時間をおいて、もう一度お試しください。'
