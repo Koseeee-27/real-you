@@ -34,8 +34,10 @@ async function buildApiClientError(
   const body = isApiErrorBody(rawBody) ? rawBody : null;
   const message = body?.message ?? fallbackMessage;
 
+  // url は出力しない: getResult のように URL パスに userId を含む API があり、
+  // ログから ID が漏洩するリスクを避ける。エンドポイントの識別は呼び出し側の
+  // fallbackMessage（'結果の取得に失敗しました' 等のエンドポイント別文言）で十分。
   console.error('[ApiClientError]', {
-    url: res.url,
     httpStatus: res.status,
     code: body?.error ?? null,
     message,
