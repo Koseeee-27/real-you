@@ -78,3 +78,16 @@ export class ApiClientError extends Error {
 export function isApiClientError(value: unknown): value is ApiClientError {
   return value instanceof ApiClientError;
 }
+
+/**
+ * 渡された業務エラーコードが「最初からやり直す」べきものかを判定する。
+ *
+ * `ApiClientError.code` は `ApiErrorCode | null` 型なので、
+ * `RESTART_CODES.includes(err.code)` の形では TypeScript の型チェックで
+ * エラーになる。後続の各画面が catch で扱う際に詰まらないよう、
+ * `null` も受け取れる薄いラッパーを用意しておく。
+ */
+export function isRestartCode(code: ApiErrorCode | null): boolean {
+  if (code === null) return false;
+  return RESTART_CODES.includes(code);
+}
