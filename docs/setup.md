@@ -28,6 +28,10 @@ cp .env.local.example .env.local
 
 必要な環境変数は `.env.local.example` を参照してください。
 
+### API 型ファイルについて
+
+`frontend/src/lib/api/generated.ts` は BE の zod スキーマから自動生成された TypeScript 型ファイルです。git 管理されているため、初回 setup での再生成は不要です。BE スキーマを変更した際の再生成手順は [docs/api.md](api.md) を参照してください。
+
 ## 3. Backend のセットアップ
 
 ```bash
