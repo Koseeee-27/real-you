@@ -57,8 +57,14 @@ export default function ErrorScreen(props: ErrorScreenProps) {
         {description}
       </p>
 
+      {/*
+       * autoFocus: role="alertdialog" の WAI-ARIA ベストプラクティスとして、
+       * 表示時にフォーカスをダイアログ内（主操作ボタン）に移す。
+       * これによりキーボード操作・スクリーンリーダーでも即座に操作できる。
+       */}
       <button
         type="button"
+        autoFocus
         onClick={handleClick}
         className="mt-2 rounded-full bg-blue-600 px-8 py-3 text-base font-bold text-white shadow-md transition hover:bg-blue-700 active:scale-95"
       >
