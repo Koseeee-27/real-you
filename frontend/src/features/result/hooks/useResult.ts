@@ -35,8 +35,7 @@ export type ResultErrorVariant = 'retry' | 'restart';
 
 export function useResult() {
   const [status, setStatus] = useState<ResultStatus>('loading');
-  const [errorVariant, setErrorVariant] =
-    useState<ResultErrorVariant>('retry');
+  const [errorVariant, setErrorVariant] = useState<ResultErrorVariant>('retry');
   const setResult = useSetAtom(resultAtom);
   const [fetchKey, setFetchKey] = useState(0);
 
