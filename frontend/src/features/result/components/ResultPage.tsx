@@ -19,9 +19,16 @@ export default function ResultPage() {
 
   if (status === 'error') {
     if (errorVariant === 'restart') {
-      return (
-        <ErrorScreen variant="restart" onGoTop={() => router.push('/')} />
-      );
+      // RESTART_CODES（user_not_found / invalid_user_id 等）でトップに戻すケースでは、
+      // 古い user_id を握ったまま再開しても同じエラーで詰むため localStorage を掃除する。
+      // 既存の `ResultReport.handleRetake` と挙動を揃えている。
+      const handleGoTop = () => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('user_id');
+        }
+        router.push('/');
+      };
+      return <ErrorScreen variant="restart" onGoTop={handleGoTop} />;
     }
     return <ErrorScreen variant="retry" onRetry={retry} />;
   }
