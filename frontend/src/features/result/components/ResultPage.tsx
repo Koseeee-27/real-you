@@ -1,14 +1,16 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useAtomValue } from 'jotai';
 import { resultAtom } from '@/stores/result';
 import { useResult } from '../hooks/useResult';
-import AnalyzingView from './AnalyzingView';
 import ResultReport from './ResultReport';
 import LoadingScreen from '@/components/common/LoadingScreen';
+import ErrorScreen from '@/components/common/ErrorScreen';
 
 export default function ResultPage() {
-  const { status, errorMessage, retry } = useResult();
+  const router = useRouter();
+  const { status, errorVariant, retry } = useResult();
   const result = useAtomValue(resultAtom);
 
   if (status === 'loading') {
@@ -16,13 +18,12 @@ export default function ResultPage() {
   }
 
   if (status === 'error') {
-    return (
-      <AnalyzingView
-        status="error"
-        errorMessage={errorMessage}
-        onRetry={retry}
-      />
-    );
+    if (errorVariant === 'restart') {
+      return (
+        <ErrorScreen variant="restart" onGoTop={() => router.push('/')} />
+      );
+    }
+    return <ErrorScreen variant="retry" onRetry={retry} />;
   }
 
   if (result) {

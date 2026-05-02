@@ -1,10 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSetAtom } from 'jotai';
 import type { ResultResponse } from '@/features/result/types';
 import { resultAtom } from '@/stores/result';
 import { getResult } from '@/lib/api';
+import {
+  MAX_RETRY_COUNT,
+  isApiClientError,
+  isRestartCode,
+} from '@/lib/api/error';
 
 const MIN_LOADING_MS = 2000;
 
@@ -21,11 +26,25 @@ async function fetchResult(): Promise<ResultResponse> {
 
 export type ResultStatus = 'loading' | 'error' | 'success';
 
+/**
+ * `ErrorScreen` に渡す variant。
+ * - `'retry'`   … 一時的な通信エラー（サーバ 5xx / ネットワーク失敗）想定
+ * - `'restart'` … `RESTART_CODES` に含まれる業務エラー、またはリトライ上限超過
+ */
+export type ResultErrorVariant = 'retry' | 'restart';
+
 export function useResult() {
   const [status, setStatus] = useState<ResultStatus>('loading');
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [errorVariant, setErrorVariant] =
+    useState<ResultErrorVariant>('retry');
   const setResult = useSetAtom(resultAtom);
   const [fetchKey, setFetchKey] = useState(0);
+
+  // リトライ回数は変更されてもこの hook の描画ロジックには直接影響しない
+  // （catch 内で variant を決める材料としてのみ使う）。state にして deps に含めると
+  // 「成功時のリセット」で effect が再実行されて二重 fetch する事故が起きるため、
+  // ref で扱う。
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
     let ignore = false;
@@ -35,12 +54,21 @@ export function useResult() {
         if (ignore) return;
         setResult(data);
         setStatus('success');
+        retryCountRef.current = 0;
       })
       .catch((err: unknown) => {
         if (ignore) return;
-        setErrorMessage(
-          err instanceof Error ? err.message : '結果の取得に失敗しました'
-        );
+
+        // 業務エラーコードが「最初からやり直し」系なら即 restart。
+        // それ以外（ネットワーク失敗・5xx・未知コード等）はリトライ可能扱いだが、
+        // 既に MAX_RETRY_COUNT 回リトライ済みなら restart に切り替える。
+        if (isApiClientError(err) && isRestartCode(err.code)) {
+          setErrorVariant('restart');
+        } else if (retryCountRef.current >= MAX_RETRY_COUNT) {
+          setErrorVariant('restart');
+        } else {
+          setErrorVariant('retry');
+        }
         setStatus('error');
       });
 
@@ -51,9 +79,9 @@ export function useResult() {
 
   const retry = useCallback(() => {
     setStatus('loading');
-    setErrorMessage('');
+    retryCountRef.current += 1;
     setFetchKey((k) => k + 1);
   }, []);
 
-  return { status, errorMessage, retry };
+  return { status, errorVariant, retry };
 }
