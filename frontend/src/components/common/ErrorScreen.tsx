@@ -1,34 +1,47 @@
 'use client';
 
 /**
- * 通信エラー / 業務エラー時に表示する全画面エラー UI。
+ * 通信エラー / 業務エラー / 想定外クラッシュ時に表示する全画面エラー UI。
  *
- * - `variant: 'retry'`  … 一時的な通信エラー想定。リトライボタンで同じ操作を再試行する
- * - `variant: 'restart'` … `RESTART_CODES`（user_not_found 等）想定。トップから最初の操作をやり直してもらう
- *
- * 後続 Issue で各画面の catch から呼び出す。本 Issue ではコンポーネント本体のみ実装する。
+ * - `variant: 'retry'`      … 一時的な通信エラー想定。リトライボタンで同じ操作を再試行する
+ * - `variant: 'restart'`    … `RESTART_CODES`（user_not_found 等）想定。トップから最初の操作をやり直してもらう
+ * - `variant: 'unexpected'` … Next.js Error Boundary（`app/error.tsx`）からの想定外クラッシュ用。
+ *                              通信文脈に限定しない中立的な文言で誤解を防ぐ
  */
 
 type ErrorScreenProps =
   | { variant: 'retry'; onRetry: () => void }
-  | { variant: 'restart'; onGoTop: () => void };
+  | { variant: 'restart'; onGoTop: () => void }
+  | { variant: 'unexpected'; onRetry: () => void };
+
+const VARIANT_TEXT = {
+  retry: {
+    title: '通信に失敗しました',
+    description: '少し時間をおいて、もう一度お試しください。',
+    buttonLabel: 'もう一度試す',
+  },
+  restart: {
+    title: '最初からやり直してください',
+    description: 'セッションが切れている可能性があります。',
+    buttonLabel: 'トップへ戻る',
+  },
+  unexpected: {
+    title: '予期しないエラーが発生しました',
+    description:
+      'もう一度試してもうまくいかない場合は、最初からやり直してください。',
+    buttonLabel: 'もう一度試す',
+  },
+} as const;
 
 export default function ErrorScreen(props: ErrorScreenProps) {
-  const isRetry = props.variant === 'retry';
-
-  const title = isRetry ? '通信に失敗しました' : '最初からやり直してください';
-
-  const description = isRetry
-    ? '少し時間をおいて、もう一度お試しください。'
-    : 'セッションが切れている可能性があります。';
-
-  const buttonLabel = isRetry ? 'もう一度試す' : 'トップへ戻る';
+  const { title, description, buttonLabel } = VARIANT_TEXT[props.variant];
 
   const handleClick = () => {
-    if (props.variant === 'retry') {
-      props.onRetry();
-    } else {
+    if (props.variant === 'restart') {
       props.onGoTop();
+    } else {
+      // retry / unexpected は同じ「再試行」セマンティクス
+      props.onRetry();
     }
   };
 

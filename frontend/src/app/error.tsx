@@ -27,5 +27,5 @@ export default function Error({
     console.error(error);
   }, [error]);
 
-  return <ErrorScreen variant="retry" onRetry={reset} />;
+  return <ErrorScreen variant="unexpected" onRetry={reset} />;
 }
