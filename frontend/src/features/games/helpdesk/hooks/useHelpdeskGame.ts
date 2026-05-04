@@ -486,8 +486,16 @@ export function useHelpdeskGame(options: {
         message: pending.userMessage,
         conversation_history: pending.conversationHistory,
       });
-      // 成功: リトライカウンタをリセットして応答を再生
+      // 成功: リトライカウンタをリセットして応答を再生。
+      // addSupportResponseAndSpeak は TTS の onend で非同期に user-input へ遷移する
+      // （数秒かかる）ため、その間 voice-api-error オーバーレイが残ったままだと
+      // リトライボタンが再表示され、連打で二重送信されてしまう。
+      // 防御として pending をクリアし、フェーズも awaiting-api に切り替えて
+      // 「少々お待ちください。」UI に倒す。awaiting-api は support-speaking effect の
+      // 発動条件に該当しないので、effect 再発動による API 二重呼び出しも起きない。
       voiceApiRetryCountRef.current = 0;
+      pendingVoiceRequestRef.current = null;
+      setGamePhase('awaiting-api');
       addSupportResponseAndSpeak(result.response);
     } catch (err: unknown) {
       pendingVoiceRequestRef.current = pending;
