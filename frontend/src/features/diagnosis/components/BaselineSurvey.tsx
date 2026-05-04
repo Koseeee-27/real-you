@@ -102,19 +102,15 @@ export default function BaselineSurvey() {
             // duplicate_submission（同一 user_id で同じゲームを再送信）は
             // 既にサーバ側に登録済みということなので、エラーにせず次画面へ進める。
             // それ以外は外側 catch に委譲する。
-            if (
-              !(
-                isApiClientError(gameErr) &&
-                gameErr.code === 'duplicate_submission'
-              )
-            ) {
-              throw gameErr;
-            }
+            const isDuplicate =
+              isApiClientError(gameErr) &&
+              gameErr.code === 'duplicate_submission';
+            if (!isDuplicate) throw gameErr;
           }
         }
 
-        setStatus('success');
         retryCountRef.current = 0;
+        setStatus('success');
 
         setTimeout(() => {
           router.push('/games/helpdesk');
