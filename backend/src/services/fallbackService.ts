@@ -3,8 +3,8 @@
  * キーワードマッチングのロジックを担当するファイル。
  */
 
-import { FALLBACK_TABLE, DEFAULT_RESPONSES } from './fallbackData';
-import { VoiceRespondResponse } from '../schemas/voice';
+import { FALLBACK_TABLE, DEFAULT_RESPONSES } from "./fallbackData";
+import { VoiceRespondResponse } from "../schemas/voice";
 
 /**
  * フォールバック返答の型。
@@ -19,12 +19,14 @@ export type FallbackResponse = VoiceRespondResponse;
  */
 export function getKeywordFallback(message: string): FallbackResponse {
   for (const entry of FALLBACK_TABLE) {
-    if (entry.keywords.some(kw => message.includes(kw))) {
-      const picked = entry.responses[Math.floor(Math.random() * entry.responses.length)];
+    if (entry.keywords.some((kw) => message.includes(kw))) {
+      const picked =
+        entry.responses[Math.floor(Math.random() * entry.responses.length)];
       return { ...picked, confidence: 0.3 };
     }
   }
   // どのキーワードにもヒットしなかった場合
-  const picked = DEFAULT_RESPONSES[Math.floor(Math.random() * DEFAULT_RESPONSES.length)];
+  const picked =
+    DEFAULT_RESPONSES[Math.floor(Math.random() * DEFAULT_RESPONSES.length)];
   return { ...picked, confidence: 0.2 };
 }

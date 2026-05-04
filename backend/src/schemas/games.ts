@@ -1,21 +1,17 @@
 // zod プロトタイプに `.openapi()` を生やすため、z 本体の import より前に
 // 拡張モジュールを副作用 import する（openapi/registry.ts 参照）。
-import '../openapi/registry';
-import { z } from 'zod';
-import { registry } from '../openapi/registry';
-import { userIdSchema } from './common';
-import { GAME_TYPES } from '../types';
+import "../openapi/registry";
+import { z } from "zod";
+import { registry } from "../openapi/registry";
+import { userIdSchema } from "./common";
+import { GAME_TYPES } from "../types";
+import { game1DataSchema, game2DataSchema, game3DataSchema } from "./gameData";
 import {
-    game1DataSchema,
-    game2DataSchema,
-    game3DataSchema,
-} from './gameData';
-import {
-    submitGameRequestExampleGame1,
-    submitGameRequestExampleGame2,
-    submitGameRequestExampleGame3,
-    submitGameResponseExample,
-} from '../openapi/examples';
+  submitGameRequestExampleGame1,
+  submitGameRequestExampleGame2,
+  submitGameRequestExampleGame3,
+  submitGameResponseExample,
+} from "../openapi/examples";
 
 /**
  * POST /api/games/submit のスキーマ群。
@@ -49,23 +45,19 @@ import {
  * （z.union<z.literal> のままだと OpenAPI 側で `anyOf` に落ちてしまうため）。
  */
 export const gameTypeSchema = registry.register(
-    'GameType',
-    z
-        .union([
-            z.literal(GAME_TYPES.TERMS_GAME),
-            z.literal(GAME_TYPES.AI_CHAT),
-            z.literal(GAME_TYPES.GROUP_CHAT),
-        ])
-        .openapi({
-            description:
-                'ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット',
-            enum: [
-                GAME_TYPES.TERMS_GAME,
-                GAME_TYPES.AI_CHAT,
-                GAME_TYPES.GROUP_CHAT,
-            ],
-            example: GAME_TYPES.TERMS_GAME,
-        }),
+  "GameType",
+  z
+    .union([
+      z.literal(GAME_TYPES.TERMS_GAME),
+      z.literal(GAME_TYPES.AI_CHAT),
+      z.literal(GAME_TYPES.GROUP_CHAT),
+    ])
+    .openapi({
+      description:
+        "ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット",
+      enum: [GAME_TYPES.TERMS_GAME, GAME_TYPES.AI_CHAT, GAME_TYPES.GROUP_CHAT],
+      example: GAME_TYPES.TERMS_GAME,
+    }),
 );
 
 /**
@@ -95,70 +87,67 @@ export const gameTypeSchema = registry.register(
  * （多重防御 + 将来 service が他経路から呼ばれた場合の安全策）。
  */
 export const submitGameRequestSchema = registry.register(
-    'SubmitGameRequest',
-    z
-        .discriminatedUnion('game_type', [
-            z
-                .object({
-                    user_id: userIdSchema,
-                    game_type: z.literal(GAME_TYPES.TERMS_GAME),
-                    data: game1DataSchema,
-                })
-                .openapi({
-                    description:
-                        'Game1（利用規約ゲーム）の終了時に送るリクエスト',
-                    example: submitGameRequestExampleGame1,
-                }),
-            z
-                .object({
-                    user_id: userIdSchema,
-                    game_type: z.literal(GAME_TYPES.AI_CHAT),
-                    data: game2DataSchema,
-                })
-                .openapi({
-                    description:
-                        'Game2（AI カスタマーサポート）の終了時に送るリクエスト',
-                    example: submitGameRequestExampleGame2,
-                }),
-            z
-                .object({
-                    user_id: userIdSchema,
-                    game_type: z.literal(GAME_TYPES.GROUP_CHAT),
-                    data: game3DataSchema,
-                })
-                .openapi({
-                    description:
-                        'Game3（グループチャット）の終了時に送るリクエスト',
-                    example: submitGameRequestExampleGame3,
-                }),
-        ])
+  "SubmitGameRequest",
+  z
+    .discriminatedUnion("game_type", [
+      z
+        .object({
+          user_id: userIdSchema,
+          game_type: z.literal(GAME_TYPES.TERMS_GAME),
+          data: game1DataSchema,
+        })
         .openapi({
-            description:
-                '各ゲーム終了時に行動データを送信するリクエスト。' +
-                'game_type の値（1 / 2 / 3）で data 構造が決まる（oneOf）。' +
-                '同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す',
+          description: "Game1（利用規約ゲーム）の終了時に送るリクエスト",
+          example: submitGameRequestExampleGame1,
         }),
+      z
+        .object({
+          user_id: userIdSchema,
+          game_type: z.literal(GAME_TYPES.AI_CHAT),
+          data: game2DataSchema,
+        })
+        .openapi({
+          description: "Game2（AI カスタマーサポート）の終了時に送るリクエスト",
+          example: submitGameRequestExampleGame2,
+        }),
+      z
+        .object({
+          user_id: userIdSchema,
+          game_type: z.literal(GAME_TYPES.GROUP_CHAT),
+          data: game3DataSchema,
+        })
+        .openapi({
+          description: "Game3（グループチャット）の終了時に送るリクエスト",
+          example: submitGameRequestExampleGame3,
+        }),
+    ])
+    .openapi({
+      description:
+        "各ゲーム終了時に行動データを送信するリクエスト。" +
+        "game_type の値（1 / 2 / 3）で data 構造が決まる（oneOf）。" +
+        "同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す",
+    }),
 );
 
 /**
  * POST /api/games/submit のレスポンス（200 OK）。
  */
 export const submitGameResponseSchema = registry.register(
-    'SubmitGameResponse',
-    z
-        .object({
-            status: z.literal('success').openapi({
-                description: '固定値 "success"',
-            }),
-            message: z.string().openapi({
-                description: '保存されたゲームを示す運用向けメッセージ',
-                example: submitGameResponseExample.message,
-            }),
-        })
-        .openapi({
-            description: 'ゲームデータ保存成功レスポンス（200 OK）',
-            example: submitGameResponseExample,
-        }),
+  "SubmitGameResponse",
+  z
+    .object({
+      status: z.literal("success").openapi({
+        description: '固定値 "success"',
+      }),
+      message: z.string().openapi({
+        description: "保存されたゲームを示す運用向けメッセージ",
+        example: submitGameResponseExample.message,
+      }),
+    })
+    .openapi({
+      description: "ゲームデータ保存成功レスポンス（200 OK）",
+      example: submitGameResponseExample,
+    }),
 );
 
 /**

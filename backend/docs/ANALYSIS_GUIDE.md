@@ -46,9 +46,11 @@ src/analysis/
 ```
 
 **依存するファイル（読むだけ、編集不要）：**
+
 - `src/types/index.ts` — 型定義（`BaselineScores` など）
 
 **触らなくていいファイル：**
+
 - `routes/`, `services/`, `repositories/`, `db/` — データの保存・取得は全部こちらで済んでいます
 
 ---
@@ -85,6 +87,7 @@ src/analysis/
 ```
 
 **フィールド説明：**
+
 - `totalTime` (number): 滞在時間（秒）
 - `finalAction` ("agree" | "disagree"): 同意 or 拒否
 - `reachedBottom` (boolean): 最下部まで到達したか
@@ -97,6 +100,7 @@ src/analysis/
 - `popupStats` (object): ポップアップ広告への対応データ
 
 **このデータで測りたいもの：**
+
 - � **慎重さ** — `reachedBottom`, `totalTime`, `checkboxStates`（不要チェックを外したか）
 - � **論理性** — `hiddenInput`（隠し指示を発見・実行したか）
 - 🔹 **冷静さ** — `popupStats`（短時間・少クリックで閉じたか）, `scrollEvents`の速度安定性
@@ -142,6 +146,7 @@ src/analysis/
 ```
 
 **フィールド説明：**
+
 - `inputMethod` ("voice" | "text"): 最初に選択した入力方式
 - `turnCount` (number): やり取りの総回数
 - `turns` (array): 各ターンの操作ログ
@@ -154,6 +159,7 @@ src/analysis/
   - `transcribedText` (string): Web Speech API で変換されたテキスト or テキスト入力
 
 **このデータで測りたいもの：**
+
 - � **積極性** — `inputMethod`（音声を選んだか）, `reactionTimeMs`（反応速度）, `speechDurationMs`（発話時間）
 - � **論理性** — `transcribedText`（接続詞の使用・具体的指摘・フィラーの少なさ）
 - � **冷静さ** — `volumeDb`（音量の安定性）, `silenceDurationMs`（沈黙の多さ）
@@ -166,16 +172,42 @@ src/analysis/
 {
   "tutorialViewTime": 5200,
   "stages": [
-    { "stageId": 1, "selectedOptionId": 2, "reactionTime": 3400, "isTimeout": false },
-    { "stageId": 2, "selectedOptionId": 1, "reactionTime": 1800, "isTimeout": false },
-    { "stageId": 3, "selectedOptionId": 3, "reactionTime": 4500, "isTimeout": false },
-    { "stageId": 4, "selectedOptionId": 0, "reactionTime": 10000, "isTimeout": true },
-    { "stageId": 5, "selectedOptionId": 1, "reactionTime": 2200, "isTimeout": false }
+    {
+      "stageId": 1,
+      "selectedOptionId": 2,
+      "reactionTime": 3400,
+      "isTimeout": false
+    },
+    {
+      "stageId": 2,
+      "selectedOptionId": 1,
+      "reactionTime": 1800,
+      "isTimeout": false
+    },
+    {
+      "stageId": 3,
+      "selectedOptionId": 3,
+      "reactionTime": 4500,
+      "isTimeout": false
+    },
+    {
+      "stageId": 4,
+      "selectedOptionId": 0,
+      "reactionTime": 10000,
+      "isTimeout": true
+    },
+    {
+      "stageId": 5,
+      "selectedOptionId": 1,
+      "reactionTime": 2200,
+      "isTimeout": false
+    }
   ]
 }
 ```
 
 **フィールド説明：**
+
 - `tutorialViewTime` (number): チュートリアル説明を閉じるまでの時間（ms）
 - `stages` (array): 全5ステージの操作ログ
   - `stageId` (number): ステージ番号 (1～5)
@@ -185,15 +217,16 @@ src/analysis/
 
 **ステージ一覧：**
 
-| # | シチュエーション | 概要 |
-|---|---|---|
-| 1 | 沈黙 | 誰も返信しない中、立候補するか待つか |
-| 2 | 祝賀 | 周りに合わせたスタンプを押すか、違うものを押すか |
-| 3 | 衝突 | 相手も入力中の時、譲るか送信するか |
-| 4 | 食事 | 全員同じメニューの中、自分の注文を選ぶ |
-| 5 | 退室 | どのタイミングで「お疲れ様」を送るか |
+| #   | シチュエーション | 概要                                             |
+| --- | ---------------- | ------------------------------------------------ |
+| 1   | 沈黙             | 誰も返信しない中、立候補するか待つか             |
+| 2   | 祝賀             | 周りに合わせたスタンプを押すか、違うものを押すか |
+| 3   | 衝突             | 相手も入力中の時、譲るか送信するか               |
+| 4   | 食事             | 全員同じメニューの中、自分の注文を選ぶ           |
+| 5   | 退室             | どのタイミングで「お疲れ様」を送るか             |
 
 **このデータで測りたいもの：**
+
 - � **協調性** — `selectedOptionId`（他者と同じ選択=同調）, ステージ3で譲る行動
 - � **積極性** — 独自の選択, `reactionTime`（即答=主導権）, `isTimeout`（時間切れ=優柔不断）
 
@@ -237,11 +270,11 @@ src/analysis/
 
 全て **0～100** の整数値。
 
-| スコア | 意味 |
-|--------|------|
-| 0 | その傾向が非常に弱い |
-| 50 | 平均的 |
-| 100 | その傾向が非常に強い |
+| スコア | 意味                 |
+| ------ | -------------------- |
+| 0      | その傾向が非常に弱い |
+| 50     | 平均的               |
+| 100    | その傾向が非常に強い |
 
 返り値は必ず `Math.min(100, Math.max(0, Math.round(値)))` で 0～100 に収めてください。
 

@@ -1,8 +1,8 @@
-import { registry } from '../registry';
+import { registry } from "../registry";
 import {
-    healthErrorResponseSchema,
-    healthOkResponseSchema,
-} from '../../schemas/health';
+  healthErrorResponseSchema,
+  healthOkResponseSchema,
+} from "../../schemas/health";
 
 /**
  * GET /health のパス登録。
@@ -17,29 +17,29 @@ import {
  * - リクエストボディ / パラメータは存在しないので `request` キー自体を省略する
  */
 registry.registerPath({
-    method: 'get',
-    path: '/health',
-    tags: ['Health'],
-    summary: 'ヘルスチェック',
-    description:
-        'Supabase への疎通確認を含む死活監視用エンドポイント。' +
-        '200 と 503 で独自レスポンス形を返す（他エンドポイントの ApiError とは別形）。',
-    responses: {
-        200: {
-            description: 'DB 接続 OK',
-            content: {
-                'application/json': {
-                    schema: healthOkResponseSchema,
-                },
-            },
+  method: "get",
+  path: "/health",
+  tags: ["Health"],
+  summary: "ヘルスチェック",
+  description:
+    "Supabase への疎通確認を含む死活監視用エンドポイント。" +
+    "200 と 503 で独自レスポンス形を返す（他エンドポイントの ApiError とは別形）。",
+  responses: {
+    200: {
+      description: "DB 接続 OK",
+      content: {
+        "application/json": {
+          schema: healthOkResponseSchema,
         },
-        503: {
-            description: 'DB 切断（Supabase への疎通失敗）',
-            content: {
-                'application/json': {
-                    schema: healthErrorResponseSchema,
-                },
-            },
-        },
+      },
     },
+    503: {
+      description: "DB 切断（Supabase への疎通失敗）",
+      content: {
+        "application/json": {
+          schema: healthErrorResponseSchema,
+        },
+      },
+    },
+  },
 });

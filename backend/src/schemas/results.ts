@@ -1,15 +1,15 @@
 // zod プロトタイプに `.openapi()` を生やすため、z 本体の import より前に
 // 拡張モジュールを副作用 import する（openapi/registry.ts 参照）。
-import '../openapi/registry';
-import { z } from 'zod';
-import { registry } from '../openapi/registry';
+import "../openapi/registry";
+import { z } from "zod";
+import { registry } from "../openapi/registry";
 import {
-    baselineScoresSchema,
-    gapScoresSchema,
-    mbtiSchema,
-    userIdSchema,
-} from './common';
-import { resultsResponseExample } from '../openapi/examples';
+  baselineScoresSchema,
+  gapScoresSchema,
+  mbtiSchema,
+  userIdSchema,
+} from "./common";
+import { resultsResponseExample } from "../openapi/examples";
 
 /**
  * GET /api/results/:user_id のスキーマ群。
@@ -31,7 +31,7 @@ import { resultsResponseExample } from '../openapi/examples';
  * マッピング済みのため、検証失敗時の業務コードも仕様書準拠となる。
  */
 export const resultsParamsSchema = z.object({
-    user_id: userIdSchema,
+  user_id: userIdSchema,
 });
 
 /**
@@ -50,68 +50,69 @@ const partialBaselineScoresSchema = baselineScoresSchema.partial();
  * 各ゲームキー（game_1 / game_2 / game_3）は optional。
  */
 export const gameBreakdownSchema = registry.register(
-    'GameBreakdown',
-    z
-        .object({
-            game_1: partialBaselineScoresSchema.optional(),
-            game_2: partialBaselineScoresSchema.optional(),
-            game_3: partialBaselineScoresSchema.optional(),
-        })
-        .openapi({
-            description:
-                'ゲームごとのスコア内訳。各ゲームで測定される軸のみが含まれるため ' +
-                '5 軸すべてが揃うとは限らない（例: game_1 は caution / logic / calmness のみ）',
-            example: resultsResponseExample.game_breakdown,
-        }),
+  "GameBreakdown",
+  z
+    .object({
+      game_1: partialBaselineScoresSchema.optional(),
+      game_2: partialBaselineScoresSchema.optional(),
+      game_3: partialBaselineScoresSchema.optional(),
+    })
+    .openapi({
+      description:
+        "ゲームごとのスコア内訳。各ゲームで測定される軸のみが含まれるため " +
+        "5 軸すべてが揃うとは限らない（例: game_1 は caution / logic / calmness のみ）",
+      example: resultsResponseExample.game_breakdown,
+    }),
 );
 
 /**
  * 診断フィードバック（最大ギャップ軸に基づく見出し・説明・指摘点）。
  */
 export const diagnosisFeedbackSchema = registry.register(
-    'DiagnosisFeedback',
-    z
-        .object({
-            title: z.string().openapi({
-                description: '診断タイプの見出し（最大ギャップ軸に基づく）',
-                example: resultsResponseExample.feedback.title,
-            }),
-            description: z.string().openapi({
-                description: '診断タイプの説明文',
-                example: resultsResponseExample.feedback.description,
-            }),
-            gap_point: z.string().openapi({
-                description: '自己認識と実測の乖離が最大だった軸名（日本語ラベル）',
-                example: resultsResponseExample.feedback.gap_point,
-            }),
-        })
-        .openapi({
-            description: '診断フィードバック（最大ギャップ軸に基づく見出し・説明・指摘点）',
-            example: resultsResponseExample.feedback,
-        }),
+  "DiagnosisFeedback",
+  z
+    .object({
+      title: z.string().openapi({
+        description: "診断タイプの見出し（最大ギャップ軸に基づく）",
+        example: resultsResponseExample.feedback.title,
+      }),
+      description: z.string().openapi({
+        description: "診断タイプの説明文",
+        example: resultsResponseExample.feedback.description,
+      }),
+      gap_point: z.string().openapi({
+        description: "自己認識と実測の乖離が最大だった軸名（日本語ラベル）",
+        example: resultsResponseExample.feedback.gap_point,
+      }),
+    })
+    .openapi({
+      description:
+        "診断フィードバック（最大ギャップ軸に基づく見出し・説明・指摘点）",
+      example: resultsResponseExample.feedback,
+    }),
 );
 
 /**
  * 各フェーズ（ゲーム）の振り返りテキスト。
  */
 export const phaseSummariesSchema = registry.register(
-    'PhaseSummaries',
-    z
-        .object({
-            phase_1: z.string().openapi({
-                description: 'Game 1（利用規約）の行動要約',
-            }),
-            phase_2: z.string().openapi({
-                description: 'Game 2（AI カスタマーサポート）の行動要約',
-            }),
-            phase_3: z.string().openapi({
-                description: 'Game 3（グループチャット）の行動要約',
-            }),
-        })
-        .openapi({
-            description: '各ゲーム終了後の行動を日本語テキストで振り返ったサマリー',
-            example: resultsResponseExample.phase_summaries,
-        }),
+  "PhaseSummaries",
+  z
+    .object({
+      phase_1: z.string().openapi({
+        description: "Game 1（利用規約）の行動要約",
+      }),
+      phase_2: z.string().openapi({
+        description: "Game 2（AI カスタマーサポート）の行動要約",
+      }),
+      phase_3: z.string().openapi({
+        description: "Game 3（グループチャット）の行動要約",
+      }),
+    })
+    .openapi({
+      description: "各ゲーム終了後の行動を日本語テキストで振り返ったサマリー",
+      example: resultsResponseExample.phase_summaries,
+    }),
 );
 
 /**
@@ -131,54 +132,61 @@ export const phaseSummariesSchema = registry.register(
  * `number` 規定）。
  */
 export const gameDetailSchema = registry.register(
-    'GameDetail',
-    z
-        .object({
-            title: z.string().openapi({
-                description: 'ゲーム名（例: 利用規約ゲーム / AIカスタマーサポート / 空気読みグループチャット）',
+  "GameDetail",
+  z
+    .object({
+      title: z.string().openapi({
+        description:
+          "ゲーム名（例: 利用規約ゲーム / AIカスタマーサポート / 空気読みグループチャット）",
+      }),
+      feature_scores: z
+        .array(
+          z.object({
+            axis: z.string().openapi({
+              description:
+                "軸キー（caution / calmness / logic / cooperativeness / positivity）",
             }),
-            feature_scores: z
-                .array(
-                    z.object({
-                        axis: z.string().openapi({
-                            description: '軸キー（caution / calmness / logic / cooperativeness / positivity）',
-                        }),
-                        name: z.string().openapi({
-                            description: '軸の日本語ラベル（慎重さ / 冷静さ / 論理性 / 協調性 / 積極性）',
-                        }),
-                        score: z.number().int().min(0).max(100).openapi({
-                            description: '当該軸のゲーム単位スコア（0-100 整数）',
-                        }),
-                    }),
-                )
-                .openapi({
-                    description: '当該ゲームで測定した軸ごとのスコア配列（測定軸数はゲームごとに異なる）',
-                }),
-            metrics: z
-                .array(
-                    z.object({
-                        label: z.string().openapi({
-                            description: '指標の表示ラベル（例: 読了速度(px/s) / 反応潜時(ms)）',
-                        }),
-                        user: z.number().openapi({
-                            description: 'ユーザーの実測値（単位は label に依存）',
-                        }),
-                        average: z.number().openapi({
-                            description: '比較対象の平均値（単位は label に依存）',
-                        }),
-                        category: z.string().openapi({
-                            description: '指標のカテゴリ（scroll / time / mouse / input / voice / logic / message / social 等）',
-                        }),
-                    }),
-                )
-                .openapi({
-                    description: 'ユーザー値と平均値を並べた比較指標の配列',
-                }),
-        })
+            name: z.string().openapi({
+              description:
+                "軸の日本語ラベル（慎重さ / 冷静さ / 論理性 / 協調性 / 積極性）",
+            }),
+            score: z.number().int().min(0).max(100).openapi({
+              description: "当該軸のゲーム単位スコア（0-100 整数）",
+            }),
+          }),
+        )
         .openapi({
-            description: 'ゲーム単位の詳細情報。仕様書「データ構造」→ GameDetail 参照',
-            example: resultsResponseExample.details.game_1,
+          description:
+            "当該ゲームで測定した軸ごとのスコア配列（測定軸数はゲームごとに異なる）",
         }),
+      metrics: z
+        .array(
+          z.object({
+            label: z.string().openapi({
+              description:
+                "指標の表示ラベル（例: 読了速度(px/s) / 反応潜時(ms)）",
+            }),
+            user: z.number().openapi({
+              description: "ユーザーの実測値（単位は label に依存）",
+            }),
+            average: z.number().openapi({
+              description: "比較対象の平均値（単位は label に依存）",
+            }),
+            category: z.string().openapi({
+              description:
+                "指標のカテゴリ（scroll / time / mouse / input / voice / logic / message / social 等）",
+            }),
+          }),
+        )
+        .openapi({
+          description: "ユーザー値と平均値を並べた比較指標の配列",
+        }),
+    })
+    .openapi({
+      description:
+        "ゲーム単位の詳細情報。仕様書「データ構造」→ GameDetail 参照",
+      example: resultsResponseExample.details.game_1,
+    }),
 );
 
 /**
@@ -188,65 +196,67 @@ export const gameDetailSchema = registry.register(
  * results レスポンス到達時には必ず 3 ゲーム分の details が揃う前提）。
  */
 export const detailsSchema = registry.register(
-    'Details',
-    z
-        .object({
-            game_1: gameDetailSchema,
-            game_2: gameDetailSchema,
-            game_3: gameDetailSchema,
-        })
-        .openapi({
-            description:
-                '各ゲーム固有の詳細情報（タイトル / feature_scores / metrics）。' +
-                '構造は仕様書「データ構造」→ GameDetail を参照',
-            example: resultsResponseExample.details,
-        }),
+  "Details",
+  z
+    .object({
+      game_1: gameDetailSchema,
+      game_2: gameDetailSchema,
+      game_3: gameDetailSchema,
+    })
+    .openapi({
+      description:
+        "各ゲーム固有の詳細情報（タイトル / feature_scores / metrics）。" +
+        "構造は仕様書「データ構造」→ GameDetail を参照",
+      example: resultsResponseExample.details,
+    }),
 );
 
 /**
  * GET /api/results/:user_id のレスポンス（200 OK）。
  */
 export const resultsResponseSchema = registry.register(
-    'ResultResponse',
-    z
-        .object({
-            user_id: userIdSchema,
-            self_mbti: mbtiSchema.nullable().openapi({
-                description: '自己申告の MBTI タイプ。登録時にスキップした場合は null',
-            }),
-            // baselineScoresSchema.nullable() ではなく z.union を使う理由:
-            // zod-to-openapi は `$ref` を持つスキーマに `.nullable()` を後付けすると
-            // `allOf: [{$ref}, {type:[object,null], description}]` を出力する。
-            // openapi-typescript はこれを `BaselineScores & (Record<string, never> | null)`
-            // という壊れた交差型に変換してしまう（Issue #61）。
-            // `z.union([X, z.null()])` にすると `oneOf: [{$ref}, {type:null}]` になり、
-            // 生成型も `BaselineScores | null` で期待通りとなる。
-            mbti_scores: z.union([baselineScoresSchema, z.null()]).openapi({
-                description: 'MBTI 理論値（self_mbti から導出）。self_mbti が null の場合は null',
-            }),
-            scores: baselineScoresSchema.openapi({
-                description: '3 ゲームから算出された実測の 5 軸スコア',
-            }),
-            baseline_scores: baselineScoresSchema.openapi({
-                description:
-                    'ベースライン（アンケート由来）。self_mbti があれば MBTI 理論値と 70:30 でブレンド済み',
-            }),
-            gaps: gapScoresSchema.openapi({
-                description: '実測 - ベースライン の差分。負値はベースラインを下回ったことを意味する',
-            }),
-            game_breakdown: gameBreakdownSchema,
-            feedback: diagnosisFeedbackSchema,
-            accuracy_score: z.number().int().min(0).max(100).openapi({
-                description: '自己認識精度（0-100 の整数）。100 - |平均ギャップ|',
-                example: resultsResponseExample.accuracy_score,
-            }),
-            phase_summaries: phaseSummariesSchema,
-            details: detailsSchema,
-        })
-        .openapi({
-            description: '診断結果レスポンス（200 OK）',
-            example: resultsResponseExample,
-        }),
+  "ResultResponse",
+  z
+    .object({
+      user_id: userIdSchema,
+      self_mbti: mbtiSchema.nullable().openapi({
+        description: "自己申告の MBTI タイプ。登録時にスキップした場合は null",
+      }),
+      // baselineScoresSchema.nullable() ではなく z.union を使う理由:
+      // zod-to-openapi は `$ref` を持つスキーマに `.nullable()` を後付けすると
+      // `allOf: [{$ref}, {type:[object,null], description}]` を出力する。
+      // openapi-typescript はこれを `BaselineScores & (Record<string, never> | null)`
+      // という壊れた交差型に変換してしまう（Issue #61）。
+      // `z.union([X, z.null()])` にすると `oneOf: [{$ref}, {type:null}]` になり、
+      // 生成型も `BaselineScores | null` で期待通りとなる。
+      mbti_scores: z.union([baselineScoresSchema, z.null()]).openapi({
+        description:
+          "MBTI 理論値（self_mbti から導出）。self_mbti が null の場合は null",
+      }),
+      scores: baselineScoresSchema.openapi({
+        description: "3 ゲームから算出された実測の 5 軸スコア",
+      }),
+      baseline_scores: baselineScoresSchema.openapi({
+        description:
+          "ベースライン（アンケート由来）。self_mbti があれば MBTI 理論値と 70:30 でブレンド済み",
+      }),
+      gaps: gapScoresSchema.openapi({
+        description:
+          "実測 - ベースライン の差分。負値はベースラインを下回ったことを意味する",
+      }),
+      game_breakdown: gameBreakdownSchema,
+      feedback: diagnosisFeedbackSchema,
+      accuracy_score: z.number().int().min(0).max(100).openapi({
+        description: "自己認識精度（0-100 の整数）。100 - |平均ギャップ|",
+        example: resultsResponseExample.accuracy_score,
+      }),
+      phase_summaries: phaseSummariesSchema,
+      details: detailsSchema,
+    })
+    .openapi({
+      description: "診断結果レスポンス（200 OK）",
+      example: resultsResponseExample,
+    }),
 );
 
 export type ResultsParams = z.infer<typeof resultsParamsSchema>;

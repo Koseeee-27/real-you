@@ -1,4 +1,8 @@
-import { ERROR_CODES, type ApiError, type ErrorCode } from '../schemas/errorCodes';
+import {
+  ERROR_CODES,
+  type ApiError,
+  type ErrorCode,
+} from "../schemas/errorCodes";
 
 /**
  * OpenAPI ドキュメント用のサンプル値。
@@ -26,7 +30,7 @@ import { ERROR_CODES, type ApiError, type ErrorCode } from '../schemas/errorCode
  * サンプル用の UUID（複数エンドポイントで使い回す）。
  * 特定ユーザーを指すものではなく、フォーマットを示すための固定値。
  */
-export const SAMPLE_USER_ID = '550e8400-e29b-41d4-a716-446655440000';
+export const SAMPLE_USER_ID = "550e8400-e29b-41d4-a716-446655440000";
 
 // ---------------------------------------------------------------------------
 // ApiError の業務コード別サンプル
@@ -48,51 +52,51 @@ export const SAMPLE_USER_ID = '550e8400-e29b-41d4-a716-446655440000';
  * message 文言は errorHandler / service 層で実際に返す日本語メッセージに合わせる。
  */
 export const apiErrorExamples = {
-    [ERROR_CODES.INVALID_REQUEST]: {
-        status: 'error',
-        error: ERROR_CODES.INVALID_REQUEST,
-        message: '必須フィールドが欠落しています',
-    },
-    [ERROR_CODES.INVALID_MBTI]: {
-        status: 'error',
-        error: ERROR_CODES.INVALID_MBTI,
-        message: 'mbti は INTJ / ESFP などの 4 文字で指定してください',
-    },
-    [ERROR_CODES.INVALID_ANSWERS]: {
-        status: 'error',
-        error: ERROR_CODES.INVALID_ANSWERS,
-        message: '回答は A / B / C / D のいずれかで指定してください',
-    },
-    [ERROR_CODES.INVALID_USER_ID]: {
-        status: 'error',
-        error: ERROR_CODES.INVALID_USER_ID,
-        message: 'ユーザーIDが存在しません',
-    },
-    [ERROR_CODES.INVALID_GAME_TYPE]: {
-        status: 'error',
-        error: ERROR_CODES.INVALID_GAME_TYPE,
-        message: 'game_type は 1 / 2 / 3 のいずれかで指定してください',
-    },
-    [ERROR_CODES.INCOMPLETE_GAMES]: {
-        status: 'error',
-        error: ERROR_CODES.INCOMPLETE_GAMES,
-        message: '3 ゲームすべて完了してから結果取得してください',
-    },
-    [ERROR_CODES.USER_NOT_FOUND]: {
-        status: 'error',
-        error: ERROR_CODES.USER_NOT_FOUND,
-        message: '指定されたユーザーが見つかりません',
-    },
-    [ERROR_CODES.DUPLICATE_SUBMISSION]: {
-        status: 'error',
-        error: ERROR_CODES.DUPLICATE_SUBMISSION,
-        message: '同一ゲームの重複送信です',
-    },
-    [ERROR_CODES.SERVER_ERROR]: {
-        status: 'error',
-        error: ERROR_CODES.SERVER_ERROR,
-        message: 'サーバーエラーが発生しました',
-    },
+  [ERROR_CODES.INVALID_REQUEST]: {
+    status: "error",
+    error: ERROR_CODES.INVALID_REQUEST,
+    message: "必須フィールドが欠落しています",
+  },
+  [ERROR_CODES.INVALID_MBTI]: {
+    status: "error",
+    error: ERROR_CODES.INVALID_MBTI,
+    message: "mbti は INTJ / ESFP などの 4 文字で指定してください",
+  },
+  [ERROR_CODES.INVALID_ANSWERS]: {
+    status: "error",
+    error: ERROR_CODES.INVALID_ANSWERS,
+    message: "回答は A / B / C / D のいずれかで指定してください",
+  },
+  [ERROR_CODES.INVALID_USER_ID]: {
+    status: "error",
+    error: ERROR_CODES.INVALID_USER_ID,
+    message: "ユーザーIDが存在しません",
+  },
+  [ERROR_CODES.INVALID_GAME_TYPE]: {
+    status: "error",
+    error: ERROR_CODES.INVALID_GAME_TYPE,
+    message: "game_type は 1 / 2 / 3 のいずれかで指定してください",
+  },
+  [ERROR_CODES.INCOMPLETE_GAMES]: {
+    status: "error",
+    error: ERROR_CODES.INCOMPLETE_GAMES,
+    message: "3 ゲームすべて完了してから結果取得してください",
+  },
+  [ERROR_CODES.USER_NOT_FOUND]: {
+    status: "error",
+    error: ERROR_CODES.USER_NOT_FOUND,
+    message: "指定されたユーザーが見つかりません",
+  },
+  [ERROR_CODES.DUPLICATE_SUBMISSION]: {
+    status: "error",
+    error: ERROR_CODES.DUPLICATE_SUBMISSION,
+    message: "同一ゲームの重複送信です",
+  },
+  [ERROR_CODES.SERVER_ERROR]: {
+    status: "error",
+    error: ERROR_CODES.SERVER_ERROR,
+    message: "サーバーエラーが発生しました",
+  },
 } as const satisfies Record<ErrorCode, ApiError>;
 
 // ---------------------------------------------------------------------------
@@ -104,22 +108,22 @@ export const apiErrorExamples = {
  * baseline_answers は 5 設問すべて必須（A/B/C/D）。
  */
 export const registerRequestExample = {
-    mbti: 'ENTP',
-    baseline_answers: {
-        q1_caution: 'A',
-        q2_calmness: 'B',
-        q3_logic: 'A',
-        q4_cooperativeness: 'C',
-        q5_positivity: 'A',
-    },
+  mbti: "ENTP",
+  baseline_answers: {
+    q1_caution: "A",
+    q2_calmness: "B",
+    q3_logic: "A",
+    q4_cooperativeness: "C",
+    q5_positivity: "A",
+  },
 } as const;
 
 /**
  * POST /api/register のレスポンス例（201 Created）。
  */
 export const registerResponseExample = {
-    user_id: SAMPLE_USER_ID,
-    status: 'success',
+  user_id: SAMPLE_USER_ID,
+  status: "success",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -134,29 +138,29 @@ export const registerResponseExample = {
  * 代表的な値を入れる（仕様書の最小例）。
  */
 export const submitGameRequestExampleGame1 = {
-    user_id: SAMPLE_USER_ID,
-    game_type: 1,
-    data: {
-        totalTime: 42.5,
-        finalAction: 'agree',
-        reachedBottom: true,
-        scrollEvents: [
-            { position: 0, timestamp: 0 },
-            { position: 1200, timestamp: 2500 },
-        ],
-        hiddenInput: null,
-        checkboxStates: {
-            readConfirm: { checked: true, changed: true },
-            mailMagazine: { checked: true, changed: false },
-            thirdPartyShare: { checked: false, changed: true },
-        },
-        popupStats: {
-            timeToClose: 850,
-            clickCount: 1,
-            mouseJitter: 42.3,
-        },
-        agreeButtonHoverTimeMs: 1200,
+  user_id: SAMPLE_USER_ID,
+  game_type: 1,
+  data: {
+    totalTime: 42.5,
+    finalAction: "agree",
+    reachedBottom: true,
+    scrollEvents: [
+      { position: 0, timestamp: 0 },
+      { position: 1200, timestamp: 2500 },
+    ],
+    hiddenInput: null,
+    checkboxStates: {
+      readConfirm: { checked: true, changed: true },
+      mailMagazine: { checked: true, changed: false },
+      thirdPartyShare: { checked: false, changed: true },
     },
+    popupStats: {
+      timeToClose: 850,
+      clickCount: 1,
+      mouseJitter: 42.3,
+    },
+    agreeButtonHoverTimeMs: 1200,
+  },
 } as const;
 
 /**
@@ -166,35 +170,35 @@ export const submitGameRequestExampleGame1 = {
  * 構造を示し、テキスト入力時は音声系メトリクスが null になる例を載せる。
  */
 export const submitGameRequestExampleGame2 = {
-    user_id: SAMPLE_USER_ID,
-    game_type: 2,
-    data: {
-        inputMethod: 'voice',
-        turnCount: 2,
-        turns: [
-            {
-                turnIndex: 1,
-                inputMethod: 'voice',
-                reactionTimeMs: 850,
-                speechDurationMs: 3200,
-                silenceDurationMs: 400,
-                volumeDb: -18.5,
-                transcribedText: 'パスワードを忘れました',
-            },
-            {
-                turnIndex: 2,
-                inputMethod: 'text',
-                reactionTimeMs: null,
-                speechDurationMs: null,
-                silenceDurationMs: null,
-                volumeDb: null,
-                transcribedText: 'メールアドレスは abc@example.com です',
-            },
-        ],
-        textInputMetrics: {
-            typingIntervalVariance: 120.5,
-        },
+  user_id: SAMPLE_USER_ID,
+  game_type: 2,
+  data: {
+    inputMethod: "voice",
+    turnCount: 2,
+    turns: [
+      {
+        turnIndex: 1,
+        inputMethod: "voice",
+        reactionTimeMs: 850,
+        speechDurationMs: 3200,
+        silenceDurationMs: 400,
+        volumeDb: -18.5,
+        transcribedText: "パスワードを忘れました",
+      },
+      {
+        turnIndex: 2,
+        inputMethod: "text",
+        reactionTimeMs: null,
+        speechDurationMs: null,
+        silenceDurationMs: null,
+        volumeDb: null,
+        transcribedText: "メールアドレスは abc@example.com です",
+      },
+    ],
+    textInputMetrics: {
+      typingIntervalVariance: 120.5,
     },
+  },
 } as const;
 
 /**
@@ -204,27 +208,27 @@ export const submitGameRequestExampleGame2 = {
  * `selectedOptionId: 0` でタイムアウト例も含める（仕様書準拠）。
  */
 export const submitGameRequestExampleGame3 = {
-    user_id: SAMPLE_USER_ID,
-    game_type: 3,
-    data: {
-        tutorialViewTime: 8500,
-        hoveredOptions: 7,
-        typingIndicatorReactTimeMs: 1450,
-        stages: [
-            {
-                stageId: 1,
-                selectedOptionId: 2,
-                reactionTimeMs: 3200,
-                isTimeout: false,
-            },
-            {
-                stageId: 2,
-                selectedOptionId: 0,
-                reactionTimeMs: 10000,
-                isTimeout: true,
-            },
-        ],
-    },
+  user_id: SAMPLE_USER_ID,
+  game_type: 3,
+  data: {
+    tutorialViewTime: 8500,
+    hoveredOptions: 7,
+    typingIndicatorReactTimeMs: 1450,
+    stages: [
+      {
+        stageId: 1,
+        selectedOptionId: 2,
+        reactionTimeMs: 3200,
+        isTimeout: false,
+      },
+      {
+        stageId: 2,
+        selectedOptionId: 0,
+        reactionTimeMs: 10000,
+        isTimeout: true,
+      },
+    ],
+  },
 } as const;
 
 /**
@@ -232,8 +236,8 @@ export const submitGameRequestExampleGame3 = {
  * message はサーバ側で `Game ${game_type} data saved` を返す（games.ts 参照）。
  */
 export const submitGameResponseExample = {
-    status: 'success',
-    message: 'Game 1 data saved',
+  status: "success",
+  message: "Game 1 data saved",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -245,12 +249,12 @@ export const submitGameResponseExample = {
  * conversation_history は optional だが、形式を示すため example には含める。
  */
 export const voiceRespondRequestExample = {
-    user_id: SAMPLE_USER_ID,
-    message: 'パスワードを忘れました',
-    conversation_history: [
-        { role: 'user', content: 'ログインできません' },
-        { role: 'assistant', content: 'どのような問題でしょうか？' },
-    ],
+  user_id: SAMPLE_USER_ID,
+  message: "パスワードを忘れました",
+  conversation_history: [
+    { role: "user", content: "ログインできません" },
+    { role: "assistant", content: "どのような問題でしょうか？" },
+  ],
 } as const;
 
 /**
@@ -258,9 +262,9 @@ export const voiceRespondRequestExample = {
  * emotion / confidence の具体値は仕様書「API 設計書」記載値に合わせる。
  */
 export const voiceRespondResponseExample = {
-    response: 'パスワードリセットは設定画面から行えます。',
-    emotion: 'confident',
-    confidence: 0.6,
+  response: "パスワードリセットは設定画面から行えます。",
+  emotion: "confident",
+  confidence: 0.6,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -280,83 +284,78 @@ export const voiceRespondResponseExample = {
  * 実際のレスポンスでは複数要素の配列になる点に注意。
  */
 export const resultsResponseExample = {
-    user_id: SAMPLE_USER_ID,
-    self_mbti: 'ENTP',
-    mbti_scores: {
-        caution: 40,
-        calmness: 50,
-        logic: 70,
-        cooperativeness: 55,
-        positivity: 85,
-    },
-    scores: {
-        caution: 45,
-        calmness: 55,
-        logic: 75,
-        cooperativeness: 60,
-        positivity: 70,
-    },
-    baseline_scores: {
-        caution: 50,
-        calmness: 60,
-        logic: 65,
-        cooperativeness: 55,
-        positivity: 75,
-    },
-    gaps: {
-        caution: -5,
-        calmness: -5,
-        logic: 10,
-        cooperativeness: 5,
-        positivity: -5,
-    },
-    game_breakdown: {
-        game_1: { caution: 45, logic: 75, calmness: 55 },
-        game_2: { positivity: 70, calmness: 55, logic: 75 },
-        game_3: { cooperativeness: 60, positivity: 70, caution: 45 },
-    },
-    feedback: {
-        title: '直感ドリブン',
-        description: 'あなたは論理よりも直感を優先して意思決定する傾向があります。',
-        gap_point: '論理性',
-    },
-    accuracy_score: 78,
-    phase_summaries: {
-        phase_1: '規約を爆速でスクロールし、最後まで読まずに同意しました。',
-        phase_2: 'AI の理不尽な対応に感情的に反応する場面が見られました。',
-        phase_3: 'グループの空気を読みつつ、自分の意見も主張していました。',
-    },
-    details: {
-        // タイトル文字列は analysis/scoreCalculator.ts の実装値に合わせる
-        // （game_2: 'AIカスタマーサポート' / game_3: '空気読みグループチャット'）
-        game_1: {
-            title: '利用規約ゲーム',
-            feature_scores: [
-                { axis: 'caution', name: '慎重さ', score: 45 },
-            ],
-            metrics: [
-                { label: '読了速度(px/s)', user: 2500, average: 800, category: 'scroll' },
-            ],
+  user_id: SAMPLE_USER_ID,
+  self_mbti: "ENTP",
+  mbti_scores: {
+    caution: 40,
+    calmness: 50,
+    logic: 70,
+    cooperativeness: 55,
+    positivity: 85,
+  },
+  scores: {
+    caution: 45,
+    calmness: 55,
+    logic: 75,
+    cooperativeness: 60,
+    positivity: 70,
+  },
+  baseline_scores: {
+    caution: 50,
+    calmness: 60,
+    logic: 65,
+    cooperativeness: 55,
+    positivity: 75,
+  },
+  gaps: {
+    caution: -5,
+    calmness: -5,
+    logic: 10,
+    cooperativeness: 5,
+    positivity: -5,
+  },
+  game_breakdown: {
+    game_1: { caution: 45, logic: 75, calmness: 55 },
+    game_2: { positivity: 70, calmness: 55, logic: 75 },
+    game_3: { cooperativeness: 60, positivity: 70, caution: 45 },
+  },
+  feedback: {
+    title: "直感ドリブン",
+    description: "あなたは論理よりも直感を優先して意思決定する傾向があります。",
+    gap_point: "論理性",
+  },
+  accuracy_score: 78,
+  phase_summaries: {
+    phase_1: "規約を爆速でスクロールし、最後まで読まずに同意しました。",
+    phase_2: "AI の理不尽な対応に感情的に反応する場面が見られました。",
+    phase_3: "グループの空気を読みつつ、自分の意見も主張していました。",
+  },
+  details: {
+    // タイトル文字列は analysis/scoreCalculator.ts の実装値に合わせる
+    // （game_2: 'AIカスタマーサポート' / game_3: '空気読みグループチャット'）
+    game_1: {
+      title: "利用規約ゲーム",
+      feature_scores: [{ axis: "caution", name: "慎重さ", score: 45 }],
+      metrics: [
+        {
+          label: "読了速度(px/s)",
+          user: 2500,
+          average: 800,
+          category: "scroll",
         },
-        game_2: {
-            title: 'AIカスタマーサポート',
-            feature_scores: [
-                { axis: 'positivity', name: '積極性', score: 70 },
-            ],
-            metrics: [
-                { label: '発話数', user: 8, average: 5, category: 'message' },
-            ],
-        },
-        game_3: {
-            title: '空気読みグループチャット',
-            feature_scores: [
-                { axis: 'cooperativeness', name: '協調性', score: 60 },
-            ],
-            metrics: [
-                { label: '発言数', user: 4, average: 3, category: 'message' },
-            ],
-        },
+      ],
     },
+    game_2: {
+      title: "AIカスタマーサポート",
+      feature_scores: [{ axis: "positivity", name: "積極性", score: 70 }],
+      metrics: [{ label: "発話数", user: 8, average: 5, category: "message" }],
+    },
+    game_3: {
+      title: "空気読みグループチャット",
+      feature_scores: [{ axis: "cooperativeness", name: "協調性", score: 60 }],
+      metrics: [{ label: "発言数", user: 4, average: 3, category: "message" }],
+    },
+  },
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -370,10 +369,10 @@ export const resultsResponseExample = {
  * 1 時間（3600 秒）を採用。
  */
 export const healthOkResponseExample = {
-    status: 'ok',
-    timestamp: '2026-04-16T10:00:00.000Z',
-    database: 'connected',
-    uptime: 3600,
+  status: "ok",
+  timestamp: "2026-04-16T10:00:00.000Z",
+  database: "connected",
+  uptime: 3600,
 } as const;
 
 /**
@@ -383,8 +382,8 @@ export const healthOkResponseExample = {
  * `apiErrorExamples` は使わず個別の example を用意している（schemas/health.ts 冒頭コメント参照）。
  */
 export const healthErrorResponseExample = {
-    status: 'error',
-    timestamp: '2026-04-16T10:00:00.000Z',
-    database: 'disconnected',
-    uptime: 3600,
+  status: "error",
+  timestamp: "2026-04-16T10:00:00.000Z",
+  database: "disconnected",
+  uptime: 3600,
 } as const;
