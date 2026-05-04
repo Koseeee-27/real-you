@@ -17,10 +17,23 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * `localStorage` の `user_id` 欠損で fetch できなかったことを示す sentinel エラー。
+ *
+ * `Error.message` 文字列マッチを避けるため、専用クラスとして用意する。
+ * catch 側で `instanceof` で安全に判別し、`'restart'` variant に倒す。
+ */
+class MissingUserIdError extends Error {
+  constructor() {
+    super('user_id is missing in localStorage');
+    this.name = 'MissingUserIdError';
+  }
+}
+
 async function fetchResult(): Promise<ResultResponse> {
   const userId =
     typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
-  if (!userId) throw new Error('ユーザーが見つかりません');
+  if (!userId) throw new MissingUserIdError();
   return await getResult(userId);
 }
 
@@ -58,10 +71,13 @@ export function useResult() {
       .catch((err: unknown) => {
         if (ignore) return;
 
-        // 業務エラーコードが「最初からやり直し」系なら即 restart。
+        // user_id 欠損は retry しても localStorage が空のままで回復不能なので即 restart。
+        // 業務エラーコードが「最初からやり直し」系の場合も restart。
         // それ以外（ネットワーク失敗・5xx・未知コード等）はリトライ可能扱いだが、
         // 既に MAX_RETRY_COUNT 回リトライ済みなら restart に切り替える。
-        if (isApiClientError(err) && isRestartCode(err.code)) {
+        if (err instanceof MissingUserIdError) {
+          setErrorVariant('restart');
+        } else if (isApiClientError(err) && isRestartCode(err.code)) {
           setErrorVariant('restart');
         } else if (retryCountRef.current >= MAX_RETRY_COUNT) {
           setErrorVariant('restart');
