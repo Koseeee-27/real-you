@@ -12,9 +12,22 @@ import {
   type AnswerOption,
 } from '@/features/diagnosis/types';
 import LoadingScreen from '@/components/common/LoadingScreen';
+import ErrorScreen from '@/components/common/ErrorScreen';
 import { postRegister, submitGame } from '@/lib/api';
+import {
+  MAX_RETRY_COUNT,
+  isApiClientError,
+  isRestartCode,
+} from '@/lib/api/error';
 
 type Status = 'answering' | 'loading' | 'error' | 'success';
+
+/**
+ * `ErrorScreen` に渡す variant。
+ * - `'retry'`   … 一時的な通信エラー（サーバ 5xx / ネットワーク失敗）想定
+ * - `'restart'` … `RESTART_CODES` に含まれる業務エラー、またはリトライ上限超過
+ */
+type ErrorVariant = 'retry' | 'restart';
 
 // TODO: UIは仮のものです。
 export default function BaselineSurvey() {
@@ -56,6 +69,12 @@ export default function BaselineSurvey() {
     Partial<Record<QuestionKey, AnswerOption>>
   >({});
   const [status, setStatus] = useState<Status>('answering');
+  const [errorVariant, setErrorVariant] = useState<ErrorVariant>('retry');
+
+  // リトライ回数は描画ロジックに直接影響しない（catch 内で variant を決める材料
+  // としてのみ使う）ため、useState ではなく useRef で扱う。
+  // useResult.ts と同じ流儀に揃えている。
+  const retryCountRef = useRef(0);
 
   const currentQuestion = QUESTIONS[currentIndex];
   const totalQuestions = QUESTIONS.length;
@@ -73,19 +92,40 @@ export default function BaselineSurvey() {
         localStorage.setItem('user_id', result.user_id);
 
         if (game1Data) {
-          await submitGame({
-            user_id: result.user_id,
-            game_type: 1,
-            data: game1Data,
-          });
+          try {
+            await submitGame({
+              user_id: result.user_id,
+              game_type: 1,
+              data: game1Data,
+            });
+          } catch (gameErr) {
+            // duplicate_submission（同一 user_id で同じゲームを再送信）は
+            // 既にサーバ側に登録済みということなので、エラーにせず次画面へ進める。
+            // それ以外は外側 catch に委譲する。
+            const isDuplicate =
+              isApiClientError(gameErr) &&
+              gameErr.code === 'duplicate_submission';
+            if (!isDuplicate) throw gameErr;
+          }
         }
 
+        retryCountRef.current = 0;
         setStatus('success');
 
         setTimeout(() => {
           router.push('/games/helpdesk');
         }, 2000);
-      } catch {
+      } catch (err: unknown) {
+        // 業務エラーコードが「最初からやり直し」系の場合は restart。
+        // それ以外（ネットワーク失敗・5xx・未知コード等）はリトライ可能扱いだが、
+        // 既に MAX_RETRY_COUNT 回リトライ済みなら restart に切り替える。
+        if (isApiClientError(err) && isRestartCode(err.code)) {
+          setErrorVariant('restart');
+        } else if (retryCountRef.current >= MAX_RETRY_COUNT) {
+          setErrorVariant('restart');
+        } else {
+          setErrorVariant('retry');
+        }
         setStatus('error');
       }
     },
@@ -106,7 +146,19 @@ export default function BaselineSurvey() {
 
   const handleRetry = () => {
     playSE('/sounds/general-button-se.mp3');
+    retryCountRef.current += 1;
     submitToApi(answers as BaselineAnswers);
+  };
+
+  const handleGoTop = () => {
+    playSE('/sounds/general-button-se.mp3');
+    // RESTART_CODES（user_not_found / invalid_user_id 等）でトップに戻すケースでは、
+    // 古い user_id を握ったまま再開しても同じエラーで詰むため localStorage を掃除する。
+    // ResultPage.tsx の handleGoTop と挙動を揃えている。
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user_id');
+    }
+    router.push('/');
   };
 
   if (status === 'loading') {
@@ -114,17 +166,10 @@ export default function BaselineSurvey() {
   }
 
   if (status === 'error') {
-    return (
-      <div className="flex w-full max-w-md flex-col items-center gap-4">
-        <p className="text-lg font-semibold text-red-600">通信に失敗しました</p>
-        <button
-          onClick={handleRetry}
-          className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
-        >
-          リトライ
-        </button>
-      </div>
-    );
+    if (errorVariant === 'restart') {
+      return <ErrorScreen variant="restart" onGoTop={handleGoTop} />;
+    }
+    return <ErrorScreen variant="retry" onRetry={handleRetry} />;
   }
 
   if (status === 'success') {
