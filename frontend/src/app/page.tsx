@@ -129,7 +129,7 @@ export default function TopPage() {
           alt="Real You -本当の私じゃだめですか？-"
           width={800}
           height={500}
-          className="max-h-[65vh] w-auto object-contain drop-shadow-2xl"
+          className="max-h-[65vh] w-auto object-contain drop-shadow-2xl animate-[fadeInUp_0.5s_ease-out]" /** フェードインアニメーションの追加(link修正) */
         />
 
         <div className="relative">
