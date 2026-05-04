@@ -1,14 +1,14 @@
-import { RequestHandler } from 'express';
-import { ZodType } from 'zod';
+import { RequestHandler } from "express";
+import { ZodType } from "zod";
 
 /**
  * validate ミドルウェアに渡す検証スキーマ。
  * body / params / query を個別または同時に検証できる。
  */
 export interface ValidateSchemas {
-    body?: ZodType;
-    params?: ZodType;
-    query?: ZodType;
+  body?: ZodType;
+  params?: ZodType;
+  query?: ZodType;
 }
 
 /**
@@ -26,27 +26,33 @@ export interface ValidateSchemas {
  * - params / query: Express 5 の getter 実装に配慮し、参照を維持したまま中身だけ差し替える
  */
 export const validate = (schemas: ValidateSchemas): RequestHandler => {
-    return (req, _res, next) => {
-        if (schemas.body) {
-            const result = schemas.body.safeParse(req.body);
-            if (!result.success) return next(result.error);
-            req.body = result.data;
-        }
+  return (req, _res, next) => {
+    if (schemas.body) {
+      const result = schemas.body.safeParse(req.body);
+      if (!result.success) return next(result.error);
+      req.body = result.data;
+    }
 
-        if (schemas.params) {
-            const result = schemas.params.safeParse(req.params);
-            if (!result.success) return next(result.error);
-            replaceContents(req.params as Record<string, unknown>, result.data as Record<string, unknown>);
-        }
+    if (schemas.params) {
+      const result = schemas.params.safeParse(req.params);
+      if (!result.success) return next(result.error);
+      replaceContents(
+        req.params as Record<string, unknown>,
+        result.data as Record<string, unknown>,
+      );
+    }
 
-        if (schemas.query) {
-            const result = schemas.query.safeParse(req.query);
-            if (!result.success) return next(result.error);
-            replaceContents(req.query as Record<string, unknown>, result.data as Record<string, unknown>);
-        }
+    if (schemas.query) {
+      const result = schemas.query.safeParse(req.query);
+      if (!result.success) return next(result.error);
+      replaceContents(
+        req.query as Record<string, unknown>,
+        result.data as Record<string, unknown>,
+      );
+    }
 
-        next();
-    };
+    next();
+  };
 };
 
 /**
@@ -54,9 +60,12 @@ export const validate = (schemas: ValidateSchemas): RequestHandler => {
  * 参照を維持したまま差し替えるため、Express 5 で getter 経由の
  * req.params / req.query に対しても安全に使える。
  */
-function replaceContents(target: Record<string, unknown>, source: Record<string, unknown>): void {
-    for (const key of Object.keys(target)) {
-        delete target[key];
-    }
-    Object.assign(target, source);
+function replaceContents(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+): void {
+  for (const key of Object.keys(target)) {
+    delete target[key];
+  }
+  Object.assign(target, source);
 }

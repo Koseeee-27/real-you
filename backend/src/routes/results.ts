@@ -1,31 +1,27 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { resultService } from '../services/resultService';
-import { validate } from '../middleware/validate';
+import { Router, Request, Response, NextFunction } from "express";
+import { resultService } from "../services/resultService";
+import { validate } from "../middleware/validate";
 import {
-    resultsParamsSchema,
-    ResultsParams,
-    ResultResponse,
-} from '../schemas/results';
+  resultsParamsSchema,
+  ResultsParams,
+  ResultResponse,
+} from "../schemas/results";
 
 const router = Router();
 
 router.get(
-    '/:user_id',
-    validate({ params: resultsParamsSchema }),
-    async (
-        req: Request<ResultsParams>,
-        res: Response,
-        next: NextFunction,
-    ) => {
-        try {
-            const { user_id } = req.params;
-            const result: ResultResponse = await resultService.getResult(user_id);
+  "/:user_id",
+  validate({ params: resultsParamsSchema }),
+  async (req: Request<ResultsParams>, res: Response, next: NextFunction) => {
+    try {
+      const { user_id } = req.params;
+      const result: ResultResponse = await resultService.getResult(user_id);
 
-            res.json(result);
-        } catch (error) {
-            next(error);
-        }
-    },
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
 );
 
 export default router;

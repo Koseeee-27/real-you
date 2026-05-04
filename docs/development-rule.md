@@ -13,13 +13,13 @@
 
 `<type>/<短い説明>` の形式で付ける。説明は英語で短く。
 
-| type | 用途 | 例 |
-|------|------|-----|
-| `feature/` | 新機能の追加 | `feature/add-share-button` |
-| `fix/` | バグ修正 | `fix/result-display-error` |
-| `docs/` | ドキュメントの追加・修正 | `docs/add-setup-guide` |
-| `refactor/` | リファクタリング | `refactor/cleanup-game-logic` |
-| `chore/` | 設定変更・雑務 | `chore/update-dependencies` |
+| type        | 用途                     | 例                            |
+| ----------- | ------------------------ | ----------------------------- |
+| `feature/`  | 新機能の追加             | `feature/add-share-button`    |
+| `fix/`      | バグ修正                 | `fix/result-display-error`    |
+| `docs/`     | ドキュメントの追加・修正 | `docs/add-setup-guide`        |
+| `refactor/` | リファクタリング         | `refactor/cleanup-game-logic` |
+| `chore/`    | 設定変更・雑務           | `chore/update-dependencies`   |
 
 ### ブランチの作り方（コマンド例）
 
@@ -44,14 +44,14 @@ git checkout -b feature/add-share-button
 
 ### prefix 一覧
 
-| prefix | 用途 | 例 |
-|--------|------|-----|
-| `feat:` | 新機能 | `feat: SNSシェアボタンを追加` |
-| `fix:` | バグ修正 | `fix: 結果画面が表示されない問題を修正` |
-| `docs:` | ドキュメント | `docs: 環境構築手順を追加` |
-| `style:` | スタイル調整（機能変更なし） | `style: ボタンの余白を調整` |
-| `refactor:` | リファクタリング | `refactor: ゲームロジックを整理` |
-| `chore:` | 設定・雑務 | `chore: パッケージを更新` |
+| prefix      | 用途                         | 例                                      |
+| ----------- | ---------------------------- | --------------------------------------- |
+| `feat:`     | 新機能                       | `feat: SNSシェアボタンを追加`           |
+| `fix:`      | バグ修正                     | `fix: 結果画面が表示されない問題を修正` |
+| `docs:`     | ドキュメント                 | `docs: 環境構築手順を追加`              |
+| `style:`    | スタイル調整（機能変更なし） | `style: ボタンの余白を調整`             |
+| `refactor:` | リファクタリング             | `refactor: ゲームロジックを整理`        |
+| `chore:`    | 設定・雑務                   | `chore: パッケージを更新`               |
 
 ### コミットの粒度
 
@@ -67,16 +67,16 @@ git checkout -b feature/add-share-button
 cd frontend
 ```
 
-| コマンド | 用途 | いつ使う？ |
-|---------|------|----------|
-| `npm run dev` | 開発サーバー起動（ホットリロードあり） | 普段の開発 |
-| `npm run build` | 本番用ビルド | PR 前チェック、デプロイ前 |
-| `npm start` | ビルド済みアプリを本番モードで起動 | build の成果物を確認したいとき |
-| `npm run lint` | ESLint でコードチェック | PR 前チェック |
-| `npm run format` | Prettier でコード整形 | コード整形したいとき |
-| `npm run format:check` | Prettier で整形チェック（変更なし） | CI 用 |
-| `npm run gen:api-types` | BE の zod スキーマから FE の API 型 (`src/lib/api/generated.ts`) を再生成 | BE スキーマ変更後 |
-| `npm run check:api-types` | `generated.ts` が BE スキーマと同期しているか検証（差分があれば exit 1） | スキーマ変更時の確認用（CI でも自動実行） |
+| コマンド                  | 用途                                                                      | いつ使う？                                |
+| ------------------------- | ------------------------------------------------------------------------- | ----------------------------------------- |
+| `npm run dev`             | 開発サーバー起動（ホットリロードあり）                                    | 普段の開発                                |
+| `npm run build`           | 本番用ビルド                                                              | PR 前チェック、デプロイ前                 |
+| `npm start`               | ビルド済みアプリを本番モードで起動                                        | build の成果物を確認したいとき            |
+| `npm run lint`            | ESLint でコードチェック                                                   | PR 前チェック                             |
+| `npm run format`          | Prettier でコード整形                                                     | コード整形したいとき                      |
+| `npm run format:check`    | Prettier で整形チェック（変更なし）                                       | CI 用                                     |
+| `npm run gen:api-types`   | BE の zod スキーマから FE の API 型 (`src/lib/api/generated.ts`) を再生成 | BE スキーマ変更後                         |
+| `npm run check:api-types` | `generated.ts` が BE スキーマと同期しているか検証（差分があれば exit 1）  | スキーマ変更時の確認用（CI でも自動実行） |
 
 ### Backend
 
@@ -84,11 +84,11 @@ cd frontend
 cd backend
 ```
 
-| コマンド | 用途 | いつ使う？ |
-|---------|------|----------|
-| `npm run dev` | 開発サーバー起動（自動リロードあり） | 普段の開発 |
-| `npm run build` | TypeScript → JavaScript にコンパイル | PR 前チェック、デプロイ前 |
-| `npm start` | ビルド済みアプリを起動 | build の成果物を確認したいとき |
+| コマンド        | 用途                                 | いつ使う？                     |
+| --------------- | ------------------------------------ | ------------------------------ |
+| `npm run dev`   | 開発サーバー起動（自動リロードあり） | 普段の開発                     |
+| `npm run build` | TypeScript → JavaScript にコンパイル | PR 前チェック、デプロイ前      |
+| `npm start`     | ビルド済みアプリを起動               | build の成果物を確認したいとき |
 
 ### PR 前チェック
 
@@ -152,27 +152,27 @@ Issue には以下の 3 軸からラベルを付ける。**カテゴリと種別
 
 #### カテゴリ（何を変えるか）
 
-| ラベル | 用途 |
-|-------|------|
-| `cat: frontend` | フロントエンドの変更 |
-| `cat: backend` | バックエンドの変更 |
-| `cat: design` | デザイン・UI/UX の変更 |
-| `cat: infra` | デプロイ・CI/CD・環境系 |
-| `cat: docs` | ドキュメントのみの変更 |
+| ラベル          | 用途                    |
+| --------------- | ----------------------- |
+| `cat: frontend` | フロントエンドの変更    |
+| `cat: backend`  | バックエンドの変更      |
+| `cat: design`   | デザイン・UI/UX の変更  |
+| `cat: infra`    | デプロイ・CI/CD・環境系 |
+| `cat: docs`     | ドキュメントのみの変更  |
 
 #### 種別（何をするか）
 
-| ラベル | 用途 |
-|-------|------|
-| `type: bug` | バグ修正 |
-| `type: feature` | 新機能追加 |
-| `type: improve` | 既存機能の改善・UX 向上 |
-| `type: refactor` | リファクタリング |
+| ラベル           | 用途                    |
+| ---------------- | ----------------------- |
+| `type: bug`      | バグ修正                |
+| `type: feature`  | 新機能追加              |
+| `type: improve`  | 既存機能の改善・UX 向上 |
+| `type: refactor` | リファクタリング        |
 
 #### 優先度（技育博に向けてどれが重要か）
 
-| ラベル | 基準 |
-|-------|------|
+| ラベル           | 基準                                 |
+| ---------------- | ------------------------------------ |
 | `priority: high` | デモに必須。これがないと見せられない |
-| `priority: mid` | あると体験が良くなる |
-| `priority: low` | 余裕があればやる |
+| `priority: mid`  | あると体験が良くなる                 |
+| `priority: low`  | 余裕があればやる                     |

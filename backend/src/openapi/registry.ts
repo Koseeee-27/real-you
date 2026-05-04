@@ -1,8 +1,8 @@
 import {
-    extendZodWithOpenApi,
-    OpenAPIRegistry,
-} from '@asteasolutions/zod-to-openapi';
-import { z } from 'zod';
+  extendZodWithOpenApi,
+  OpenAPIRegistry,
+} from "@asteasolutions/zod-to-openapi";
+import { z } from "zod";
 
 /**
  * zod-to-openapi 基盤: zod 拡張と OpenAPIRegistry シングルトン。

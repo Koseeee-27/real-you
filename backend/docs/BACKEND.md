@@ -12,12 +12,12 @@ npm run dev            # 開発サーバー起動 (http://localhost:3001)
 
 ## 環境変数 (.env)
 
-| 変数名 | 説明 |
-|--------|------|
-| `PORT` | サーバーポート (デフォルト: 3001) |
-| `SUPABASE_URL` | Supabase プロジェクトURL |
-| `SUPABASE_KEY` | Supabase anon key |
-| `GEMINI_API_KEY` | Google Gemini API Key |
+| 変数名           | 説明                              |
+| ---------------- | --------------------------------- |
+| `PORT`           | サーバーポート (デフォルト: 3001) |
+| `SUPABASE_URL`   | Supabase プロジェクトURL          |
+| `SUPABASE_KEY`   | Supabase anon key                 |
+| `GEMINI_API_KEY` | Google Gemini API Key             |
 
 ---
 
@@ -47,14 +47,15 @@ src/
 
 ### なぜこの構造？
 
-| 層 | 責務 | ルール |
-|----|------|--------|
-| **routes/** | HTTP受付 + レスポンス返却 | DB・分析ロジックに直接触らない |
-| **services/** | バリデーション + 処理の流れの組み立て | repositories と analysis を呼ぶ |
-| **repositories/** | Supabase への読み書き | ビジネスロジックを持たない |
-| **analysis/** | スコア計算 + フィードバック生成 | `types/` のみに依存。DB無依存 |
+| 層                | 責務                                  | ルール                          |
+| ----------------- | ------------------------------------- | ------------------------------- |
+| **routes/**       | HTTP受付 + レスポンス返却             | DB・分析ロジックに直接触らない  |
+| **services/**     | バリデーション + 処理の流れの組み立て | repositories と analysis を呼ぶ |
+| **repositories/** | Supabase への読み書き                 | ビジネスロジックを持たない      |
+| **analysis/**     | スコア計算 + フィードバック生成       | `types/` のみに依存。DB無依存   |
 
 **設計意図:**
+
 - **単一責任の原則 (SRP):** 各層は1つの責務だけを持つ。routes は HTTP、repositories は DB、analysis は分析。
 - **依存性逆転の原則 (DIP):** routes → services → repositories の順で依存。上位層が下位層に依存し、逆方向の依存はない。
 - **開放閉鎖の原則 (OCP):** ゲーム3の分析追加時は `analysis/scoreCalculator.ts` に関数を追加するだけ。routes や repositories の変更は不要。
@@ -72,13 +73,13 @@ src/
 
 ## API エンドポイント
 
-| メソッド | パス | 説明 |
-|---------|------|------|
-| `POST` | `/api/register` | ユーザー登録 + ベースラインスコア保存 |
-| `POST` | `/api/games/submit` | ゲームプレイデータ送信 |
-| `GET` | `/api/results/:user_id` | 診断結果取得 |
-| `POST` | `/api/voice/respond` | AI返答生成 (Gemini) |
-| `GET` | `/health` | ヘルスチェック |
+| メソッド | パス                    | 説明                                  |
+| -------- | ----------------------- | ------------------------------------- |
+| `POST`   | `/api/register`         | ユーザー登録 + ベースラインスコア保存 |
+| `POST`   | `/api/games/submit`     | ゲームプレイデータ送信                |
+| `GET`    | `/api/results/:user_id` | 診断結果取得                          |
+| `POST`   | `/api/voice/respond`    | AI返答生成 (Gemini)                   |
+| `GET`    | `/health`               | ヘルスチェック                        |
 
 ### リクエスト/レスポンス例
 
@@ -101,6 +102,7 @@ src/
 // Response (201)
 { "user_id": "uuid-xxxx", "status": "success" }
 ```
+
 </details>
 
 <details>
@@ -117,6 +119,7 @@ src/
 // Response (200)
 { "status": "success", "message": "Game 1 data saved" }
 ```
+
 </details>
 
 <details>
@@ -140,6 +143,7 @@ src/
   "confidence": 0.6
 }
 ```
+
 </details>
 
 ---
@@ -150,11 +154,13 @@ src/
 分析担当は `calculateGame3Scores()` の中身を実装するだけでOK。
 
 **実装済みの配線：**
+
 - `calculateGame3Scores()` のスタブが存在（空 `{}` を返す）
 - `combineScores(game1, game2, game3)` に game3 引数が追加済み
 - `resultService.ts` で game3 の呼び出しと `game_breakdown.game_3` への格納が済み
 
 **分析担当が実装するファイル：**
+
 - `analysis/scoreCalculator.ts` — 各ゲームのスコア計算ロジック
 - `analysis/feedbackGenerator.ts` — フィードバック文生成
 - `analysis/phaseSummaryBuilder.ts` — 行動要約テキスト生成
@@ -170,8 +176,8 @@ src/
 
 ## スクリプト
 
-| コマンド | 説明 |
-|---------|------|
-| `npm run dev` | 開発サーバー起動（ホットリロード付き） |
-| `npm run build` | TypeScript → JavaScript コンパイル |
-| `npm start` | 本番サーバー起動 |
+| コマンド        | 説明                                   |
+| --------------- | -------------------------------------- |
+| `npm run dev`   | 開発サーバー起動（ホットリロード付き） |
+| `npm run build` | TypeScript → JavaScript コンパイル     |
+| `npm start`     | 本番サーバー起動                       |

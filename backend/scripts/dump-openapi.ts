@@ -16,12 +16,12 @@
  * - 本スクリプトは stdout に JSON を出力するだけに留め、エラー時は process.exit(1)
  *   で異常終了させる（パイプ先のリダイレクトで空ファイルが生成されないようにする）
  */
-import { buildOpenApiDocument } from '../src/openapi/document';
+import { buildOpenApiDocument } from "../src/openapi/document";
 
 try {
-    const doc = buildOpenApiDocument();
-    process.stdout.write(JSON.stringify(doc, null, 2) + '\n');
+  const doc = buildOpenApiDocument();
+  process.stdout.write(JSON.stringify(doc, null, 2) + "\n");
 } catch (error) {
-    console.error('Failed to build OpenAPI document:', error);
-    process.exit(1);
+  console.error("Failed to build OpenAPI document:", error);
+  process.exit(1);
 }

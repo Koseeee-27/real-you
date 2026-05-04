@@ -4,6 +4,7 @@
 ターミナルにコピペして実行することで、一連のフロー（登録 → ゲーム送信 → 結果取得）をテストできます。
 
 ## 事前準備
+
 - サーバーを起動しておくこと: `npm run dev` (http://localhost:3001)
 - データベース（Supabase）が正しく接続されていること
 - Supabase に `users`, `game_logs`, `analysis_results` テーブルが作成されていること
@@ -13,6 +14,7 @@
 ## 1. ユーザー登録 (`POST /api/register`)
 
 ### 正常系
+
 ```bash
 curl -X POST http://localhost:3001/api/register \
   -H "Content-Type: application/json" \
@@ -27,7 +29,9 @@ curl -X POST http://localhost:3001/api/register \
     }
   }'
 ```
+
 **期待されるレスポンス:**
+
 ```json
 {
   "user_id": "uuid-string...",
@@ -36,6 +40,7 @@ curl -X POST http://localhost:3001/api/register \
 ```
 
 ### 異常系（回答不足）
+
 ```bash
 curl -X POST http://localhost:3001/api/register \
   -H "Content-Type: application/json" \
@@ -46,9 +51,11 @@ curl -X POST http://localhost:3001/api/register \
     }
   }'
 ```
+
 **期待されるレスポンス:** 400 Bad Request
 
 ### 異常系（不正な回答値）
+
 ```bash
 curl -X POST http://localhost:3001/api/register \
   -H "Content-Type: application/json" \
@@ -62,6 +69,7 @@ curl -X POST http://localhost:3001/api/register \
     }
   }'
 ```
+
 **期待されるレスポンス:** 400 Bad Request (`invalid_answers` - "Answers must be one of [A, B, C, D]...")
 
 ---
@@ -71,6 +79,7 @@ curl -X POST http://localhost:3001/api/register \
 ※ `USER_ID` は登録時に返ってきたIDに置き換えてください。
 
 ### Game 1（利用規約ゲーム）
+
 ```bash
 export USER_ID="ここにUUIDを入力"
 
@@ -99,6 +108,7 @@ curl -X POST http://localhost:3001/api/games/submit \
 ```
 
 ### Game 2（AIチャット）
+
 ```bash
 curl -X POST http://localhost:3001/api/games/submit \
   -H "Content-Type: application/json" \
@@ -133,6 +143,7 @@ curl -X POST http://localhost:3001/api/games/submit \
 ```
 
 ### Game 3（グループチャット）
+
 ```bash
 curl -X POST http://localhost:3001/api/games/submit \
   -H "Content-Type: application/json" \
@@ -153,6 +164,7 @@ curl -X POST http://localhost:3001/api/games/submit \
 ```
 
 ### 異常系（空データ）
+
 ```bash
 curl -X POST http://localhost:3001/api/games/submit \
   -H "Content-Type: application/json" \
@@ -162,6 +174,7 @@ curl -X POST http://localhost:3001/api/games/submit \
     "data": {}
   }'
 ```
+
 **期待されるレスポンス:** 400 Bad Request ("data cannot be empty")
 
 ---
@@ -173,6 +186,7 @@ curl -X GET http://localhost:3001/api/results/$USER_ID
 ```
 
 **期待されるレスポンス:**
+
 - `scores`: 計算された5軸スコア
 - `baseline_scores`: 自己申告スコア
 - `gaps`: 実測と自己申告の差分
@@ -186,6 +200,7 @@ curl -X GET http://localhost:3001/api/results/$USER_ID
 ## 4. 音声対話 (`POST /api/voice/respond`)
 
 ### 通常会話
+
 ```bash
 curl -X POST http://localhost:3001/api/voice/respond \
   -H "Content-Type: application/json" \
@@ -196,6 +211,7 @@ curl -X POST http://localhost:3001/api/voice/respond \
 ```
 
 ### 会話履歴付き
+
 ```bash
 curl -X POST http://localhost:3001/api/voice/respond \
   -H "Content-Type: application/json" \
@@ -210,6 +226,7 @@ curl -X POST http://localhost:3001/api/voice/respond \
 ```
 
 **期待されるレスポンス:**
+
 ```json
 {
   "response": "AIの返答テキスト",
@@ -227,6 +244,7 @@ curl -X GET http://localhost:3001/health
 ```
 
 **期待されるレスポンス:**
+
 ```json
 {
   "status": "ok",

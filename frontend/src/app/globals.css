@@ -34,5 +34,5 @@
 
 /* タイトルのフェードインアニメーション(link修正)*/
 .animate-fadeInUp {
-    animation: fadeInUp 0.5s ease-out
+  animation: fadeInUp 0.5s ease-out;
 }
