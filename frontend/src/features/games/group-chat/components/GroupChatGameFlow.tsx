@@ -81,7 +81,7 @@ export default function GroupChatGameFlow() {
    *
    * - `duplicate_submission` … 既にサーバ側で受理済みなので結果画面へ自動進行
    * - `RESTART_CODES`（user_not_found / invalid_user_id 等） … `restart` variant
-   * - その他 … リトライ可能扱い。`MAX_RETRY_COUNT` 超過で `restart` に切替
+   * - その他 … リトライ可能扱い。`MAX_RETRY_COUNT` 回に達した場合は `restart` に切替
    *
    * 成功時は `retryCountRef.current = 0` でリセットして次画面へ遷移する。
    * user_id 欠損は localStorage が空のままで回復不能なので即 `restart`。

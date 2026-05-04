@@ -396,6 +396,12 @@ export function useHelpdeskGame(options: {
           // user_id 欠損は localStorage が空のままで回復不能なので即 restart。
           // restart variant は再試行されないため pendingVoiceRequestRef は保存しない。
           if (cancelled) return;
+          // 防御的に呼び出し音を停止する。実フローでは currentTurn === 0 で既に停止
+          // 済みのはずだが、要件変更で初回 API 呼び出しになっても安全に倒れるように。
+          if (callingAudioRef.current) {
+            callingAudioRef.current.pause();
+            callingAudioRef.current.currentTime = 0;
+          }
           setVoiceApiErrorVariant('restart');
           setGamePhase('voice-api-error');
           return;
@@ -414,6 +420,11 @@ export function useHelpdeskGame(options: {
             userMessage,
             conversationHistory,
           };
+          // 防御的に呼び出し音を停止する（user_id 欠損経路と同じ理由）。
+          if (callingAudioRef.current) {
+            callingAudioRef.current.pause();
+            callingAudioRef.current.currentTime = 0;
+          }
           // 業務エラーコードが「最初からやり直し」系の場合は restart。
           // それ以外（ネットワーク失敗・5xx・未知コード等）はリトライ可能扱いだが、
           // 既に MAX_RETRY_COUNT 回リトライ済みなら restart に切り替える。
