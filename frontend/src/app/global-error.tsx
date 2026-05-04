@@ -44,54 +44,80 @@ export default function GlobalError({
           textAlign: 'center',
         }}
       >
-        <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 12px' }}>
-          エラーが発生しました
-        </h2>
-        <p style={{ fontSize: '14px', color: '#4b5563', margin: '0 0 24px' }}>
-          少し時間をおいて、もう一度お試しください。
-        </p>
         {/*
-         * autoFocus: ErrorScreen 側と同様に、表示時にフォーカスを主操作ボタンに移して
-         * キーボード操作・スクリーンリーダーで即座に操作できるようにする
+         * ErrorScreen と同じく、全画面でユーザー操作を促す緊急ダイアログとして
+         * 支援技術に伝えるため alertdialog ロールでラップする。
+         * - role="alertdialog": 緊急性のあるモーダルダイアログ
+         * - aria-modal: 背景操作を抑止することを支援技術に伝える
+         * - aria-labelledby / aria-describedby: 見出しと本文を関連付ける
+         * id は ErrorScreen 側（error-screen-*）と衝突しないよう global-error-* で分けている
          */}
-        <button
-          type="button"
-          autoFocus
-          onClick={reset}
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="global-error-title"
+          aria-describedby="global-error-description"
           style={{
-            padding: '12px 32px',
-            fontSize: '14px',
-            fontWeight: 700,
-            color: '#ffffff',
-            backgroundColor: '#2563eb',
-            border: 'none',
-            borderRadius: '9999px',
-            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
           }}
         >
-          もう一度試す
-        </button>
-        {/*
-         * ハードな脱出口。reset() で抜けられない layout 起因の永続的エラー（jotai の
-         * 不正状態など）に備え、フルナビゲーションでトップに戻る導線を併設する。
-         *
-         * ここでは Next.js の <Link> ではなく素の <a> を使う:
-         * - layout.tsx 自体が壊れている前提のため、SPA 内クライアントナビゲーションでは
-         *   壊れた React ツリーをそのまま引きずってしまい脱出できない
-         * - 素の <a> なら確実にフルロードが走り、SPA 内部状態をクリアできる
-         */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a
-          href="/"
-          style={{
-            marginTop: '16px',
-            fontSize: '13px',
-            color: '#2563eb',
-            textDecoration: 'underline',
-          }}
-        >
-          トップページへ戻る
-        </a>
+          <h2
+            id="global-error-title"
+            style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 12px' }}
+          >
+            エラーが発生しました
+          </h2>
+          <p
+            id="global-error-description"
+            style={{ fontSize: '14px', color: '#4b5563', margin: '0 0 24px' }}
+          >
+            少し時間をおいて、もう一度お試しください。
+          </p>
+          {/*
+           * autoFocus: ErrorScreen 側と同様に、表示時にフォーカスを主操作ボタンに移して
+           * キーボード操作・スクリーンリーダーで即座に操作できるようにする
+           */}
+          <button
+            type="button"
+            autoFocus
+            onClick={reset}
+            style={{
+              padding: '12px 32px',
+              fontSize: '14px',
+              fontWeight: 700,
+              color: '#ffffff',
+              backgroundColor: '#2563eb',
+              border: 'none',
+              borderRadius: '9999px',
+              cursor: 'pointer',
+            }}
+          >
+            もう一度試す
+          </button>
+          {/*
+           * ハードな脱出口。reset() で抜けられない layout 起因の永続的エラー（jotai の
+           * 不正状態など）に備え、フルナビゲーションでトップに戻る導線を併設する。
+           *
+           * ここでは Next.js の <Link> ではなく素の <a> を使う:
+           * - layout.tsx 自体が壊れている前提のため、SPA 内クライアントナビゲーションでは
+           *   壊れた React ツリーをそのまま引きずってしまい脱出できない
+           * - 素の <a> なら確実にフルロードが走り、SPA 内部状態をクリアできる
+           */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
+            href="/"
+            style={{
+              marginTop: '16px',
+              fontSize: '13px',
+              color: '#2563eb',
+              textDecoration: 'underline',
+            }}
+          >
+            トップページへ戻る
+          </a>
+        </div>
       </body>
     </html>
   );
