@@ -36,6 +36,11 @@ export default function HelpdeskGameFlow() {
   // useResult.ts / BaselineSurvey.tsx と同じ流儀に揃えている。
   const retryCountRef = useRef(0);
 
+  // 次画面への遷移用 setTimeout の ID を保持する。再スケジュール時のキャンセルと
+  // unmount 時の cleanup で使う。タイマーを放置すると、unmount 後に router.push が
+  // 走って意図しない遷移を引き起こす可能性があるため明示的に管理する。
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // --- サウンド管理用のRefとヘルパー ---
   const bgmRef = useRef<HTMLAudioElement | null>(null);
 
@@ -44,6 +49,21 @@ export default function HelpdeskGameFlow() {
     audio.volume = 0.5;
     audio.play().catch(() => {});
   }, []);
+
+  // 次画面への遷移を 2 秒後にスケジュールする。前回のタイマーが残っていれば
+  // クリアしてから新しいタイマーを設定する。
+  const scheduleRedirect = useCallback(
+    (path: string) => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+      redirectTimeoutRef.current = setTimeout(() => {
+        redirectTimeoutRef.current = null;
+        router.push(path);
+      }, 2000);
+    },
+    [router]
+  );
 
   // BGMの初期化と再生管理
   useEffect(() => {
@@ -63,6 +83,16 @@ export default function HelpdeskGameFlow() {
     return () => {
       bgm.pause();
       window.removeEventListener('click', playBGM);
+    };
+  }, []);
+
+  // unmount 時に予約済みの遷移タイマーをキャンセルする。
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -94,9 +124,7 @@ export default function HelpdeskGameFlow() {
         });
         retryCountRef.current = 0;
         setSubmitStatus('success');
-        setTimeout(() => {
-          router.push('/games/group-chat');
-        }, 2000);
+        scheduleRedirect('/games/group-chat');
       } catch (err: unknown) {
         // duplicate_submission（同一 user_id で同じゲームを再送信）は
         // 既にサーバ側で受理済みなので、エラーにせず次画面へ自動進行する。
@@ -106,9 +134,7 @@ export default function HelpdeskGameFlow() {
         if (isDuplicate) {
           retryCountRef.current = 0;
           setSubmitStatus('success');
-          setTimeout(() => {
-            router.push('/games/group-chat');
-          }, 2000);
+          scheduleRedirect('/games/group-chat');
           return;
         }
 
@@ -125,7 +151,7 @@ export default function HelpdeskGameFlow() {
         setSubmitStatus('error');
       }
     },
-    [router]
+    [scheduleRedirect]
   );
 
   const handleComplete = useCallback(

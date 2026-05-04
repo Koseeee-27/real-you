@@ -46,11 +46,31 @@ export default function GroupChatGameFlow() {
   // useResult.ts / BaselineSurvey.tsx と同じ流儀に揃えている。
   const retryCountRef = useRef(0);
 
+  // 次画面への遷移用 setTimeout の ID を保持する。再スケジュール時のキャンセルと
+  // unmount 時の cleanup で使う。タイマーを放置すると、unmount 後に router.push が
+  // 走って意図しない遷移を引き起こす可能性があるため明示的に管理する。
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const playSE = useCallback((path: string) => {
     const audio = new Audio(path);
     audio.volume = 0.5;
     audio.play().catch(() => {});
   }, []);
+
+  // 次画面への遷移を 2 秒後にスケジュールする。前回のタイマーが残っていれば
+  // クリアしてから新しいタイマーを設定する。
+  const scheduleRedirect = useCallback(
+    (path: string) => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+      redirectTimeoutRef.current = setTimeout(() => {
+        redirectTimeoutRef.current = null;
+        router.push(path);
+      }, 2000);
+    },
+    [router]
+  );
 
   // BGMの初期化と再生管理
   useEffect(() => {
@@ -72,6 +92,16 @@ export default function GroupChatGameFlow() {
     return () => {
       bgm.pause();
       window.removeEventListener('click', playBGM);
+    };
+  }, []);
+
+  // unmount 時に予約済みの遷移タイマーをキャンセルする。
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -103,10 +133,7 @@ export default function GroupChatGameFlow() {
         });
         retryCountRef.current = 0;
         setSubmitStatus('success');
-        bgmRef.current?.pause();
-        setTimeout(() => {
-          router.push('/result');
-        }, 2000);
+        scheduleRedirect('/result');
       } catch (err: unknown) {
         // duplicate_submission（同一 user_id で同じゲームを再送信）は
         // 既にサーバ側で受理済みなので、エラーにせず次画面へ自動進行する。
@@ -116,10 +143,7 @@ export default function GroupChatGameFlow() {
         if (isDuplicate) {
           retryCountRef.current = 0;
           setSubmitStatus('success');
-          bgmRef.current?.pause();
-          setTimeout(() => {
-            router.push('/result');
-          }, 2000);
+          scheduleRedirect('/result');
           return;
         }
 
@@ -136,13 +160,17 @@ export default function GroupChatGameFlow() {
         setSubmitStatus('error');
       }
     },
-    [router]
+    [scheduleRedirect]
   );
 
   const handleComplete = useCallback(
     async (data: Game3Data) => {
       pendingDataRef.current = data;
       setSubmitStatus('loading');
+      // 送信開始時点で BGM を停止する。HelpdeskGameFlow の handleComplete と
+      // 揃えており、成功・duplicate_submission・error すべての経路で
+      // BGM が止まる（ErrorScreen 表示中の音漏れを防ぐ）。
+      bgmRef.current?.pause();
       await submitGame3(data);
     },
     [submitGame3]

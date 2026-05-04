@@ -467,7 +467,6 @@ export function useHelpdeskGame(options: {
     const pending = pendingVoiceRequestRef.current;
     if (!pending) return;
 
-    voiceApiRetryCountRef.current += 1;
     setVoiceApiRetrying(true);
 
     const userId =
@@ -475,10 +474,14 @@ export function useHelpdeskGame(options: {
     if (!userId) {
       // user_id 欠損は localStorage が空のままで回復不能なので即 restart。
       // restart variant は再試行されないため pendingVoiceRequestRef は触らない。
+      // API を呼んでいないので voiceApiRetryCountRef も増やさない。
       setVoiceApiErrorVariant('restart');
       setVoiceApiRetrying(false);
       return;
     }
+
+    // API 呼び出しが確定したのでリトライカウンタを進める。
+    voiceApiRetryCountRef.current += 1;
 
     try {
       const result = await postVoiceRespond({
