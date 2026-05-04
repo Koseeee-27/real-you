@@ -6,7 +6,13 @@ import type { Game3Data } from '@/features/games/types';
 import { BOTS } from '../data/stages';
 import { useGroupChatGame } from '../hooks/useGroupChatGame';
 import { submitGame } from '@/lib/api';
+import {
+  MAX_RETRY_COUNT,
+  isApiClientError,
+  isRestartCode,
+} from '@/lib/api/error';
 import Spinner from '@/components/ui/Spinner';
+import ErrorScreen from '@/components/common/ErrorScreen';
 
 const TUTORIAL_TEXT = `あなたは職場のグループチャットに
 参加しています。
@@ -14,6 +20,14 @@ const TUTORIAL_TEXT = `あなたは職場のグループチャットに
 自由に返信せよ！！`;
 
 type SubmitStatus = 'loading' | 'success' | 'error';
+
+/**
+ * `ErrorScreen` に渡す variant。
+ * - `'retry'`   … 一時的な通信エラー（サーバ 5xx / ネットワーク失敗）想定
+ * - `'restart'` … `RESTART_CODES`（user_not_found / invalid_user_id 等）、
+ *                 user_id 欠損、またはリトライ上限超過
+ */
+type ErrorVariant = 'retry' | 'restart';
 
 function getBotByBotId(botId: string) {
   return BOTS.find((b) => b.id === botId);
@@ -23,14 +37,40 @@ export default function GroupChatGameFlow() {
   const router = useRouter();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('loading');
+  const [errorVariant, setErrorVariant] = useState<ErrorVariant>('retry');
   const pendingDataRef = useRef<Game3Data | null>(null);
   const bgmRef = useRef<HTMLAudioElement | null>(null);
+
+  // リトライ回数は描画ロジックに直接影響しない（catch 内で variant を決める材料
+  // としてのみ使う）ため、useState ではなく useRef で扱う。
+  // useResult.ts / BaselineSurvey.tsx と同じ流儀に揃えている。
+  const retryCountRef = useRef(0);
+
+  // 次画面への遷移用 setTimeout の ID を保持する。再スケジュール時のキャンセルと
+  // unmount 時の cleanup で使う。タイマーを放置すると、unmount 後に router.push が
+  // 走って意図しない遷移を引き起こす可能性があるため明示的に管理する。
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playSE = useCallback((path: string) => {
     const audio = new Audio(path);
     audio.volume = 0.5;
     audio.play().catch(() => {});
   }, []);
+
+  // 次画面への遷移を 2 秒後にスケジュールする。前回のタイマーが残っていれば
+  // クリアしてから新しいタイマーを設定する。
+  const scheduleRedirect = useCallback(
+    (path: string) => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+      redirectTimeoutRef.current = setTimeout(() => {
+        redirectTimeoutRef.current = null;
+        router.push(path);
+      }, 2000);
+    },
+    [router]
+  );
 
   // BGMの初期化と再生管理
   useEffect(() => {
@@ -55,51 +95,107 @@ export default function GroupChatGameFlow() {
     };
   }, []);
 
-  const submitGame3 = useCallback(async (data: Game3Data) => {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) throw new Error('user_id が見つかりません');
-    await submitGame({
-      user_id: userId,
-      game_type: 3,
-      data,
-    });
+  // unmount 時に予約済みの遷移タイマーをキャンセルする。
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+    };
   }, []);
+
+  /**
+   * submitGame(game_type=3) 呼び出しの共通処理。
+   * 業務エラーコードに応じて以下の挙動を行う:
+   *
+   * - `duplicate_submission` … 既にサーバ側で受理済みなので結果画面へ自動進行
+   * - `RESTART_CODES`（user_not_found / invalid_user_id 等） … `restart` variant
+   * - その他 … リトライ可能扱い。`MAX_RETRY_COUNT` 回に達した場合は `restart` に切替
+   *
+   * 成功時は `retryCountRef.current = 0` でリセットして次画面へ遷移する。
+   * user_id 欠損は localStorage が空のままで回復不能なので即 `restart`。
+   */
+  const submitGame3 = useCallback(
+    async (data: Game3Data) => {
+      const userId = localStorage.getItem('user_id');
+      if (!userId) {
+        setErrorVariant('restart');
+        setSubmitStatus('error');
+        return;
+      }
+
+      try {
+        await submitGame({
+          user_id: userId,
+          game_type: 3,
+          data,
+        });
+        retryCountRef.current = 0;
+        setSubmitStatus('success');
+        scheduleRedirect('/result');
+      } catch (err: unknown) {
+        // duplicate_submission（同一 user_id で同じゲームを再送信）は
+        // 既にサーバ側で受理済みなので、エラーにせず次画面へ自動進行する。
+        // BaselineSurvey.tsx の game1 送信と同じ流儀。
+        const isDuplicate =
+          isApiClientError(err) && err.code === 'duplicate_submission';
+        if (isDuplicate) {
+          retryCountRef.current = 0;
+          setSubmitStatus('success');
+          scheduleRedirect('/result');
+          return;
+        }
+
+        // 業務エラーコードが「最初からやり直し」系の場合は restart。
+        // それ以外（ネットワーク失敗・5xx・未知コード等）はリトライ可能扱いだが、
+        // 既に MAX_RETRY_COUNT 回リトライ済みなら restart に切り替える。
+        if (isApiClientError(err) && isRestartCode(err.code)) {
+          setErrorVariant('restart');
+        } else if (retryCountRef.current >= MAX_RETRY_COUNT) {
+          setErrorVariant('restart');
+        } else {
+          setErrorVariant('retry');
+        }
+        setSubmitStatus('error');
+      }
+    },
+    [scheduleRedirect]
+  );
 
   const handleComplete = useCallback(
     async (data: Game3Data) => {
       pendingDataRef.current = data;
       setSubmitStatus('loading');
-
-      try {
-        await submitGame3(data);
-        setSubmitStatus('success');
-        bgmRef.current?.pause();
-        setTimeout(() => {
-          router.push('/result');
-        }, 2000);
-      } catch {
-        setSubmitStatus('error');
-      }
+      // 送信開始時点で BGM を停止する。HelpdeskGameFlow の handleComplete と
+      // 揃えており、成功・duplicate_submission・error すべての経路で
+      // BGM が止まる（ErrorScreen 表示中の音漏れを防ぐ）。
+      bgmRef.current?.pause();
+      await submitGame3(data);
     },
-    [router, submitGame3]
+    [submitGame3]
   );
 
   const handleRetry = useCallback(async () => {
     playSE('/sounds/general-button-se.mp3'); // リトライ音
     const data = pendingDataRef.current;
     if (!data) return;
+    retryCountRef.current += 1;
     setSubmitStatus('loading');
-    try {
-      await submitGame3(data);
-      setSubmitStatus('success');
-      bgmRef.current?.pause();
-      setTimeout(() => {
-        router.push('/result');
-      }, 2000);
-    } catch {
-      setSubmitStatus('error');
+    await submitGame3(data);
+  }, [submitGame3, playSE]);
+
+  const handleGoTop = useCallback(() => {
+    playSE('/sounds/general-button-se.mp3');
+    // RESTART_CODES（user_not_found / invalid_user_id 等）でトップに戻すケースでは、
+    // 古い user_id を握ったまま再開しても同じエラーで詰むため localStorage を掃除する。
+    // ResultPage.tsx / BaselineSurvey.tsx の handleGoTop と挙動を揃えている。
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user_id');
     }
-  }, [router, submitGame3, playSE]);
+    bgmRef.current?.pause();
+    router.push('/');
+  }, [playSE, router]);
 
   const {
     gamePhase,
@@ -200,42 +296,35 @@ export default function GroupChatGameFlow() {
         </div>
       )}
 
-      {/* --- 終了（完了）オーバーレイ --- */}
-      {gamePhase === 'completed' && (
+      {/* --- 終了（完了）オーバーレイ: 成功 / 送信中のみ表示 --- */}
+      {gamePhase === 'completed' && submitStatus !== 'error' && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60">
           <div className="z-10 animate-[fadeInUp_0.4s_ease-out] px-6 text-center">
-            {submitStatus === 'error' ? (
-              <>
-                <p className="text-4xl font-black tracking-widest text-[#e03131] drop-shadow-md bg-white px-6 py-2 rounded-xl border-[4px] border-black">
-                  通信エラー！
-                </p>
-                <button
-                  onClick={handleRetry}
-                  className="mt-6 flex items-center justify-center rounded-xl border-[4px] border-black bg-white px-8 py-3 text-xl font-black text-black shadow-[4px_4px_0_0_#000] transition-transform hover:-translate-y-1 hover:shadow-[6px_6px_0_0_#000] mx-auto"
-                >
-                  リトライする
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-6xl font-black tracking-widest text-white drop-shadow-lg">
-                  終了！
-                </p>
-                {submitStatus === 'loading' && (
-                  <div className="mt-8 flex justify-center text-white">
-                    <Spinner message="送信中..." />
-                  </div>
-                )}
-                {submitStatus === 'success' && (
-                  <p className="mt-6 text-lg font-bold text-white/80">
-                    Loading画面へ移動します...
-                  </p>
-                )}
-              </>
+            <p className="text-6xl font-black tracking-widest text-white drop-shadow-lg">
+              終了！
+            </p>
+            {submitStatus === 'loading' && (
+              <div className="mt-8 flex justify-center text-white">
+                <Spinner message="送信中..." />
+              </div>
+            )}
+            {submitStatus === 'success' && (
+              <p className="mt-6 text-lg font-bold text-white/80">
+                Loading画面へ移動します...
+              </p>
             )}
           </div>
         </div>
       )}
+
+      {/* --- 完了時のエラー: ErrorScreen に variant 別で委譲 --- */}
+      {gamePhase === 'completed' &&
+        submitStatus === 'error' &&
+        (errorVariant === 'restart' ? (
+          <ErrorScreen variant="restart" onGoTop={handleGoTop} />
+        ) : (
+          <ErrorScreen variant="retry" onRetry={handleRetry} />
+        ))}
 
       {/* --- スマホフレーム --- */}
       <div

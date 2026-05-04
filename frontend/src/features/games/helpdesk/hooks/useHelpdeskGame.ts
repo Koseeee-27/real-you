@@ -8,6 +8,11 @@ import type {
 } from '@/features/games/types';
 import { postVoiceRespond } from '@/lib/api';
 import {
+  MAX_RETRY_COUNT,
+  isApiClientError,
+  isRestartCode,
+} from '@/lib/api/error';
+import {
   GAME_TOPIC,
   INITIAL_SUPPORT_MESSAGE,
   FINAL_SUPPORT_MESSAGE,
@@ -52,6 +57,15 @@ export interface ChatMessage {
 }
 
 /**
+ * voice-api-error フェーズの UI 分岐 variant。
+ * 呼び出し側は variant に応じて以下を描画する。
+ * - `'retry'`   … 一時的な通信エラー。既存のカスタムオーバーレイで再試行を促す
+ * - `'restart'` … `RESTART_CODES`（user_not_found / invalid_user_id 等）、
+ *                 user_id 欠損、またはリトライ上限到達。`ErrorScreen` でトップへ戻す
+ */
+export type VoiceApiErrorVariant = 'retry' | 'restart';
+
+/**
  * Game 2（カスタマーサポートチャット）全体のステート管理フック。
  *
  * useSpeechRecognition / useAudioMetrics / useTypingMetrics を統合し、
@@ -74,7 +88,15 @@ export function useHelpdeskGame(options: {
   const [gamePhase, setGamePhase] = useState<GamePhase>('tutorial');
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
   const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
+  const [voiceApiErrorVariant, setVoiceApiErrorVariant] =
+    useState<VoiceApiErrorVariant>('retry');
   const [currentHints, setCurrentHints] = useState<string[]>(INITIAL_HINTS);
+
+  // postVoiceRespond のリトライ回数。voice-api-error フェーズの再試行が
+  // MAX_RETRY_COUNT 回に達したら variant='restart' に切り替える（判定は `>=` なので
+  // 「上限まで使い切った時点」で restart）。
+  // 描画ロジックには直接影響しないため useRef。
+  const voiceApiRetryCountRef = useRef(0);
 
   // --- 環境チェック & SE 準備 ---
   const isSpeechSupported =
@@ -366,24 +388,53 @@ export function useHelpdeskGame(options: {
           content: m.text,
         }));
 
+        const userId =
+          typeof window !== 'undefined'
+            ? localStorage.getItem('user_id')
+            : null;
+        if (!userId) {
+          // user_id 欠損は localStorage が空のままで回復不能なので即 restart。
+          // restart variant は再試行されないため pendingVoiceRequestRef は保存しない。
+          if (cancelled) return;
+          // 防御的に呼び出し音を停止する。実フローでは currentTurn === 0 で既に停止
+          // 済みのはずだが、要件変更で初回 API 呼び出しになっても安全に倒れるように。
+          if (callingAudioRef.current) {
+            callingAudioRef.current.pause();
+            callingAudioRef.current.currentTime = 0;
+          }
+          setVoiceApiErrorVariant('restart');
+          setGamePhase('voice-api-error');
+          return;
+        }
+
         try {
-          const userId =
-            typeof window !== 'undefined'
-              ? localStorage.getItem('user_id')
-              : null;
-          if (!userId) throw new Error('user_id not found');
           const result = await postVoiceRespond({
             user_id: userId,
             message: userMessage,
             conversation_history: conversationHistory,
           });
           supportText = result.response;
-        } catch {
+        } catch (err: unknown) {
           if (cancelled) return;
           pendingVoiceRequestRef.current = {
             userMessage,
             conversationHistory,
           };
+          // 防御的に呼び出し音を停止する（user_id 欠損経路と同じ理由）。
+          if (callingAudioRef.current) {
+            callingAudioRef.current.pause();
+            callingAudioRef.current.currentTime = 0;
+          }
+          // 業務エラーコードが「最初からやり直し」系の場合は restart。
+          // それ以外（ネットワーク失敗・5xx・未知コード等）はリトライ可能扱いだが、
+          // 既に MAX_RETRY_COUNT 回リトライ済みなら restart に切り替える。
+          if (isApiClientError(err) && isRestartCode(err.code)) {
+            setVoiceApiErrorVariant('restart');
+          } else if (voiceApiRetryCountRef.current >= MAX_RETRY_COUNT) {
+            setVoiceApiErrorVariant('restart');
+          } else {
+            setVoiceApiErrorVariant('retry');
+          }
           setGamePhase('voice-api-error');
           return;
         }
@@ -418,18 +469,48 @@ export function useHelpdeskGame(options: {
 
     setVoiceApiRetrying(true);
 
+    const userId =
+      typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
+    if (!userId) {
+      // user_id 欠損は localStorage が空のままで回復不能なので即 restart。
+      // restart variant は再試行されないため pendingVoiceRequestRef は触らない。
+      // API を呼んでいないので voiceApiRetryCountRef も増やさない。
+      setVoiceApiErrorVariant('restart');
+      setVoiceApiRetrying(false);
+      return;
+    }
+
+    // API 呼び出しが確定したのでリトライカウンタを進める。
+    voiceApiRetryCountRef.current += 1;
+
     try {
-      const userId =
-        typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
-      if (!userId) throw new Error('user_id not found');
       const result = await postVoiceRespond({
         user_id: userId,
         message: pending.userMessage,
         conversation_history: pending.conversationHistory,
       });
+      // 成功: リトライカウンタをリセットして応答を再生。
+      // addSupportResponseAndSpeak は TTS の onend で非同期に user-input へ遷移する
+      // （数秒かかる）ため、その間 voice-api-error オーバーレイが残ったままだと
+      // リトライボタンが再表示され、連打で二重送信されてしまう。
+      // 防御として pending をクリアし、フェーズも awaiting-api に切り替えて
+      // 「少々お待ちください。」UI に倒す。awaiting-api は support-speaking effect の
+      // 発動条件に該当しないので、effect 再発動による API 二重呼び出しも起きない。
+      voiceApiRetryCountRef.current = 0;
+      pendingVoiceRequestRef.current = null;
+      setGamePhase('awaiting-api');
       addSupportResponseAndSpeak(result.response);
-    } catch {
+    } catch (err: unknown) {
       pendingVoiceRequestRef.current = pending;
+      // 業務エラーコードが「最初からやり直し」系の場合は restart。
+      // リトライ回数が MAX_RETRY_COUNT 回に達した場合も restart に切り替える。
+      if (isApiClientError(err) && isRestartCode(err.code)) {
+        setVoiceApiErrorVariant('restart');
+      } else if (voiceApiRetryCountRef.current >= MAX_RETRY_COUNT) {
+        setVoiceApiErrorVariant('restart');
+      } else {
+        setVoiceApiErrorVariant('retry');
+      }
     } finally {
       setVoiceApiRetrying(false);
     }
@@ -627,6 +708,7 @@ export function useHelpdeskGame(options: {
     resetTyping,
     isVoiceSupported: speech.isSupported,
     voiceApiRetrying,
+    voiceApiErrorVariant,
     retryVoiceApi,
     hints: currentHints,
   };

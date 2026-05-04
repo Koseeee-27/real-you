@@ -4,17 +4,42 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Game2Data } from '@/features/games/types';
 import { submitGame } from '@/lib/api';
+import {
+  MAX_RETRY_COUNT,
+  isApiClientError,
+  isRestartCode,
+} from '@/lib/api/error';
 import { useHelpdeskGame } from '../hooks/useHelpdeskGame';
 import Spinner from '@/components/ui/Spinner';
+import ErrorScreen from '@/components/common/ErrorScreen';
 import { GAME_TOPIC } from '../data/supportResponses';
 
 type SubmitStatus = 'loading' | 'success' | 'error';
+
+/**
+ * `ErrorScreen` に渡す variant。
+ * - `'retry'`   … 一時的な通信エラー（サーバ 5xx / ネットワーク失敗）想定
+ * - `'restart'` … `RESTART_CODES`（user_not_found / invalid_user_id 等）、
+ *                 user_id 欠損、またはリトライ上限超過
+ */
+type ErrorVariant = 'retry' | 'restart';
 
 export default function HelpdeskGameFlow() {
   const router = useRouter();
   const [textInput, setTextInput] = useState('');
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('loading');
+  const [errorVariant, setErrorVariant] = useState<ErrorVariant>('retry');
   const pendingDataRef = useRef<Game2Data | null>(null);
+
+  // リトライ回数は描画ロジックに直接影響しない（catch 内で variant を決める材料
+  // としてのみ使う）ため、useState ではなく useRef で扱う。
+  // useResult.ts / BaselineSurvey.tsx と同じ流儀に揃えている。
+  const retryCountRef = useRef(0);
+
+  // 次画面への遷移用 setTimeout の ID を保持する。再スケジュール時のキャンセルと
+  // unmount 時の cleanup で使う。タイマーを放置すると、unmount 後に router.push が
+  // 走って意図しない遷移を引き起こす可能性があるため明示的に管理する。
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- サウンド管理用のRefとヘルパー ---
   const bgmRef = useRef<HTMLAudioElement | null>(null);
@@ -24,6 +49,21 @@ export default function HelpdeskGameFlow() {
     audio.volume = 0.5;
     audio.play().catch(() => {});
   }, []);
+
+  // 次画面への遷移を 2 秒後にスケジュールする。前回のタイマーが残っていれば
+  // クリアしてから新しいタイマーを設定する。
+  const scheduleRedirect = useCallback(
+    (path: string) => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+      redirectTimeoutRef.current = setTimeout(() => {
+        redirectTimeoutRef.current = null;
+        router.push(path);
+      }, 2000);
+    },
+    [router]
+  );
 
   // BGMの初期化と再生管理
   useEffect(() => {
@@ -46,15 +86,73 @@ export default function HelpdeskGameFlow() {
     };
   }, []);
 
-  const submitGame2 = useCallback(async (data: Game2Data) => {
-    const userId = localStorage.getItem('user_id');
-    if (!userId) throw new Error('user_id が見つかりません');
-    await submitGame({
-      user_id: userId,
-      game_type: 2,
-      data,
-    });
+  // unmount 時に予約済みの遷移タイマーをキャンセルする。
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+    };
   }, []);
+
+  /**
+   * submitGame(game_type=2) 呼び出しの共通処理。
+   * 業務エラーコードに応じて以下の挙動を行う:
+   *
+   * - `duplicate_submission` … 既にサーバ側で受理済みなので次画面へ自動進行
+   * - `RESTART_CODES`（user_not_found / invalid_user_id 等） … `restart` variant
+   * - その他 … リトライ可能扱い。`MAX_RETRY_COUNT` 回に達した場合は `restart` に切替
+   *
+   * 成功時は `retryCountRef.current = 0` でリセットして次画面へ遷移する。
+   * user_id 欠損は localStorage が空のままで回復不能なので即 `restart`。
+   */
+  const submitGame2 = useCallback(
+    async (data: Game2Data) => {
+      const userId = localStorage.getItem('user_id');
+      if (!userId) {
+        setErrorVariant('restart');
+        setSubmitStatus('error');
+        return;
+      }
+
+      try {
+        await submitGame({
+          user_id: userId,
+          game_type: 2,
+          data,
+        });
+        retryCountRef.current = 0;
+        setSubmitStatus('success');
+        scheduleRedirect('/games/group-chat');
+      } catch (err: unknown) {
+        // duplicate_submission（同一 user_id で同じゲームを再送信）は
+        // 既にサーバ側で受理済みなので、エラーにせず次画面へ自動進行する。
+        // BaselineSurvey.tsx の game1 送信と同じ流儀。
+        const isDuplicate =
+          isApiClientError(err) && err.code === 'duplicate_submission';
+        if (isDuplicate) {
+          retryCountRef.current = 0;
+          setSubmitStatus('success');
+          scheduleRedirect('/games/group-chat');
+          return;
+        }
+
+        // 業務エラーコードが「最初からやり直し」系の場合は restart。
+        // それ以外（ネットワーク失敗・5xx・未知コード等）はリトライ可能扱いだが、
+        // 既に MAX_RETRY_COUNT 回リトライ済みなら restart に切り替える。
+        if (isApiClientError(err) && isRestartCode(err.code)) {
+          setErrorVariant('restart');
+        } else if (retryCountRef.current >= MAX_RETRY_COUNT) {
+          setErrorVariant('restart');
+        } else {
+          setErrorVariant('retry');
+        }
+        setSubmitStatus('error');
+      }
+    },
+    [scheduleRedirect]
+  );
 
   const handleComplete = useCallback(
     async (data: Game2Data) => {
@@ -66,17 +164,9 @@ export default function HelpdeskGameFlow() {
         bgmRef.current.pause();
       }
 
-      try {
-        await submitGame2(data);
-        setSubmitStatus('success');
-        setTimeout(() => {
-          router.push('/games/group-chat');
-        }, 2000);
-      } catch {
-        setSubmitStatus('error');
-      }
+      await submitGame2(data);
     },
-    [router, submitGame2]
+    [submitGame2]
   );
 
   const {
@@ -93,11 +183,20 @@ export default function HelpdeskGameFlow() {
     onKeyDown,
     resetTyping,
     voiceApiRetrying,
+    voiceApiErrorVariant,
     retryVoiceApi: originalRetryVoiceApi,
     startInstruction: originalStartInstruction,
     gameTopic,
     hints,
   } = useHelpdeskGame({ onComplete: handleComplete });
+
+  // voice-api-error フェーズで restart variant に切り替わったら ErrorScreen を全画面で
+  // 表示するため、ゲーム中の BGM を裏で鳴らし続けるのは違和感がある。明示的に停止する。
+  useEffect(() => {
+    if (gamePhase === 'voice-api-error' && voiceApiErrorVariant === 'restart') {
+      bgmRef.current?.pause();
+    }
+  }, [gamePhase, voiceApiErrorVariant]);
 
   // --- アクションをラップしてSEを追加 ---
   const startInstruction = useCallback(() => {
@@ -137,17 +236,24 @@ export default function HelpdeskGameFlow() {
     playSE('/sounds/general-button-se.mp3');
     const data = pendingDataRef.current;
     if (!data) return;
+    retryCountRef.current += 1;
     setSubmitStatus('loading');
-    try {
-      await submitGame2(data);
-      setSubmitStatus('success');
-      setTimeout(() => {
-        router.push('/games/group-chat');
-      }, 2000);
-    } catch {
-      setSubmitStatus('error');
+    await submitGame2(data);
+  }, [submitGame2, playSE]);
+
+  const handleGoTop = useCallback(() => {
+    playSE('/sounds/general-button-se.mp3');
+    // RESTART_CODES（user_not_found / invalid_user_id 等）でトップに戻すケースでは、
+    // 古い user_id を握ったまま再開しても同じエラーで詰むため localStorage を掃除する。
+    // ResultPage.tsx / BaselineSurvey.tsx の handleGoTop と挙動を揃えている。
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user_id');
     }
-  }, [submitGame2, playSE, router]);
+    // ErrorScreen 表示中も BGM が鳴り続けるのを防ぐ。
+    // unmount 時の cleanup でも止まるが、ボタン押下前の状態を考慮して明示的に停止。
+    bgmRef.current?.pause();
+    router.push('/');
+  }, [playSE, router]);
 
   const [hintIndex, setHintIndex] = useState(0);
   const [prevHints, setPrevHints] = useState(hints);
@@ -174,8 +280,12 @@ export default function HelpdeskGameFlow() {
           </button>
         )}
 
-      {/* --- AI応答取得失敗オーバーレイ --- */}
-      {gamePhase === 'voice-api-error' && (
+      {/* --- AI応答取得失敗オーバーレイ ---
+       * variant='retry' は既存のゲーム演出に馴染むカスタムオーバーレイで再試行を促す。
+       * variant='restart'（user_id 欠損 / RESTART_CODES / リトライ上限超過）は
+       * 共通の ErrorScreen に切り替えてトップに戻す。
+       */}
+      {gamePhase === 'voice-api-error' && voiceApiErrorVariant === 'retry' && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/60 px-6 backdrop-blur-sm">
           <div className="rounded-2xl border-[4px] border-black bg-white p-8 text-center shadow-[8px_8px_0_0_#000]">
             <p className="text-xl font-bold text-red-600">通信に失敗しました</p>
@@ -195,6 +305,11 @@ export default function HelpdeskGameFlow() {
           </div>
         </div>
       )}
+
+      {gamePhase === 'voice-api-error' &&
+        voiceApiErrorVariant === 'restart' && (
+          <ErrorScreen variant="restart" onGoTop={handleGoTop} />
+        )}
 
       {/* --- ルールポップアップ (チュートリアルフェーズ) --- */}
       {gamePhase === 'tutorial' && (
@@ -237,23 +352,11 @@ export default function HelpdeskGameFlow() {
       )}
 
       {/* --- 終了画面 (completed オーバーレイ) --- */}
-      {gamePhase === 'completed' && (
+      {gamePhase === 'completed' && submitStatus !== 'error' && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
           {submitStatus === 'loading' ? (
             <div className="flex flex-col items-center gap-4">
               <Spinner message="結果を送信中..." />
-            </div>
-          ) : submitStatus === 'error' ? (
-            <div className="flex flex-col items-center gap-6">
-              <h2 className="text-3xl font-black text-red-500 drop-shadow-md">
-                通信に失敗しました
-              </h2>
-              <button
-                onClick={handleRetry}
-                className="rounded-xl border-[4px] border-black bg-[#3b82f6] px-8 py-3 text-xl font-bold text-white shadow-[4px_4px_0_0_#000] transition-transform hover:translate-y-1 hover:shadow-none"
-              >
-                リトライ
-              </button>
             </div>
           ) : (
             <h2 className="text-6xl font-black tracking-widest text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] animate-[scaleIn_0.5s_ease-out]">
@@ -262,6 +365,15 @@ export default function HelpdeskGameFlow() {
           )}
         </div>
       )}
+
+      {/* --- 完了時のエラー: ErrorScreen に variant 別で委譲 --- */}
+      {gamePhase === 'completed' &&
+        submitStatus === 'error' &&
+        (errorVariant === 'restart' ? (
+          <ErrorScreen variant="restart" onGoTop={handleGoTop} />
+        ) : (
+          <ErrorScreen variant="retry" onRetry={handleRetry} />
+        ))}
 
       {/* --- 画面下部の会話エリア --- */}
       <div className="absolute bottom-8 left-0 right-0 px-4 z-30">
