@@ -57,10 +57,11 @@ export interface ChatMessage {
 }
 
 /**
- * voice-api-error フェーズで `ErrorScreen` に渡す variant。
- * - `'retry'`   … 一時的な通信エラー（既存のカスタムオーバーレイで再試行を促す）
+ * voice-api-error フェーズの UI 分岐 variant。
+ * 呼び出し側は variant に応じて以下を描画する。
+ * - `'retry'`   … 一時的な通信エラー。既存のカスタムオーバーレイで再試行を促す
  * - `'restart'` … `RESTART_CODES`（user_not_found / invalid_user_id 等）、
- *                 user_id 欠損、またはリトライ上限超過。トップへ戻すべき状態
+ *                 user_id 欠損、またはリトライ上限到達。`ErrorScreen` でトップへ戻す
  */
 export type VoiceApiErrorVariant = 'retry' | 'restart';
 
@@ -92,7 +93,8 @@ export function useHelpdeskGame(options: {
   const [currentHints, setCurrentHints] = useState<string[]>(INITIAL_HINTS);
 
   // postVoiceRespond のリトライ回数。voice-api-error フェーズの再試行が
-  // MAX_RETRY_COUNT を超えたら variant='restart' に切り替える。
+  // MAX_RETRY_COUNT 回に達したら variant='restart' に切り替える（判定は `>=` なので
+  // 「上限まで使い切った時点」で restart）。
   // 描画ロジックには直接影響しないため useRef。
   const voiceApiRetryCountRef = useRef(0);
 
@@ -479,7 +481,7 @@ export function useHelpdeskGame(options: {
     } catch (err: unknown) {
       pendingVoiceRequestRef.current = pending;
       // 業務エラーコードが「最初からやり直し」系の場合は restart。
-      // MAX_RETRY_COUNT 超過時も restart に切り替える。
+      // リトライ回数が MAX_RETRY_COUNT 回に達した場合も restart に切り替える。
       if (isApiClientError(err) && isRestartCode(err.code)) {
         setVoiceApiErrorVariant('restart');
       } else if (voiceApiRetryCountRef.current >= MAX_RETRY_COUNT) {
