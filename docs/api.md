@@ -95,15 +95,15 @@ npm run gen:api-types
 
 ```ts
 // frontend/src/features/diagnosis/types/index.ts
-import type { components } from '@/lib/api/generated';
+import type { components } from "@/lib/api/generated";
 
-export type AnswerOption = components['schemas']['AnswerOption'];
-export type BaselineAnswers = components['schemas']['BaselineAnswers'];
+export type AnswerOption = components["schemas"]["AnswerOption"];
+export type BaselineAnswers = components["schemas"]["BaselineAnswers"];
 ```
 
 ```ts
 // frontend/src/features/diagnosis/components/BaselineSurvey.tsx
-import type { BaselineAnswers } from '@/features/diagnosis/types';
+import type { BaselineAnswers } from "@/features/diagnosis/types";
 ```
 
 API I/O ではない FE 内部のデータ（UI 用の `Question[]` 配列など）は、生成型から導出するか手書きのまま `types/index.ts` に置きます。
