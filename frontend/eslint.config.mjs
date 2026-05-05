@@ -19,12 +19,4 @@ const eslintConfig = defineConfig([
   ]),
 ]);
 
-export default [
-  ...eslintConfig,
-  {
-    rules: {
-      "prettier/prettier": "warn"
-    }
-  }
-];
-
+export default eslintConfig;
