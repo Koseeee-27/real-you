@@ -586,7 +586,7 @@ export interface components {
         /**
          * @description ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット
          * @example 1
-         * @enum {unknown}
+         * @enum {number}
          */
         GameType: 1 | 2 | 3;
         /** @description 各ゲーム終了時に行動データを送信するリクエスト。game_type の値（1 / 2 / 3）で data 構造が決まる（oneOf）。同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す */
