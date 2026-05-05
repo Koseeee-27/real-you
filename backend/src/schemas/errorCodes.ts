@@ -25,35 +25,39 @@ export const ERROR_CODES = {
 export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
 
 /**
- * エラーコードの zod スキーマ。
- * 仕様書で列挙されたコードのみに縛るため、`ERROR_CODES` の値を z.literal に展開する。
- * 値を追加する際は `ERROR_CODES` と本配列の両方を更新すること。
+ * `ERROR_CODES` の全値を 1 箇所に集約した配列。
  *
- * OpenAPI では `.openapi({ enum: [...] })` で enum として出力する。
- * z.union<z.literal> の構成から OpenAPI 側で `anyOf` に落ちてしまうのを避け、
- * 単一の string enum として Swagger UI / IDE 補完で扱いやすくするため。
+ * `z.literal(...)` の引数と `.openapi({ enum: [...] })` の両方から参照することで、
+ * 値の追加時に `ERROR_CODES` のみを更新すれば
+ * 型と OpenAPI enum が自動で追随する（二重管理を解消）。
+ *
+ * `Object.values(ERROR_CODES)` の戻り値型は `ErrorCode[]`（9 個の文字列リテラル union 配列）で、
+ * `z.literal<const T extends ReadonlyArray<Literal>>(value: T)` の T[number] 推論により
+ * 内部型は `'invalid_request' | 'invalid_mbti' | ... | 'server_error'` の union が維持される。
  */
-const errorCodeSchema = z
-    .union([
-        z.literal(ERROR_CODES.INVALID_REQUEST),
-        z.literal(ERROR_CODES.INVALID_MBTI),
-        z.literal(ERROR_CODES.INVALID_ANSWERS),
-        z.literal(ERROR_CODES.INVALID_USER_ID),
-        z.literal(ERROR_CODES.INVALID_GAME_TYPE),
-        z.literal(ERROR_CODES.INCOMPLETE_GAMES),
-        z.literal(ERROR_CODES.USER_NOT_FOUND),
-        z.literal(ERROR_CODES.DUPLICATE_SUBMISSION),
-        z.literal(ERROR_CODES.SERVER_ERROR),
-    ])
-    .openapi({
-        description:
-            'API 設計書「エラーレスポンス」で規定された業務エラーコード。 ' +
-            '400: invalid_mbti / invalid_answers / invalid_request / invalid_user_id / ' +
-            'invalid_game_type / incomplete_games、404: user_not_found、' +
-            '409: duplicate_submission、500: server_error。',
-        enum: Object.values(ERROR_CODES),
-        example: ERROR_CODES.INVALID_REQUEST,
-    });
+const ERROR_CODE_VALUES = Object.values(ERROR_CODES);
+
+/**
+ * エラーコードの zod スキーマ。
+ *
+ * `ERROR_CODES` 定数を唯一の真実とし、`ERROR_CODE_VALUES` 経由で
+ * zod スキーマと OpenAPI enum の両方に展開する。
+ *
+ * NOTE: zod v4 の `z.literal(array)` は内部的に `'invalid_request' | ...` の literal union として
+ * 振る舞うが、`@asteasolutions/zod-to-openapi` v8.5 の `LiteralTransformer` は
+ * multi-value literal を `enum: [values[0]]`（先頭 1 要素のみ）にしか展開しない。
+ * よって OpenAPI で正しい enum を出すには `.openapi({ enum: [...] })` で全値を
+ * 明示する必要がある。値のソースは同じ `ERROR_CODE_VALUES` なので二重管理にはならない。
+ */
+const errorCodeSchema = z.literal(ERROR_CODE_VALUES).openapi({
+    description:
+        'API 設計書「エラーレスポンス」で規定された業務エラーコード。 ' +
+        '400: invalid_mbti / invalid_answers / invalid_request / invalid_user_id / ' +
+        'invalid_game_type / incomplete_games、404: user_not_found、' +
+        '409: duplicate_submission、500: server_error。',
+    enum: ERROR_CODE_VALUES,
+    example: ERROR_CODES.INVALID_REQUEST,
+});
 
 /**
  * API 共通エラーレスポンス。

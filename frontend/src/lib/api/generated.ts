@@ -392,7 +392,7 @@ export interface components {
             /**
              * @description API 設計書「エラーレスポンス」で規定された業務エラーコード。 400: invalid_mbti / invalid_answers / invalid_request / invalid_user_id / invalid_game_type / incomplete_games、404: user_not_found、409: duplicate_submission、500: server_error。
              * @example invalid_request
-             * @enum {unknown}
+             * @enum {string}
              */
             error: "invalid_request" | "invalid_mbti" | "invalid_answers" | "invalid_user_id" | "invalid_game_type" | "incomplete_games" | "user_not_found" | "duplicate_submission" | "server_error";
             /**
