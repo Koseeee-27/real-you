@@ -134,7 +134,9 @@ export default function TopPage() {
     {
       title: '所要時間は約5分！',
       subtitle: 'スキマ時間でサクッと診断⭐︎',
-      bullets: ['短時間で遊べるので、休憩時間や移動中にもおすすめです！'],
+      bullets: [
+        '短時間で遊べるので、休憩時間や移動中にもおすすめです！',
+      ],
     },
     {
       title: '始める前に',
@@ -217,26 +219,19 @@ export default function TopPage() {
               {/* 進行状況バー */}
               <div className="mb-3">
                 <div className="mb-2 flex items-center justify-between text-sm font-bold text-zinc-700">
-                  <span>
-                    {howToPlayPage} / {howToPlaySteps.length}
-                  </span>
+                  <span>{howToPlayPage} / {howToPlaySteps.length}</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-zinc-200">
                   <div
                     className="h-full rounded-full bg-black transition-all duration-300"
-                    style={{
-                      width: `${(howToPlayPage / howToPlaySteps.length) * 100}%`,
-                    }}
+                    style={{ width: `${(howToPlayPage / howToPlaySteps.length) * 100}%` }}
                   />
                 </div>
               </div>
 
               {/* メインコンテンツ */}
               <div className="flex-1 flex flex-col justify-center">
-                <h2
-                  id="how-to-play-title"
-                  className="mb-4 text-3xl font-bold leading-relaxed text-center"
-                >
+                <h2 id="how-to-play-title" className="mb-4 text-3xl font-bold leading-relaxed text-center">
                   {howToPlaySteps[howToPlayPage - 1].title}
                 </h2>
 
@@ -246,11 +241,9 @@ export default function TopPage() {
                   </p>
 
                   <ul className="min-h-[130px] space-y-3 text-base leading-relaxed text-[#111] list-disc pl-5">
-                    {howToPlaySteps[howToPlayPage - 1].bullets.map(
-                      (line, index) => (
-                        <li key={index}>{line}</li>
-                      )
-                    )}
+                    {howToPlaySteps[howToPlayPage - 1].bullets.map((line, index) => (
+                      <li key={index}>{line}</li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -259,9 +252,7 @@ export default function TopPage() {
               <div className="mt-5 flex min-h-[64px] items-center justify-center gap-4">
                 <button
                   type="button"
-                  onClick={() =>
-                    setHowToPlayPage((page) => Math.max(1, page - 1))
-                  }
+                  onClick={() => setHowToPlayPage((page) => Math.max(1, page - 1))}
                   disabled={howToPlayPage === 1}
                   className="inline-flex rounded-full border border-zinc-900 px-8 py-3 text-base font-bold transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-zinc-100"
                 >
