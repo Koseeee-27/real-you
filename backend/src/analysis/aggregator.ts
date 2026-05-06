@@ -72,15 +72,25 @@ const AXES = Object.values(SCORE_KEYS) satisfies readonly (keyof BaselineScores)
  * 入力が空 / 全軸 undefined の場合は全軸 NEUTRAL_SCORE を返す。
  */
 export function aggregateScores(contributions: readonly GameContribution[]): BaselineScores {
-    const result = {} as BaselineScores;
+    // 全軸を NEUTRAL_SCORE で初期化してから AXES ループで上書きする。
+    // 型注釈 `BaselineScores` により未来の軸追加（例: BaselineScores に新軸が追加されたが
+    // SCORE_KEYS / AXES に追加し忘れた場合）でコンパイル時に検出できるとともに、
+    // 万一 AXES が漏れていても result の値が undefined / NaN にならず NEUTRAL_SCORE に
+    // フォールバックする（aggregator 利用先での `gaps` 計算で NaN が伝播するのを防ぐ）。
+    const result: BaselineScores = {
+        caution: NEUTRAL_SCORE,
+        calmness: NEUTRAL_SCORE,
+        logic: NEUTRAL_SCORE,
+        cooperativeness: NEUTRAL_SCORE,
+        positivity: NEUTRAL_SCORE,
+    };
     for (const axis of AXES) {
         const values = contributions
             .map((c) => c.scores[axis])
             .filter((v): v is number => v !== undefined);
-        result[axis] =
-            values.length > 0
-                ? safeScore(values.reduce((sum, v) => sum + v, 0) / values.length)
-                : NEUTRAL_SCORE;
+        if (values.length > 0) {
+            result[axis] = safeScore(values.reduce((sum, v) => sum + v, 0) / values.length);
+        }
     }
     return result;
 }
