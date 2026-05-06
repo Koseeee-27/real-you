@@ -53,7 +53,7 @@ const partialBaselineScoresSchema = baselineScoresSchema.partial();
  * Phase 3 で `Object.keys(GAME_MODULES)` から導出する形に置換する想定。
  *
  * 文字列リテラル列挙で OpenAPI に公開する用途、かつエラーコード差別化が不要な
- * ケースのため `z.enum` を採用（数値リテラルなら `z.literal(VALUES)`、
+ * ケースのため `z.enum` を採用（数値リテラルなら `z.literal(VALUES).openapi({ enum: VALUES })`、
  * `invalid_request` と業務エラーコードを区別する必要があれば `z.string().refine()` を使う）。
  * これにより FE 生成型でも `'terms_game' | 'helpdesk_game' | 'group_chat_game'` の
  * リテラル絞り込みが効き、Swagger UI でも enum が明示される。
