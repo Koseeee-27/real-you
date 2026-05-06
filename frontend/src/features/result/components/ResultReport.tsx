@@ -2,21 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  LucideIcon,
-  Activity,
-  ShieldAlert,
-  Zap,
-  Users,
-  Star,
-  RefreshCw,
-} from 'lucide-react';
-import type { ResultResponse } from '../types';
+import { Activity, RefreshCw, Star, type LucideIcon } from 'lucide-react';
+import type { GameId, ResultResponse } from '../types';
+import { GAME_META } from '../data/gameMeta';
 import GameDetailTab from './GameDetailTab';
 import OverviewTab from './OverviewTab';
 import SharePanel from './SharePanel';
 
-type TabId = 'overview' | 'game_1' | 'game_2' | 'game_3';
+type TabId = 'overview' | GameId;
 
 const SOUNDS = {
   BGM: '/sounds/result-bgm.mp3',
@@ -24,17 +17,12 @@ const SOUNDS = {
   RETAKE: '/sounds/start-se.mp3',
 };
 
-const TABS: { id: TabId; label: string; icon: LucideIcon }[] = [
-  { id: 'overview', label: '総合診断', icon: Activity },
-  { id: 'game_1', label: '規約の罠', icon: ShieldAlert },
-  { id: 'game_2', label: 'AIバトル', icon: Zap },
-  { id: 'game_3', label: '空気読み', icon: Users },
-];
-
-const GAME_TAB_COLORS: Record<string, string> = {
-  game_1: '#ef4444',
-  game_2: '#f97316',
-  game_3: '#3b82f6',
+// overview タブはゲームではなく総合診断の表示なので個別に定義する。
+// ゲームタブは API レスポンスの `data.details` の順序から動的に構築する。
+const OVERVIEW_TAB: { id: 'overview'; label: string; icon: LucideIcon } = {
+  id: 'overview',
+  label: '総合診断',
+  icon: Activity,
 };
 
 type ResultReportProps = {
@@ -46,25 +34,11 @@ export default function ResultReport({ data }: ResultReportProps) {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const bgmRef = useRef<HTMLAudioElement | null>(null);
 
-  // Phase 1（Issue #97）の暫定対応: details / phase_summaries が配列形式に変わったため、
-  // game_id で対応要素を取り出してから既存の game_1/2/3 タブに割り当てる。
-  // タブ動的化と gameMeta.ts 化は Issue #98 で対応するため、ここでは最小修正に留める。
-  const termsDetail = data.details.find((d) => d.game_id === 'terms_game');
-  const helpdeskDetail = data.details.find(
-    (d) => d.game_id === 'helpdesk_game'
+  // game_id をキーに phase_summaries を引けるようにしておく。
+  // タブ切り替え時に都度 find() しないよう一度マップ化する。
+  const summaryByGameId = new Map(
+    data.phase_summaries.map((p) => [p.game_id, p.summary])
   );
-  const groupChatDetail = data.details.find(
-    (d) => d.game_id === 'group_chat_game'
-  );
-
-  const termsSummary =
-    data.phase_summaries.find((p) => p.game_id === 'terms_game')?.summary ?? '';
-  const helpdeskSummary =
-    data.phase_summaries.find((p) => p.game_id === 'helpdesk_game')?.summary ??
-    '';
-  const groupChatSummary =
-    data.phase_summaries.find((p) => p.game_id === 'group_chat_game')
-      ?.summary ?? '';
 
   // SE再生用ヘルパー
   const playSE = (path: string) => {
@@ -99,7 +73,7 @@ export default function ResultReport({ data }: ResultReportProps) {
 
   const handleTabChange = (tabId: TabId) => {
     // 1. SEをロードして再生
-    const se = new Audio('/sounds/general-button-se.mp3');
+    const se = new Audio(SOUNDS.TAB_CLICK);
     se.volume = 0.5;
     se.play().catch(() => {
       /* 自動再生制限などで失敗してもエラーを出さない */
@@ -118,6 +92,25 @@ export default function ResultReport({ data }: ResultReportProps) {
       router.push('/');
     }, 500);
   }, [router]);
+
+  // タブ一覧（overview + 各ゲーム）。ゲームタブは details の並び順に従う。
+  // GAME_META に未登録の game_id（BE / FE の generated.ts が一時的にズレた場合等）が
+  // 含まれる可能性に備え、flatMap でスキップして安全側に倒す。
+  const gameTabs = data.details.flatMap((detail) => {
+    const meta = GAME_META[detail.game_id];
+    if (!meta) return [];
+    return [
+      {
+        id: detail.game_id,
+        label: meta.label,
+        icon: meta.icon,
+        color: meta.color,
+        detail,
+        summary: summaryByGameId.get(detail.game_id) ?? '',
+      },
+    ];
+  });
+  const activeGameTab = gameTabs.find((tab) => tab.id === activeTab);
 
   return (
     <div
@@ -145,7 +138,7 @@ export default function ResultReport({ data }: ResultReportProps) {
 
       <main className="relative z-10 w-full max-w-7xl flex flex-col max-h-[80vh]">
         <nav className="flex px-2 lg:px-10 items-end h-10">
-          {TABS.map((tab) => {
+          {[OVERVIEW_TAB, ...gameTabs].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -174,25 +167,11 @@ export default function ResultReport({ data }: ResultReportProps) {
 
         <div className="flex-1 bg-white border-4 border-black rounded-3xl rounded-tr-3xl shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-8 min-h-125">
           {activeTab === 'overview' && <OverviewTab data={data} />}
-          {activeTab === 'game_1' && termsDetail && (
+          {activeGameTab && (
             <GameDetailTab
-              detail={termsDetail}
-              comment={termsSummary}
-              tabColor={GAME_TAB_COLORS.game_1}
-            />
-          )}
-          {activeTab === 'game_2' && helpdeskDetail && (
-            <GameDetailTab
-              detail={helpdeskDetail}
-              comment={helpdeskSummary}
-              tabColor={GAME_TAB_COLORS.game_2}
-            />
-          )}
-          {activeTab === 'game_3' && groupChatDetail && (
-            <GameDetailTab
-              detail={groupChatDetail}
-              comment={groupChatSummary}
-              tabColor={GAME_TAB_COLORS.game_3}
+              detail={activeGameTab.detail}
+              comment={activeGameTab.summary}
+              tabColor={activeGameTab.color}
             />
           )}
         </div>
