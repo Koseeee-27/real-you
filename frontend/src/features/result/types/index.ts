@@ -8,6 +8,9 @@
 
 import type { components } from '@/lib/api/generated';
 
+// ゲーム識別子（terms_game / helpdesk_game / group_chat_game）
+export type GameId = components['schemas']['GameId'];
+
 // 5 軸スコア（自己申告基準値・実測値・MBTI 理論値で共通利用）
 export type DiagnosisScores = components['schemas']['BaselineScores'];
 
