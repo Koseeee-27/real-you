@@ -1,62 +1,50 @@
+import { GAME_MODULES } from '../analysis/registry';
+import { GameRawDataPayload, gameRepository } from '../repositories/gameRepository';
 import { userRepository } from '../repositories/userRepository';
-import { gameRepository, GameRawDataPayload } from '../repositories/gameRepository';
-import { GAME_TYPES, GameType } from '../types';
 import { ERROR_CODES } from '../schemas/errorCodes';
-import {
-    game1DataSchema,
-    game2DataSchema,
-    game3DataSchema,
-} from '../schemas/gameData';
+import type { GameId } from '../types';
 
 /**
- * game_type に応じて、受け取った data を対応する zod スキーマで parse する。
+ * GameId に応じて、受け取った data を対応する zod スキーマで parse する。
  *
- * route 層の `submitGameRequestSchema`（discriminatedUnion 化済み）で data の
- * 構造は既に検証されているため、本関数の safeParse は実質的にはパススルーになる。
- * ただし以下の理由で safeParse + switch の構造を残している:
+ * route 層の `submitGameRequestSchema`（discriminatedUnion）で data の構造は既に検証
+ * されているため、本関数の safeParse は実質的にはパススルーになる。それでも残すのは
+ * 以下の理由:
  * - service が将来 route 以外（CLI / batch ジョブ等）から呼ばれた場合の防御
- * - `gameType` と `rawData` を組（判別可能 union `GameRawDataPayload`）として
- *   返すことで、`gameRepository.saveLog` の引数で gameType と rawData の
+ * - `gameId` と `rawData` を組（判別可能 union `GameRawDataPayload`）として
+ *   返すことで、`gameRepository.saveLog` の引数で gameId と rawData の
  *   ミスマッチを型レベルで弾く
+ *
+ * 実装は `analysis/registry.ts` の `GAME_MODULES` から対応モジュールの schema を
+ * 引いて parse する。新ゲーム追加時は GAME_MODULES に登録するだけで自動的に
+ * 検証対象に含まれる（旧実装の switch 文は不要）。
  *
  * 構造違反（必須フィールド欠落・型違い等）はクライアント起因の不正リクエストとして
  * 400 `invalid_request` を throw する。詳細な issue は warn ログに残し、
  * クライアントへの message は固定文言にして内部構造の漏洩を防ぐ。
  */
-function parseGameData(gameType: GameType, data: Record<string, unknown>): GameRawDataPayload {
-    switch (gameType) {
-        case GAME_TYPES.TERMS_GAME: {
-            const result = game1DataSchema.safeParse(data);
-            if (!result.success) throw invalidGameDataError(gameType, result.error.issues);
-            return { gameType, rawData: result.data };
-        }
-        case GAME_TYPES.AI_CHAT: {
-            const result = game2DataSchema.safeParse(data);
-            if (!result.success) throw invalidGameDataError(gameType, result.error.issues);
-            return { gameType, rawData: result.data };
-        }
-        case GAME_TYPES.GROUP_CHAT: {
-            const result = game3DataSchema.safeParse(data);
-            if (!result.success) throw invalidGameDataError(gameType, result.error.issues);
-            return { gameType, rawData: result.data };
-        }
-        default: {
-            // 網羅性チェック: GameType に新しい値を追加した際、ここで型エラーを出して
-            // case 追加を強制する（型システム上は到達不能なため、ランタイム throw も保険として残す）
-            const _exhaustive: never = gameType;
-            throw new Error(`Unknown game type: ${_exhaustive}`);
-        }
-    }
+function parseGameData(gameId: GameId, data: Record<string, unknown>): GameRawDataPayload {
+    const module = GAME_MODULES[gameId];
+    const result = module.schema.safeParse(data);
+    if (!result.success) throw invalidGameDataError(gameId, result.error.issues);
+
+    // GameRawDataPayload は `gameId` ごとに rawData の型が異なる判別可能 union。
+    // GAME_MODULES[gameId] の schema は対応する Game1Data / Game2Data / Game3Data を
+    // parse するが、registry の `GameModuleEntry` では schema を `ZodTypeAny` として
+    // 保持しており parse 戻り値が unknown 化する。型整合性はキー名と `module.id` の
+    // 一致を `GameModulesMap` で強制した上で確保しているため、ここでアサーションして
+    // 上位の判別可能 union（GameRawDataPayload）に詳細型を伝える。
+    return { gameId, rawData: result.data } as GameRawDataPayload;
 }
 
 /**
  * Game data の zod parse 失敗時に throw する API エラーオブジェクトを生成する。
  *
- * `parseGameData` の各 case で同じ形のエラーを throw するため、ヘルパに切り出して
- * 詳細な issue は warn ログに残し、クライアントには固定文言だけを返す。
+ * `parseGameData` から呼ばれる。詳細な issue は warn ログに残し、
+ * クライアントには固定文言だけを返す。
  */
-function invalidGameDataError(gameType: GameType, issues: unknown) {
-    console.warn('Game data validation failed:', { gameType, issues });
+function invalidGameDataError(gameId: GameId, issues: unknown) {
+    console.warn('Game data validation failed:', { gameId, issues });
     return {
         status: 400,
         code: ERROR_CODES.INVALID_REQUEST,
@@ -69,12 +57,15 @@ export const gameService = {
      * ゲームプレイデータを保存する。
      *
      * リクエスト形状の検証（必須・型・game_type の範囲・data が空でないこと）は
-     * route 層の zod ミドルウェアで完了している前提。
+     * route 層の zod ミドルウェアで完了している前提。route 層は HTTP リクエストの
+     * 数値 game_type を文字列 GameId に変換した上で本メソッドを呼ぶ
+     * （Anti-Corruption Layer / Issue #101）。
+     *
      * ここでは DB を参照しないと判定できない業務ルール
-     * （ユーザー存在確認・同一ゲーム重複送信）と、game_type に応じた data 構造の
+     * （ユーザー存在確認・同一ゲーム重複送信）と、gameId に応じた data 構造の
      * 検証（parseGameData）を行う。
      */
-    async submitGame(userId: string, gameType: GameType, data: Record<string, unknown>) {
+    async submitGame(userId: string, gameId: GameId, data: Record<string, unknown>) {
         // ユーザー存在確認
         const exists = await userRepository.exists(userId);
         if (!exists) {
@@ -82,13 +73,17 @@ export const gameService = {
         }
 
         // 重複送信チェック
-        const alreadySubmitted = await gameRepository.existsLog(userId, gameType);
+        const alreadySubmitted = await gameRepository.existsLog(userId, gameId);
         if (alreadySubmitted) {
-            throw { status: 409, code: ERROR_CODES.DUPLICATE_SUBMISSION, message: `Game ${gameType} is already submitted` };
+            throw {
+                status: 409,
+                code: ERROR_CODES.DUPLICATE_SUBMISSION,
+                message: `Game ${gameId} is already submitted`,
+            };
         }
 
-        // game_type に応じた構造検証 → 判別可能 union として保存
-        const parsedPayload = parseGameData(gameType, data);
+        // gameId に応じた構造検証 → 判別可能 union として保存
+        const parsedPayload = parseGameData(gameId, data);
         await gameRepository.saveLog(userId, parsedPayload);
-    }
+    },
 };

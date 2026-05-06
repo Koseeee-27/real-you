@@ -24,11 +24,14 @@ export type {
 } from '../schemas/games';
 
 // results エンドポイントの型は schemas/results.ts に集約済み
+// GameId は schemas/results.ts の gameIdSchema からの導出型を再エクスポート
+// （`analysis/registry.ts` の GAME_MODULES のキーとも一致）。
 export type {
   Details,
   DiagnosisFeedback,
   GameBreakdown,
   GameDetail,
+  GameId,
   PhaseSummaries,
   ResultResponse,
 } from '../schemas/results';
@@ -59,12 +62,19 @@ export interface User {
   created_at: string;
 }
 
+// GameId のドメイン文字列 ID を `game_id` として保持する。GameLog はドメイン層
+// （services / analysis）で参照される型のため、Issue #101 の Anti-Corruption Layer 設計に
+// 従い文字列 ID で扱う。DB の game_logs テーブル自体は `game_type INT` のままで、
+// `repositories/gameRepository.ts` が SELECT/INSERT 時に GAME_TYPE_TO_ID / ID_TO_GAME_TYPE で
+// 双方向変換する責務を持つ。
+import type { GameId } from '../schemas/results';
+
 export interface GameLog {
   id: number;
   user_id: string;
-  game_type: number;
+  game_id: GameId;
   // raw_data は JSONB カラム。型は Game1Data / Game2Data / Game3Data のいずれかで、
-  // game_type に応じて分かれるが、DB 読み出し時点では構造の整合性は未検証のため `unknown` とする。
+  // game_id に応じて分かれるが、DB 読み出し時点では構造の整合性は未検証のため `unknown` とする。
   // service 境界（resultService）で zod スキーマ（schemas/gameData.ts）により parse する。
   raw_data: unknown;
   played_at: string;

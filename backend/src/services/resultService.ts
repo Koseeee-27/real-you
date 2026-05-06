@@ -13,7 +13,7 @@ import {
 } from '../schemas/gameData';
 
 import { getMbtiScores } from '../analysis/mbtiScoreTable';
-import { BaselineScores, GAME_TYPES, GameLog, ResultResponse } from '../types';
+import { BaselineScores, GameLog, ResultResponse } from '../types';
 import { ERROR_CODES } from '../schemas/errorCodes';
 
 /**
@@ -84,13 +84,15 @@ export const resultService = {
             throw { status: 400, code: ERROR_CODES.INCOMPLETE_GAMES, message: 'All games must be completed' };
         }
 
-        // 分析（analysis/ に委譲）
-        const game1Log = gameLogs.find(log => log.game_type === GAME_TYPES.TERMS_GAME);
-        const game2Log = gameLogs.find(log => log.game_type === GAME_TYPES.AI_CHAT);
-        const game3Log = gameLogs.find(log => log.game_type === GAME_TYPES.GROUP_CHAT);
+        // 分析（analysis/ に委譲）。Issue #101 で GameLog はドメイン文字列 ID
+        // （`game_id: GameId`）を保持する形に変更されたため、find のキーは文字列リテラル
+        // で照合する（DB の数値 game_type は repositories 層で吸収済み）。
+        const game1Log = gameLogs.find(log => log.game_id === 'terms_game');
+        const game2Log = gameLogs.find(log => log.game_id === 'helpdesk_game');
+        const game3Log = gameLogs.find(log => log.game_id === 'group_chat_game');
 
         // raw_data は GameLog.raw_data: unknown のため、scoreCalculator に渡す前に
-        // game_type ごとの zod スキーマで parse する。DB 整合性が壊れていた場合は
+        // game_id ごとの zod スキーマで parse する。DB 整合性が壊れていた場合は
         // 500 `server_error` で明示的に失敗させる（parseGameLogOrThrow 内で throw）。
         const game1Data: Game1Data | undefined = parseGameLogOrThrow(game1Log, game1DataSchema, 'game1', userId);
         const game2Data: Game2Data | undefined = parseGameLogOrThrow(game2Log, game2DataSchema, 'game2', userId);
