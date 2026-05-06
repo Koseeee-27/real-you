@@ -52,10 +52,13 @@ const partialBaselineScoresSchema = baselineScoresSchema.partial();
  * Phase 3 で導入予定の `analysis/registry.ts` の `GameId` 型と同値（先取り定義）。
  * Phase 3 で `Object.keys(GAME_MODULES)` から導出する形に置換する想定。
  *
- * `.claude/rules/backend.md` の zod スキーマ規約に従い、
- * 「OpenAPI 公開 × 文字列リテラル × エラーコード差別化不要」のため `z.enum` を採用。
+ * 文字列リテラル列挙で OpenAPI に公開する用途、かつエラーコード差別化が不要な
+ * ケースのため `z.enum` を採用（数値リテラルなら `z.literal(VALUES)`、
+ * `invalid_request` と業務エラーコードを区別する必要があれば `z.string().refine()` を使う）。
  * これにより FE 生成型でも `'terms_game' | 'helpdesk_game' | 'group_chat_game'` の
  * リテラル絞り込みが効き、Swagger UI でも enum が明示される。
+ *
+ * 同パターンの先行例: `schemas/voice.ts` の `conversationMessageSchema.role`（`z.enum(['user', 'assistant'])`）。
  */
 const GAME_ID_VALUES = ['terms_game', 'helpdesk_game', 'group_chat_game'] as const;
 
