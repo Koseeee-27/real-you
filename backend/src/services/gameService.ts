@@ -32,10 +32,10 @@ function parseGameData(gameId: GameId, data: Record<string, unknown>): GameRawDa
 
     // GameRawDataPayload は `gameId` ごとに rawData の型が異なる判別可能 union。
     // GAME_MODULES[gameId] の schema は対応する Game1Data / Game2Data / Game3Data を
-    // parse するが、registry の `GameModuleEntry` では schema を `ZodTypeAny` として
-    // 保持しており parse 戻り値が unknown 化する。型整合性はキー名と `module.id` の
-    // 一致を `GameModulesMap` で強制した上で確保しているため、ここでアサーションして
-    // 上位の判別可能 union（GameRawDataPayload）に詳細型を伝える。
+    // parse するが、registry の `GameModuleEntry` では schema をジェネリックなしの
+    // `ZodType` として保持しており parse 戻り値が unknown 化する。型整合性はキー名と
+    // `module.id` の一致を `GameModulesMap` で強制した上で確保しているため、ここで
+    // アサーションして上位の判別可能 union（GameRawDataPayload）に詳細型を伝える。
     return { gameId, rawData: result.data } as GameRawDataPayload;
 }
 
