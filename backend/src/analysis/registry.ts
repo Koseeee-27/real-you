@@ -1,4 +1,4 @@
-import type { ZodTypeAny } from 'zod';
+import type { ZodType } from 'zod';
 import type { GameId } from '../schemas/results';
 import { GAME_TYPES } from '../types';
 import { groupChatGameModule } from './games/groupChatGame';
@@ -42,12 +42,14 @@ import { termsGameModule } from './games/termsGame';
 type GameModuleEntry<TId extends GameId> = {
     readonly id: TId;
     readonly title: string;
-    // zod の `ZodTypeAny` を採用することで `safeParse(data: unknown): SafeParseReturnType`
+    // ジェネリックなしの `z.ZodType` を採用することで「任意の zod スキーマを受け付ける」
+    // 型として機能する（旧 `ZodTypeAny` と等価。v4 で `ZodTypeAny` が deprecated に
+    // なったため `ZodType` に揃える）。`safeParse(data: unknown): SafeParseReturnType`
     // の判別可能 union（success: true → data / success: false → error.issues）が
     // 呼び出し元で narrow できる。ゲームごとの具体型（Game1Data 等）は registry の
     // 値型として保持しないが、parseGameData 内のアサーションで判別可能 union 側に
     // 戻す形を取っている。
-    readonly schema: ZodTypeAny;
+    readonly schema: ZodType;
     readonly analyze: (data: never) => unknown;
     readonly buildSummary: (data: never) => string;
 };
