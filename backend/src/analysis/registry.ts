@@ -1,6 +1,6 @@
 import type { ZodType } from 'zod';
-import type { GameId } from '../schemas/results';
-import { GAME_TYPES } from '../types';
+import type { GameDetail, GameId } from '../schemas/results';
+import { BaselineScores, GAME_TYPES } from '../types';
 import { groupChatGameModule } from './games/groupChatGame';
 import { helpdeskGameModule } from './games/helpdeskGame';
 import { termsGameModule } from './games/termsGame';
@@ -13,8 +13,9 @@ import { termsGameModule } from './games/termsGame';
  *   DB の数値 game_type（1/2/3）はこの層では意識せず、`repositories/` と `routes/` の
  *   境界でのみ INT ↔ 文字列 ID 変換を行う（Anti-Corruption Layer パターン）。
  * - 新ゲームの追加・差し替え・順序変更は本ファイルへの登録 1 行で済むことを目指す。
- *   将来 aggregator（Issue #102）から `Object.values(GAME_MODULES)` で全モジュールを
- *   走査して軸統合する流れになる。
+ *   Issue #102 で `scoreCalculator` / `resultService` が `NORMAL_FLOW` をループして
+ *   各モジュールの `analyze` / `buildSummary` / `buildDetails` を呼び出し、軸統合は
+ *   `analysis/aggregator.ts` の `aggregateScores` に汎用化された。
  *
  * 真実の単一ソースについて:
  * - `GameId` 型と `GAME_ID_VALUES` の真実は `schemas/results.ts` 側に置く（zod スキーマ
@@ -27,6 +28,22 @@ import { termsGameModule } from './games/termsGame';
  */
 
 /**
+ * `analyze()` の戻り値が必ず満たす最低限の構造（Issue #102 で導入）。
+ *
+ * 各ゲームモジュールはこれを拡張した具体型（Game1AnalyzeResult 等）を返すが、
+ * registry レベルではゲーム横断で利用される `scores` のみ型情報を保持する。
+ * `scores` は当該ゲームが測定する軸の部分集合（`Partial<BaselineScores>`）で、
+ * scoreCalculator は `result.scores` をそのまま `aggregator.aggregateScores`
+ * に渡すことで軸統合を行う。
+ *
+ * 中間メトリクス（averageSpeed / avgReact 等）は同じモジュール内の
+ * `buildDetails` だけが参照するため、registry の型としては露出しない。
+ */
+export type GameAnalyzeResult = {
+    readonly scores: Partial<BaselineScores>;
+};
+
+/**
  * ゲームモジュールが満たすべき最小インタフェース。
  *
  * `id` のキーごとの型パラメータ化（`{ readonly id: TId }`）により、
@@ -34,10 +51,16 @@ import { termsGameModule } from './games/termsGame';
  * コンパイル時に強制する（例: `terms_game` キーに `id: 'helpdesk_game'` の
  * モジュールを誤登録するとコンパイルエラー）。
  *
- * `analyze` / `buildSummary` の引数・戻り値はゲームごとに Game1Data / Game2Data
- * 等で異なるため、本 registry レベルでは詳細型を保持しない（`unknown`）。
- * 詳細型が必要な `scoreCalculator.ts` は各モジュールを直接 import して
- * 既存の型を維持する（Issue #102 で aggregator に集約する予定）。
+ * Issue #102 で `analyze` の戻り値に共通の `scores` 構造を導入し、`buildDetails`
+ * を追加した。各メソッドの引数は `unknown` で受け取り、各モジュール側の
+ * アダプタが具体型（Game1Data 等）にキャストする方針（`gameService.parseGameData`
+ * と同じトラスト境界パターン）。これにより registry 経由のループ呼び出し
+ * （`scoreCalculator` / `resultService` 側）で型エラーにならず、かつ
+ * モジュール内部の typed 関数の契約は維持できる。
+ *
+ * `buildDetails` の第 2 引数は `analyze` の戻り値（モジュール固有の中間メトリクス
+ * を含む）。registry レベルでは詳細型を保持できないため `unknown` として受け、
+ * 各モジュールの adapter で具体型に narrow する。
  */
 type GameModuleEntry<TId extends GameId> = {
     readonly id: TId;
@@ -50,8 +73,9 @@ type GameModuleEntry<TId extends GameId> = {
     // 値型として保持しないが、parseGameData 内のアサーションで判別可能 union 側に
     // 戻す形を取っている。
     readonly schema: ZodType;
-    readonly analyze: (data: never) => unknown;
-    readonly buildSummary: (data: never) => string;
+    readonly analyze: (data: unknown) => GameAnalyzeResult;
+    readonly buildSummary: (data: unknown) => string;
+    readonly buildDetails: (data: unknown, result: unknown) => GameDetail;
 };
 
 type GameModulesMap = { readonly [K in GameId]: GameModuleEntry<K> };
@@ -59,8 +83,8 @@ type GameModulesMap = { readonly [K in GameId]: GameModuleEntry<K> };
 /**
  * ゲーム ID → 分析モジュールの対応表。
  *
- * 新ゲーム追加時は本オブジェクトに 1 行追加するだけで、aggregator（Issue #102 で導入予定）が
- * 自動的に走査対象に含める想定。
+ * 新ゲーム追加時は本オブジェクトに 1 行追加するだけで、`NORMAL_FLOW` のループ
+ * （scoreCalculator / resultService）が自動的に走査対象に含める。
  *
  * 型 `GameModulesMap` により以下をコンパイル時に強制する:
  * - 各 GameId のキーが揃っていること（漏れがあれば「Property 'xxx' is missing」）

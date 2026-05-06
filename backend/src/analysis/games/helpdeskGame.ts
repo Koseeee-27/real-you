@@ -1,4 +1,5 @@
 import { Game2Data, game2DataSchema } from '../../schemas/games/helpdeskGame';
+import type { GameDetail } from '../../schemas/results';
 import { linear, linearInv, logNorm, sigmoidInv } from '../scoreUtils';
 
 /**
@@ -6,20 +7,16 @@ import { linear, linearInv, logNorm, sigmoidInv } from '../scoreUtils';
  *
  * Issue #100 で `scoreCalculator.ts` の `calculateGame2` と
  * `phaseSummaryBuilder.ts` の Phase 2 テキスト生成ロジックを 1 ファイルに凝集。
- *
- * - `analyze(data)`: 行動データから 5 軸の中間集計（積極性・冷静さ・論理性）を算出
- * - `buildSummary(data)`: 行動データを日本語の要約テキストに整形
- *
- * 後続 Issue #101 で `analysis/registry.ts` の `GAME_MODULES` に登録される予定。
+ * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の Game2 要素も
+ * `buildDetails` として本ファイルに移管。
  */
 
 /**
- * `analyze()` の戻り値型。
+ * `analyze()` の戻り値型（Issue #102 で 2 階層構造に変更）。
+ * 詳細は `termsGame.ts` の `Game1AnalyzeResult` コメント参照。
  */
-export type Game2Result = {
-    positivity: number;
-    calmness: number;
-    logic: number;
+export type Game2AnalyzeResult = {
+    scores: { positivity: number; calmness: number; logic: number };
     avgReact: number;
     totalSpeech: number;
     avgVolume: number;
@@ -34,14 +31,12 @@ export type Game2Result = {
  * - 冷静さ(calmness): 音量安定・沈黙率・打鍵安定
  * - 論理性(logic): 論理接続詞・不要語
  */
-function analyze(data: Game2Data | undefined): Game2Result {
-    // 早期 return は通常 return と同じ shape を返す（details.metrics 側で欠損プロパティに
+function analyze(data: Game2Data | undefined): Game2AnalyzeResult {
+    // 早期 return は通常 return と同じ shape を返す（buildDetails 側で欠損プロパティに
     // アクセスして undefined がレスポンスに漏れるのを防ぐため）
     if (!data)
         return {
-            positivity: 50,
-            calmness: 50,
-            logic: 50,
+            scores: { positivity: 50, calmness: 50, logic: 50 },
             avgReact: 0,
             totalSpeech: 0,
             avgVolume: 0,
@@ -110,9 +105,7 @@ function analyze(data: Game2Data | undefined): Game2Result {
     const logic = Math.round(sLogicWords * 0.6 + sFiller * 0.4);
 
     return {
-        positivity,
-        calmness,
-        logic,
+        scores: { positivity, calmness, logic },
         avgReact,
         totalSpeech,
         avgVolume,
@@ -124,8 +117,6 @@ function analyze(data: Game2Data | undefined): Game2Result {
  * Game2 行動データ → 結果画面に表示するサマリーテキスト。
  *
  * 例: 「AIの理不尽な対応に即座に反応し、音声で堂々と反論を展開しました。」
- *
- * 旧 `phaseSummaryBuilder.ts` の Phase 2 ロジックをそのまま移管。
  */
 function buildSummary(data: Game2Data | undefined): string {
     if (!data) return 'データなし';
@@ -173,12 +164,58 @@ function buildSummary(data: Game2Data | undefined): string {
 }
 
 /**
+ * Game2 行動データ + analyze 結果 → 結果画面 details 用の構造体。
+ * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` の Game2 要素を移管。挙動は完全同一。
+ */
+function buildDetails(_data: Game2Data | undefined, result: Game2AnalyzeResult): GameDetail {
+    return {
+        game_id: helpdeskGameModule.id,
+        title: helpdeskGameModule.title,
+        feature_scores: [
+            { axis: 'positivity', name: '積極性', score: result.scores.positivity },
+            { axis: 'calmness', name: '冷静さ', score: result.scores.calmness },
+            { axis: 'logic', name: '論理性', score: result.scores.logic },
+        ],
+        metrics: [
+            {
+                label: '反応潜時(ms)',
+                user: Math.round(result.avgReact ?? 0),
+                average: 2500,
+                category: 'time',
+            },
+            {
+                label: '発話時間(秒)',
+                user: Number(((result.totalSpeech ?? 0) / 1000).toFixed(1)),
+                average: 4.2,
+                category: 'time',
+            },
+            {
+                label: '平均音量(dB)',
+                user: Number((result.avgVolume ?? 0).toFixed(1)),
+                average: -25.0,
+                category: 'voice',
+            },
+            {
+                label: '論理的接続詞(回)',
+                user: result.logicWordsCount ?? 0,
+                average: 0.5,
+                category: 'logic',
+            },
+        ],
+    };
+}
+
+/**
  * Game2（AI カスタマーサポート）モジュール。
+ * registry の `GameModuleEntry` 型に合わせて `unknown` 入力のアダプタを薄く挟む
+ * （詳細は `termsGame.ts` の export コメント参照）。
  */
 export const helpdeskGameModule = {
     id: 'helpdesk_game' as const,
     title: 'AIカスタマーサポート',
     schema: game2DataSchema,
-    analyze,
-    buildSummary,
+    analyze: (data: unknown) => analyze(data as Game2Data | undefined),
+    buildSummary: (data: unknown) => buildSummary(data as Game2Data | undefined),
+    buildDetails: (data: unknown, result: unknown) =>
+        buildDetails(data as Game2Data | undefined, result as Game2AnalyzeResult),
 };

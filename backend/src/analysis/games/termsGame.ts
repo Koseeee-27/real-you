@@ -1,32 +1,36 @@
 import { Game1Data, game1DataSchema } from '../../schemas/games/termsGame';
+import type { GameDetail } from '../../schemas/results';
 import { linear, linearInv, logNorm } from '../scoreUtils';
 
 /**
  * Game1（利用規約ゲーム）の分析モジュール。
  *
  * Issue #100 で `scoreCalculator.ts` の `calculateGame1` と
- * `phaseSummaryBuilder.ts` の Phase 1 テキスト生成ロジックを
- * 1 ファイルに凝集した（純粋なファイル分割。挙動は同一）。
+ * `phaseSummaryBuilder.ts` の Phase 1 テキスト生成ロジックを 1 ファイルに凝集した。
+ * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の Game1 要素
+ * （title / feature_scores / metrics）も `buildDetails` として本ファイルに移管し、
+ * scoreCalculator は薄い統合層に縮小した。
  *
- * - `analyze(data)`: 行動データから 5 軸の中間集計（慎重さ・論理性・冷静さ）を算出
+ * - `analyze(data)`: 行動データから 5 軸の中間集計（慎重さ・論理性・冷静さ）と
+ *   要約に使う中間メトリクスを算出
  * - `buildSummary(data)`: 行動データを日本語の要約テキストに整形
- *
- * 後続 Issue #101 で `analysis/registry.ts` の `GAME_MODULES` に登録される予定。
+ * - `buildDetails(data, result)`: 結果画面の details 用構造体（feature_scores / metrics）を構築
  */
 
 /**
  * `analyze()` の戻り値型。
  *
- * 早期 return（data が undefined のとき）と通常 return の shape が一致することを
- * TypeScript で検出可能にするため、ローカル type として明示する。
+ * Issue #102 で構造を 2 階層に変更:
+ * - `scores`: Partial<BaselineScores> 相当。aggregator の入力 / game_breakdown の
+ *   `scores` フィールドにそのまま使える（軸-ゲーム対応はモジュール側に集約）。
+ * - 残りのフィールド: 要約・details で使う中間統計量（averageSpeed 等）。
  *
- * 命名は `details.metrics` 等に出す統計量（changedCount / averageSpeed 等）を含む点で
- * 5 軸スコアそのものではなく「ゲームごとの中間集計」を表す。
+ * 旧構造（フラット）から `scores` を分離する目的は、scoreCalculator が
+ * 「軸スコアと中間メトリクス」を判別するロジックを持たずに済むようにするため。
+ * scores キーは `keyof BaselineScores` の部分集合で、当該ゲームが測定する軸のみ。
  */
-export type Game1Result = {
-    caution: number;
-    logic: number;
-    calmness: number;
+export type Game1AnalyzeResult = {
+    scores: { caution: number; logic: number; calmness: number };
     changedCount: number;
     averageSpeed: number;
     reversalCount: number;
@@ -69,14 +73,12 @@ function computeScrollMetrics(scrollEvents: Game1Data['scrollEvents']) {
  * - 論理性(logic): 再確認行動・逆行スクロール・ポップアップ処理
  * - 冷静さ(calmness): マウスブレ・無駄クリック
  */
-function analyze(data: Game1Data | undefined): Game1Result {
-    // 早期 return は通常 return と同じ shape を返す（details.metrics 側で欠損プロパティに
+function analyze(data: Game1Data | undefined): Game1AnalyzeResult {
+    // 早期 return は通常 return と同じ shape を返す（buildDetails 側で欠損プロパティに
     // アクセスして undefined がレスポンスに漏れるのを防ぐため）
     if (!data)
         return {
-            caution: 50,
-            logic: 50,
-            calmness: 50,
+            scores: { caution: 50, logic: 50, calmness: 50 },
             changedCount: 0,
             averageSpeed: 0,
             reversalCount: 0,
@@ -119,9 +121,7 @@ function analyze(data: Game1Data | undefined): Game1Result {
     const calmness = Math.round(sJitter * 0.6 + sClick * 0.4);
 
     return {
-        caution,
-        logic,
-        calmness,
+        scores: { caution, logic, calmness },
         changedCount: checkboxChanged,
         averageSpeed: speed,
         reversalCount,
@@ -132,8 +132,6 @@ function analyze(data: Game1Data | undefined): Game1Result {
  * Game1 行動データ → 結果画面に表示するサマリーテキスト。
  *
  * 例: 「規約をじっくりと読み込み、わずか12.3秒で同意ボタンを押しました。メルマガの罠に見事に引っかかりました。」
- *
- * 旧 `phaseSummaryBuilder.ts` の Phase 1 ロジックをそのまま移管。
  */
 function buildSummary(data: Game1Data | undefined): string {
     if (!data) return 'データなし';
@@ -156,16 +154,92 @@ function buildSummary(data: Game1Data | undefined): string {
 }
 
 /**
+ * Game1 行動データ + analyze 結果 → 結果画面 details 用の構造体。
+ *
+ * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` の Game1 要素を移管。
+ * scoreCalculator が「どの軸を測るか」「どのメトリクスを表示するか」を意識せず
+ * モジュール側から `GameDetail` を完成形で受け取れるようにした。挙動は完全同一。
+ *
+ * `feature_scores` / `metrics` の各値は仕様書「データ構造」→ `GameDetail` 準拠。
+ * `metrics` の平均値・カテゴリは旧 scoreCalculator の値をそのまま転記している。
+ */
+function buildDetails(data: Game1Data | undefined, result: Game1AnalyzeResult): GameDetail {
+    return {
+        game_id: termsGameModule.id,
+        title: termsGameModule.title,
+        feature_scores: [
+            { axis: 'caution', name: '慎重さ', score: result.scores.caution },
+            { axis: 'logic', name: '論理性', score: result.scores.logic },
+            { axis: 'calmness', name: '冷静さ', score: result.scores.calmness },
+        ],
+        // result.averageSpeed / result.reversalCount は analyze() 内で scrollEvents から
+        // 算出済み（仕様書上、FE は scrollEvents のみ送信する設計のため、raw_data には
+        // scrollMetrics は無い）
+        metrics: [
+            {
+                label: '読了速度(px/s)',
+                user: Math.round(result.averageSpeed ?? 0),
+                average: 800,
+                category: 'scroll',
+            },
+            {
+                label: '総滞在時間(秒)',
+                user: Number((data?.totalTime ?? 0).toFixed(1)),
+                average: 15.0,
+                category: 'time',
+            },
+            {
+                label: '決断前迷い(ms)',
+                user: data?.agreeButtonHoverTimeMs ?? 0,
+                average: 1200,
+                category: 'mouse',
+            },
+            {
+                label: 'チェック変更(回)',
+                user: result.changedCount,
+                average: 3.2,
+                category: 'input',
+            },
+            {
+                label: '逆行確認(回)',
+                user: result.reversalCount ?? 0,
+                average: 2.1,
+                category: 'scroll',
+            },
+            {
+                label: 'マウスブレ(px)',
+                user: data?.popupStats?.mouseJitter ?? 0,
+                average: 12.0,
+                category: 'mouse',
+            },
+            {
+                label: '無駄クリック(回)',
+                user: data?.popupStats?.clickCount ?? 0,
+                average: 1.5,
+                category: 'mouse',
+            },
+        ],
+    };
+}
+
+/**
  * Game1（利用規約ゲーム）モジュール。
  *
- * Issue #101 で `analysis/registry.ts` の `GAME_MODULES` から参照される予定。
- * `id` は `phase_summaries` / `details` / `game_breakdown` 配列内の `game_id`
- * として使われる文字列 ID（Phase 1 / Issue #97 で導入）と一致させる。
+ * `analysis/registry.ts` の `GAME_MODULES` から参照される。
+ * `id` は `phase_summaries` / `details` / `game_breakdown` 配列内の `game_id` として
+ * 使われる文字列 ID（Phase 1 / Issue #97 で導入）と一致させる。
+ *
+ * registry の `GameModuleEntry` 型は各メソッドを `(data: unknown) => ...` として
+ * 受け取るため、内部の typed 関数を薄いアダプタで unknown 入力に対応させる
+ * （`gameService.ts` の `parseGameData` と同じトラスト境界パターン）。
+ * data は registry の schema で zod-parsed されたものが境界を経て届く前提。
  */
 export const termsGameModule = {
     id: 'terms_game' as const,
     title: '利用規約ゲーム',
     schema: game1DataSchema,
-    analyze,
-    buildSummary,
+    analyze: (data: unknown) => analyze(data as Game1Data | undefined),
+    buildSummary: (data: unknown) => buildSummary(data as Game1Data | undefined),
+    buildDetails: (data: unknown, result: unknown) =>
+        buildDetails(data as Game1Data | undefined, result as Game1AnalyzeResult),
 };
