@@ -102,9 +102,12 @@ export function buildPhaseSummaries(
         phase3Text = `${socialText}、${speedText}`;
     }
 
-    return {
-        phase_1: phase1Text,
-        phase_2: phase2Text,
-        phase_3: phase3Text,
-    };
+    // 配列形式（Phase 1 / Issue #97）。game_id は Phase 3（registry 導入）で
+    // 正式定義予定の文字列 ID を先取りで使用している。配列順は NORMAL_FLOW
+    // （terms_game → helpdesk_game → group_chat_game）に揃える。
+    return [
+        { game_id: 'terms_game', summary: phase1Text },
+        { game_id: 'helpdesk_game', summary: phase2Text },
+        { game_id: 'group_chat_game', summary: phase3Text },
+    ];
 }

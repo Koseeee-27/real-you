@@ -394,22 +394,36 @@ const feedback = generateFeedback(scores, gaps);
     scores: scores,
     baseline_scores: baseline_scores,
     gaps: gaps,
-    game_breakdown: {
-      game_1: { caution: g1.caution, logic: g1.logic, calmness: g1.calmness },
-      game_2: { positivity: g2.positivity, calmness: g2.calmness, logic: g2.logic },
-      game_3: { cooperativeness: g3.cooperativeness, positivity: g3.positivity, caution: g3.caution }
-    },
+    // game_breakdown は配列形式（Phase 1 / Issue #97）。
+    // game_id は Phase 3（registry 導入）で正式定義予定の文字列 ID を先取りで使用している。
+    // 配列順は NORMAL_FLOW（terms_game → helpdesk_game → group_chat_game）に揃える。
+    game_breakdown: [
+      {
+        game_id: "terms_game",
+        scores: { caution: g1.caution, logic: g1.logic, calmness: g1.calmness },
+      },
+      {
+        game_id: "helpdesk_game",
+        scores: { positivity: g2.positivity, calmness: g2.calmness, logic: g2.logic },
+      },
+      {
+        game_id: "group_chat_game",
+        scores: { cooperativeness: g3.cooperativeness, positivity: g3.positivity, caution: g3.caution },
+      },
+    ],
     accuracy_score: accuracy_score,
     feedback: feedback,
-    phase_summaries: phaseSummaries, // buildPhaseSummaries関数で作ったテキストを渡す
-    
-    details: {
-      game_1: {
+    phase_summaries: phaseSummaries, // buildPhaseSummaries関数で作ったテキストを渡す（配列形式）
+
+    // details も配列形式（Phase 1 / Issue #97）。配列順は game_breakdown と揃える。
+    details: [
+      {
+        game_id: "terms_game",
         title: "利用規約ゲーム",
         feature_scores: [
           { axis: "caution", name: "慎重さ", score: g1.caution },
           { axis: "logic", name: "論理性", score: g1.logic },
-          { axis: "calmness", name: "冷静さ", score: g1.calmness }
+          { axis: "calmness", name: "冷静さ", score: g1.calmness },
         ],
         // g1.averageSpeed / g1.reversalCount は calculateGame1() 内で scrollEvents から算出済み
         // （仕様書上、FE は scrollEvents のみ送信する設計のため、raw_data には scrollMetrics は無い）
@@ -420,36 +434,38 @@ const feedback = generateFeedback(scores, gaps);
           { label: "チェック変更(回)", user: g1.changedCount, average: 3.2, category: "input" },
           { label: "逆行確認(回)", user: g1.reversalCount ?? 0, average: 2.1, category: "scroll" },
           { label: "マウスブレ(px)", user: game1Raw?.popupStats?.mouseJitter ?? 0, average: 12.0, category: "mouse" },
-          { label: "無駄クリック(回)", user: game1Raw?.popupStats?.clickCount ?? 0, average: 1.5, category: "mouse" }
-        ]
+          { label: "無駄クリック(回)", user: game1Raw?.popupStats?.clickCount ?? 0, average: 1.5, category: "mouse" },
+        ],
       },
-      game_2: {
+      {
+        game_id: "helpdesk_game",
         title: "AIカスタマーサポート",
         feature_scores: [
           { axis: "positivity", name: "積極性", score: g2.positivity },
           { axis: "calmness", name: "冷静さ", score: g2.calmness },
-          { axis: "logic", name: "論理性", score: g2.logic }
+          { axis: "logic", name: "論理性", score: g2.logic },
         ],
         metrics: [
           { label: "反応潜時(ms)", user: Math.round(g2.avgReact ?? 0), average: 2500, category: "time" },
           { label: "発話時間(秒)", user: Number(((g2.totalSpeech ?? 0) / 1000).toFixed(1)), average: 4.2, category: "time" },
           { label: "平均音量(dB)", user: Number((g2.avgVolume ?? 0).toFixed(1)), average: -25.0, category: "voice" },
-          { label: "論理的接続詞(回)", user: g2.logicWordsCount ?? 0, average: 0.5, category: "logic" }
-        ]
+          { label: "論理的接続詞(回)", user: g2.logicWordsCount ?? 0, average: 0.5, category: "logic" },
+        ],
       },
-      game_3: {
+      {
+        game_id: "group_chat_game",
         title: "空気読みグループチャット",
         feature_scores: [
           { axis: "cooperativeness", name: "協調性", score: g3.cooperativeness },
-          { axis: "positivity", name: "積極性", score: g3.positivity }
+          { axis: "positivity", name: "積極性", score: g3.positivity },
         ],
         metrics: [
           { label: "同調率(%)", user: Math.round(((g3.conformCount ?? 0) / (game3Raw?.stages?.length || 1)) * 100), average: 75, category: "social" },
           { label: "反応潜時(ms)", user: Math.round(g3.avgReact ?? 0), average: 3500, category: "time" },
           { label: "本音ホバー(回)", user: game3Raw?.hoveredOptions ?? 0, average: 2.4, category: "mouse" },
-          { label: "譲り合い待機(ms)", user: game3Raw?.typingIndicatorReactTimeMs ?? 0, average: 2000, category: "time" }
-        ]
-      }
-    }
+          { label: "譲り合い待機(ms)", user: game3Raw?.typingIndicatorReactTimeMs ?? 0, average: 2000, category: "time" },
+        ],
+      },
+    ],
 };
 }
