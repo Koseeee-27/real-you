@@ -1,5 +1,6 @@
 import type { ZodTypeAny } from 'zod';
 import type { GameId } from '../schemas/results';
+import { GAME_TYPES } from '../types';
 import { groupChatGameModule } from './games/groupChatGame';
 import { helpdeskGameModule } from './games/helpdeskGame';
 import { termsGameModule } from './games/termsGame';
@@ -74,10 +75,15 @@ export const GAME_MODULES: GameModulesMap = {
 };
 
 /**
- * DB の数値 game_type（1/2/3）↔ ドメインの文字列 GameId の対応表。
+ * ドメインの文字列 GameId → DB の数値 game_type の対応表。
  *
  * DB スキーマ（`game_logs.game_type` は INT）は本リファクタでは変更しない方針のため、
  * 値表現の差異を境界レイヤー（repositories / routes）で吸収する。
+ *
+ * 真実の単一ソースは `types/index.ts` の `GAME_TYPES` 定数（HTTP wire format / OpenAPI 公開で
+ * 既に「数値 1/2/3」を表す唯一のソースとして定義済み）。本マップでは GameId →
+ * `GAME_TYPES.*` の対応だけを書き、INT 値そのものは重複定義しない。これにより新ゲーム
+ * 追加時の更新箇所が `GAME_TYPES` に集約される。
  *
  * 参照箇所:
  * - `repositories/gameRepository.ts`: SELECT/INSERT 時に変換
@@ -85,17 +91,26 @@ export const GAME_MODULES: GameModulesMap = {
  *
  * services / analysis 層はこの存在を意識せず、常に文字列 ID で扱う。
  */
-export const GAME_TYPE_TO_ID: Readonly<Record<number, GameId>> = {
-    1: 'terms_game',
-    2: 'helpdesk_game',
-    3: 'group_chat_game',
+export const ID_TO_GAME_TYPE: Readonly<Record<GameId, number>> = {
+    terms_game: GAME_TYPES.TERMS_GAME,
+    helpdesk_game: GAME_TYPES.AI_CHAT,
+    group_chat_game: GAME_TYPES.GROUP_CHAT,
 };
 
-export const ID_TO_GAME_TYPE: Readonly<Record<GameId, number>> = {
-    terms_game: 1,
-    helpdesk_game: 2,
-    group_chat_game: 3,
-};
+/**
+ * `ID_TO_GAME_TYPE` を反転して導出する INT → GameId マップ。
+ *
+ * モジュールロード時に 1 回だけ計算され、以降は固定値として参照される。
+ * `GAME_TYPE_TO_ID` を独立にハードコードするとペアの片方だけ更新し忘れるリスクが
+ * あるため、`ID_TO_GAME_TYPE` を真実とし反転で導出する。
+ *
+ * `Object.fromEntries` の戻り値型は弱いため `as Readonly<Record<number, GameId>>` で
+ * 補強する（型と実体の一致は `ID_TO_GAME_TYPE` が `Record<GameId, number>` であることで
+ * 担保される）。
+ */
+export const GAME_TYPE_TO_ID = Object.fromEntries(
+    Object.entries(ID_TO_GAME_TYPE).map(([id, type]) => [type, id]),
+) as Readonly<Record<number, GameId>>;
 
 /**
  * 通常版のゲームプレイ順序。
