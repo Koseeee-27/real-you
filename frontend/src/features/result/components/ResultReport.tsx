@@ -46,6 +46,26 @@ export default function ResultReport({ data }: ResultReportProps) {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const bgmRef = useRef<HTMLAudioElement | null>(null);
 
+  // Phase 1（Issue #97）の暫定対応: details / phase_summaries が配列形式に変わったため、
+  // game_id で対応要素を取り出してから既存の game_1/2/3 タブに割り当てる。
+  // タブ動的化と gameMeta.ts 化は Issue #98 で対応するため、ここでは最小修正に留める。
+  const termsDetail = data.details.find((d) => d.game_id === 'terms_game');
+  const helpdeskDetail = data.details.find(
+    (d) => d.game_id === 'helpdesk_game'
+  );
+  const groupChatDetail = data.details.find(
+    (d) => d.game_id === 'group_chat_game'
+  );
+
+  const termsSummary =
+    data.phase_summaries.find((p) => p.game_id === 'terms_game')?.summary ?? '';
+  const helpdeskSummary =
+    data.phase_summaries.find((p) => p.game_id === 'helpdesk_game')?.summary ??
+    '';
+  const groupChatSummary =
+    data.phase_summaries.find((p) => p.game_id === 'group_chat_game')
+      ?.summary ?? '';
+
   // SE再生用ヘルパー
   const playSE = (path: string) => {
     const audio = new Audio(path);
@@ -154,24 +174,24 @@ export default function ResultReport({ data }: ResultReportProps) {
 
         <div className="flex-1 bg-white border-4 border-black rounded-3xl rounded-tr-3xl shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-8 min-h-125">
           {activeTab === 'overview' && <OverviewTab data={data} />}
-          {activeTab === 'game_1' && (
+          {activeTab === 'game_1' && termsDetail && (
             <GameDetailTab
-              detail={data.details.game_1}
-              comment={data.phase_summaries.phase_1}
+              detail={termsDetail}
+              comment={termsSummary}
               tabColor={GAME_TAB_COLORS.game_1}
             />
           )}
-          {activeTab === 'game_2' && (
+          {activeTab === 'game_2' && helpdeskDetail && (
             <GameDetailTab
-              detail={data.details.game_2}
-              comment={data.phase_summaries.phase_2}
+              detail={helpdeskDetail}
+              comment={helpdeskSummary}
               tabColor={GAME_TAB_COLORS.game_2}
             />
           )}
-          {activeTab === 'game_3' && (
+          {activeTab === 'game_3' && groupChatDetail && (
             <GameDetailTab
-              detail={data.details.game_3}
-              comment={data.phase_summaries.phase_3}
+              detail={groupChatDetail}
+              comment={groupChatSummary}
               tabColor={GAME_TAB_COLORS.game_3}
             />
           )}

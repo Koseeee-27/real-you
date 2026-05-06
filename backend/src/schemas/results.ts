@@ -37,7 +37,7 @@ export const resultsParamsSchema = z.object({
 /**
  * 5 軸各軸ごとのスコアを optional にした構造。
  *
- * ゲームごとにどの軸を測るかが異なるため（例: game_1 は caution/logic/calmness のみ）、
+ * ゲームごとにどの軸を測るかが異なるため（例: terms_game は caution/logic/calmness のみ）、
  * Partial 相当として各軸を optional にしている。
  *
  * `baselineScoresSchema.partial()` を使うことで、キー定義の単一ソース化と
@@ -46,21 +46,59 @@ export const resultsParamsSchema = z.object({
 const partialBaselineScoresSchema = baselineScoresSchema.partial();
 
 /**
- * ゲームごとのスコア内訳。
- * 各ゲームキー（game_1 / game_2 / game_3）は optional。
+ * ゲーム識別子（文字列リテラル列挙）。
+ *
+ * `game_breakdown` / `phase_summaries` / `details` の各要素を識別するキー。
+ * Phase 3 で導入予定の `analysis/registry.ts` の `GameId` 型と同値（先取り定義）。
+ * Phase 3 で `Object.keys(GAME_MODULES)` から導出する形に置換する想定。
+ *
+ * 文字列リテラル列挙で OpenAPI に公開する用途、かつエラーコード差別化が不要な
+ * ケースのため `z.enum` を採用（数値リテラルなら `z.literal(VALUES).openapi({ enum: VALUES })`、
+ * `invalid_request` と業務エラーコードを区別する必要があれば `z.string().refine()` を使う）。
+ * これにより FE 生成型でも `'terms_game' | 'helpdesk_game' | 'group_chat_game'` の
+ * リテラル絞り込みが効き、Swagger UI でも enum が明示される。
+ *
+ * 同パターンの先行例: `schemas/voice.ts` の `conversationMessageSchema.role`（`z.enum(['user', 'assistant'])`）。
+ */
+const GAME_ID_VALUES = ['terms_game', 'helpdesk_game', 'group_chat_game'] as const;
+
+export const gameIdSchema = registry.register(
+    'GameId',
+    z.enum(GAME_ID_VALUES).openapi({
+        description:
+            'ゲーム識別子。terms_game = 利用規約ゲーム / helpdesk_game = AIカスタマーサポート / ' +
+            'group_chat_game = 空気読みグループチャット',
+        example: 'terms_game',
+    }),
+);
+
+export type GameId = z.infer<typeof gameIdSchema>;
+
+/**
+ * ゲームごとのスコア内訳（配列形式）。
+ *
+ * 各要素は `{ game_id, scores }` の構造で、`game_id` はゲームを識別する文字列
+ * （現状は 'terms_game' / 'helpdesk_game' / 'group_chat_game'）。
+ * 配列化の理由は将来のゲーム追加・差し替えに耐えるため（Phase 1 / Issue #97）。
+ *
+ * `scores` は当該ゲームで測定する軸のみを含む（例: terms_game は caution / logic / calmness のみ）。
  */
 export const gameBreakdownSchema = registry.register(
     'GameBreakdown',
     z
-        .object({
-            game_1: partialBaselineScoresSchema.optional(),
-            game_2: partialBaselineScoresSchema.optional(),
-            game_3: partialBaselineScoresSchema.optional(),
-        })
+        .array(
+            z.object({
+                game_id: gameIdSchema,
+                scores: partialBaselineScoresSchema.openapi({
+                    description:
+                        '当該ゲームで測定した軸のスコア（測定軸のみ含むため 5 軸すべては揃わない）',
+                }),
+            }),
+        )
         .openapi({
             description:
-                'ゲームごとのスコア内訳。各ゲームで測定される軸のみが含まれるため ' +
-                '5 軸すべてが揃うとは限らない（例: game_1 は caution / logic / calmness のみ）',
+                'ゲームごとのスコア内訳の配列。各ゲームで測定される軸のみが含まれるため ' +
+                '5 軸すべてが揃うとは限らない（例: terms_game は caution / logic / calmness のみ）',
             example: resultsResponseExample.game_breakdown,
         }),
 );
@@ -92,24 +130,24 @@ export const diagnosisFeedbackSchema = registry.register(
 );
 
 /**
- * 各フェーズ（ゲーム）の振り返りテキスト。
+ * 各ゲーム終了後の行動要約（配列形式）。
+ *
+ * 各要素は `{ game_id, summary }` で、`game_id` は gameBreakdown と同じ識別子。
+ * 配列化の理由は gameBreakdown と同じ（将来のゲーム追加・差し替え対応 / Phase 1）。
  */
 export const phaseSummariesSchema = registry.register(
     'PhaseSummaries',
     z
-        .object({
-            phase_1: z.string().openapi({
-                description: 'Game 1（利用規約）の行動要約',
+        .array(
+            z.object({
+                game_id: gameIdSchema,
+                summary: z.string().openapi({
+                    description: '当該ゲームの行動を日本語テキストで振り返ったサマリー',
+                }),
             }),
-            phase_2: z.string().openapi({
-                description: 'Game 2（AI カスタマーサポート）の行動要約',
-            }),
-            phase_3: z.string().openapi({
-                description: 'Game 3（グループチャット）の行動要約',
-            }),
-        })
+        )
         .openapi({
-            description: '各ゲーム終了後の行動を日本語テキストで振り返ったサマリー',
+            description: '各ゲーム終了後の行動を日本語テキストで振り返ったサマリーの配列',
             example: resultsResponseExample.phase_summaries,
         }),
 );
@@ -134,6 +172,7 @@ export const gameDetailSchema = registry.register(
     'GameDetail',
     z
         .object({
+            game_id: gameIdSchema,
             title: z.string().openapi({
                 description: 'ゲーム名（例: 利用規約ゲーム / AIカスタマーサポート / 空気読みグループチャット）',
             }),
@@ -177,27 +216,24 @@ export const gameDetailSchema = registry.register(
         })
         .openapi({
             description: 'ゲーム単位の詳細情報。仕様書「データ構造」→ GameDetail 参照',
-            example: resultsResponseExample.details.game_1,
+            example: resultsResponseExample.details[0],
         }),
 );
 
 /**
- * 全 3 ゲームの詳細情報をまとめたオブジェクト。
+ * 全ゲームの詳細情報をまとめた配列。
  *
- * 全フィールド必須（3 ゲーム完了が `incomplete_games` でガードされているため、
- * results レスポンス到達時には必ず 3 ゲーム分の details が揃う前提）。
+ * 配列化の理由は gameBreakdown / phaseSummaries と同じ（将来のゲーム追加・差し替え対応 / Phase 1）。
+ * 3 ゲーム完了が `incomplete_games` でガードされているため、results レスポンス到達時には
+ * 必ず登録済みゲーム分の要素が揃う前提（現状は 3 要素）。
  */
 export const detailsSchema = registry.register(
     'Details',
     z
-        .object({
-            game_1: gameDetailSchema,
-            game_2: gameDetailSchema,
-            game_3: gameDetailSchema,
-        })
+        .array(gameDetailSchema)
         .openapi({
             description:
-                '各ゲーム固有の詳細情報（タイトル / feature_scores / metrics）。' +
+                '各ゲーム固有の詳細情報（タイトル / feature_scores / metrics）の配列。' +
                 '構造は仕様書「データ構造」→ GameDetail を参照',
             example: resultsResponseExample.details,
         }),

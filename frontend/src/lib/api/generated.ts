@@ -711,27 +711,44 @@ export interface components {
             confidence: number;
         };
         /**
-         * @description ゲームごとのスコア内訳。各ゲームで測定される軸のみが含まれるため 5 軸すべてが揃うとは限らない（例: game_1 は caution / logic / calmness のみ）
-         * @example {
-         *       "game_1": {
-         *         "caution": 45,
-         *         "logic": 75,
-         *         "calmness": 55
+         * @description ゲーム識別子。terms_game = 利用規約ゲーム / helpdesk_game = AIカスタマーサポート / group_chat_game = 空気読みグループチャット
+         * @example terms_game
+         * @enum {string}
+         */
+        GameId: "terms_game" | "helpdesk_game" | "group_chat_game";
+        /**
+         * @description ゲームごとのスコア内訳の配列。各ゲームで測定される軸のみが含まれるため 5 軸すべてが揃うとは限らない（例: terms_game は caution / logic / calmness のみ）
+         * @example [
+         *       {
+         *         "game_id": "terms_game",
+         *         "scores": {
+         *           "caution": 45,
+         *           "logic": 75,
+         *           "calmness": 55
+         *         }
          *       },
-         *       "game_2": {
-         *         "positivity": 70,
-         *         "calmness": 55,
-         *         "logic": 75
+         *       {
+         *         "game_id": "helpdesk_game",
+         *         "scores": {
+         *           "positivity": 70,
+         *           "calmness": 55,
+         *           "logic": 75
+         *         }
          *       },
-         *       "game_3": {
-         *         "cooperativeness": 60,
-         *         "positivity": 70,
-         *         "caution": 45
+         *       {
+         *         "game_id": "group_chat_game",
+         *         "scores": {
+         *           "cooperativeness": 60,
+         *           "positivity": 70,
+         *           "caution": 45
+         *         }
          *       }
-         *     }
+         *     ]
          */
         GameBreakdown: {
-            game_1?: {
+            game_id: components["schemas"]["GameId"];
+            /** @description 当該ゲームで測定した軸のスコア（測定軸のみ含むため 5 軸すべては揃わない） */
+            scores: {
                 /** @description 慎重さ（0-100） */
                 caution?: number;
                 /** @description 冷静さ（0-100） */
@@ -743,31 +760,7 @@ export interface components {
                 /** @description 積極性（0-100） */
                 positivity?: number;
             };
-            game_2?: {
-                /** @description 慎重さ（0-100） */
-                caution?: number;
-                /** @description 冷静さ（0-100） */
-                calmness?: number;
-                /** @description 論理性（0-100） */
-                logic?: number;
-                /** @description 協調性（0-100） */
-                cooperativeness?: number;
-                /** @description 積極性（0-100） */
-                positivity?: number;
-            };
-            game_3?: {
-                /** @description 慎重さ（0-100） */
-                caution?: number;
-                /** @description 冷静さ（0-100） */
-                calmness?: number;
-                /** @description 論理性（0-100） */
-                logic?: number;
-                /** @description 協調性（0-100） */
-                cooperativeness?: number;
-                /** @description 積極性（0-100） */
-                positivity?: number;
-            };
-        };
+        }[];
         /**
          * @description 診断フィードバック（最大ギャップ軸に基づく見出し・説明・指摘点）
          * @example {
@@ -794,24 +787,31 @@ export interface components {
             gap_point: string;
         };
         /**
-         * @description 各ゲーム終了後の行動を日本語テキストで振り返ったサマリー
-         * @example {
-         *       "phase_1": "規約を爆速でスクロールし、最後まで読まずに同意しました。",
-         *       "phase_2": "AI の理不尽な対応に感情的に反応する場面が見られました。",
-         *       "phase_3": "グループの空気を読みつつ、自分の意見も主張していました。"
-         *     }
+         * @description 各ゲーム終了後の行動を日本語テキストで振り返ったサマリーの配列
+         * @example [
+         *       {
+         *         "game_id": "terms_game",
+         *         "summary": "規約を爆速でスクロールし、最後まで読まずに同意しました。"
+         *       },
+         *       {
+         *         "game_id": "helpdesk_game",
+         *         "summary": "AI の理不尽な対応に感情的に反応する場面が見られました。"
+         *       },
+         *       {
+         *         "game_id": "group_chat_game",
+         *         "summary": "グループの空気を読みつつ、自分の意見も主張していました。"
+         *       }
+         *     ]
          */
         PhaseSummaries: {
-            /** @description Game 1（利用規約）の行動要約 */
-            phase_1: string;
-            /** @description Game 2（AI カスタマーサポート）の行動要約 */
-            phase_2: string;
-            /** @description Game 3（グループチャット）の行動要約 */
-            phase_3: string;
-        };
+            game_id: components["schemas"]["GameId"];
+            /** @description 当該ゲームの行動を日本語テキストで振り返ったサマリー */
+            summary: string;
+        }[];
         /**
          * @description ゲーム単位の詳細情報。仕様書「データ構造」→ GameDetail 参照
          * @example {
+         *       "game_id": "terms_game",
          *       "title": "利用規約ゲーム",
          *       "feature_scores": [
          *         {
@@ -831,6 +831,7 @@ export interface components {
          *     }
          */
         GameDetail: {
+            game_id: components["schemas"]["GameId"];
             /** @description ゲーム名（例: 利用規約ゲーム / AIカスタマーサポート / 空気読みグループチャット） */
             title: string;
             /** @description 当該ゲームで測定した軸ごとのスコア配列（測定軸数はゲームごとに異なる） */
@@ -855,9 +856,10 @@ export interface components {
             }[];
         };
         /**
-         * @description 各ゲーム固有の詳細情報（タイトル / feature_scores / metrics）。構造は仕様書「データ構造」→ GameDetail を参照
-         * @example {
-         *       "game_1": {
+         * @description 各ゲーム固有の詳細情報（タイトル / feature_scores / metrics）の配列。構造は仕様書「データ構造」→ GameDetail を参照
+         * @example [
+         *       {
+         *         "game_id": "terms_game",
          *         "title": "利用規約ゲーム",
          *         "feature_scores": [
          *           {
@@ -875,7 +877,8 @@ export interface components {
          *           }
          *         ]
          *       },
-         *       "game_2": {
+         *       {
+         *         "game_id": "helpdesk_game",
          *         "title": "AIカスタマーサポート",
          *         "feature_scores": [
          *           {
@@ -893,7 +896,8 @@ export interface components {
          *           }
          *         ]
          *       },
-         *       "game_3": {
+         *       {
+         *         "game_id": "group_chat_game",
          *         "title": "空気読みグループチャット",
          *         "feature_scores": [
          *           {
@@ -911,13 +915,9 @@ export interface components {
          *           }
          *         ]
          *       }
-         *     }
+         *     ]
          */
-        Details: {
-            game_1: components["schemas"]["GameDetail"];
-            game_2: components["schemas"]["GameDetail"];
-            game_3: components["schemas"]["GameDetail"];
-        };
+        Details: components["schemas"]["GameDetail"][];
         /**
          * @description 診断結果レスポンス（200 OK）
          * @example {
@@ -951,36 +951,55 @@ export interface components {
          *         "cooperativeness": 5,
          *         "positivity": -5
          *       },
-         *       "game_breakdown": {
-         *         "game_1": {
-         *           "caution": 45,
-         *           "logic": 75,
-         *           "calmness": 55
+         *       "game_breakdown": [
+         *         {
+         *           "game_id": "terms_game",
+         *           "scores": {
+         *             "caution": 45,
+         *             "logic": 75,
+         *             "calmness": 55
+         *           }
          *         },
-         *         "game_2": {
-         *           "positivity": 70,
-         *           "calmness": 55,
-         *           "logic": 75
+         *         {
+         *           "game_id": "helpdesk_game",
+         *           "scores": {
+         *             "positivity": 70,
+         *             "calmness": 55,
+         *             "logic": 75
+         *           }
          *         },
-         *         "game_3": {
-         *           "cooperativeness": 60,
-         *           "positivity": 70,
-         *           "caution": 45
+         *         {
+         *           "game_id": "group_chat_game",
+         *           "scores": {
+         *             "cooperativeness": 60,
+         *             "positivity": 70,
+         *             "caution": 45
+         *           }
          *         }
-         *       },
+         *       ],
          *       "feedback": {
          *         "title": "直感ドリブン",
          *         "description": "あなたは論理よりも直感を優先して意思決定する傾向があります。",
          *         "gap_point": "論理性"
          *       },
          *       "accuracy_score": 78,
-         *       "phase_summaries": {
-         *         "phase_1": "規約を爆速でスクロールし、最後まで読まずに同意しました。",
-         *         "phase_2": "AI の理不尽な対応に感情的に反応する場面が見られました。",
-         *         "phase_3": "グループの空気を読みつつ、自分の意見も主張していました。"
-         *       },
-         *       "details": {
-         *         "game_1": {
+         *       "phase_summaries": [
+         *         {
+         *           "game_id": "terms_game",
+         *           "summary": "規約を爆速でスクロールし、最後まで読まずに同意しました。"
+         *         },
+         *         {
+         *           "game_id": "helpdesk_game",
+         *           "summary": "AI の理不尽な対応に感情的に反応する場面が見られました。"
+         *         },
+         *         {
+         *           "game_id": "group_chat_game",
+         *           "summary": "グループの空気を読みつつ、自分の意見も主張していました。"
+         *         }
+         *       ],
+         *       "details": [
+         *         {
+         *           "game_id": "terms_game",
          *           "title": "利用規約ゲーム",
          *           "feature_scores": [
          *             {
@@ -998,7 +1017,8 @@ export interface components {
          *             }
          *           ]
          *         },
-         *         "game_2": {
+         *         {
+         *           "game_id": "helpdesk_game",
          *           "title": "AIカスタマーサポート",
          *           "feature_scores": [
          *             {
@@ -1016,7 +1036,8 @@ export interface components {
          *             }
          *           ]
          *         },
-         *         "game_3": {
+         *         {
+         *           "game_id": "group_chat_game",
          *           "title": "空気読みグループチャット",
          *           "feature_scores": [
          *             {
@@ -1034,7 +1055,7 @@ export interface components {
          *             }
          *           ]
          *         }
-         *       }
+         *       ]
          *     }
          */
         ResultResponse: {

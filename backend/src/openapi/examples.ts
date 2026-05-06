@@ -275,9 +275,13 @@ export const voiceRespondResponseExample = {
  * （Swagger UI の閲覧者が実際のレスポンスと突合しても齟齬が出ないようにするため）。
  * 値自体は「形を示すための代表値」で、特定ユーザーの実測値ではない。
  *
- * `details.game_*.feature_scores` は実装側では複数軸（game_1: 3 軸 / game_2: 3 軸 /
- * game_3: 2 軸）を返す。本 example は肥大化を避けて各ゲーム 1 軸のみ掲載しているが、
+ * `details[*].feature_scores` は実装側では複数軸（terms_game: 3 軸 / helpdesk_game: 3 軸 /
+ * group_chat_game: 2 軸）を返す。本 example は肥大化を避けて各ゲーム 1 軸のみ掲載しているが、
  * 実際のレスポンスでは複数要素の配列になる点に注意。
+ *
+ * game_id は Phase 3（registry 導入）で正式定義予定の文字列 ID を先取りで使用している。
+ * 配列順は terms_game → helpdesk_game → group_chat_game の通常フロー順
+ * （Phase 3 で `analysis/registry.ts` の `NORMAL_FLOW` 定数として正式定義予定）。
  */
 export const resultsResponseExample = {
     user_id: SAMPLE_USER_ID,
@@ -310,26 +314,27 @@ export const resultsResponseExample = {
         cooperativeness: 5,
         positivity: -5,
     },
-    game_breakdown: {
-        game_1: { caution: 45, logic: 75, calmness: 55 },
-        game_2: { positivity: 70, calmness: 55, logic: 75 },
-        game_3: { cooperativeness: 60, positivity: 70, caution: 45 },
-    },
+    game_breakdown: [
+        { game_id: 'terms_game', scores: { caution: 45, logic: 75, calmness: 55 } },
+        { game_id: 'helpdesk_game', scores: { positivity: 70, calmness: 55, logic: 75 } },
+        { game_id: 'group_chat_game', scores: { cooperativeness: 60, positivity: 70, caution: 45 } },
+    ],
     feedback: {
         title: '直感ドリブン',
         description: 'あなたは論理よりも直感を優先して意思決定する傾向があります。',
         gap_point: '論理性',
     },
     accuracy_score: 78,
-    phase_summaries: {
-        phase_1: '規約を爆速でスクロールし、最後まで読まずに同意しました。',
-        phase_2: 'AI の理不尽な対応に感情的に反応する場面が見られました。',
-        phase_3: 'グループの空気を読みつつ、自分の意見も主張していました。',
-    },
-    details: {
-        // タイトル文字列は analysis/scoreCalculator.ts の実装値に合わせる
-        // （game_2: 'AIカスタマーサポート' / game_3: '空気読みグループチャット'）
-        game_1: {
+    phase_summaries: [
+        { game_id: 'terms_game', summary: '規約を爆速でスクロールし、最後まで読まずに同意しました。' },
+        { game_id: 'helpdesk_game', summary: 'AI の理不尽な対応に感情的に反応する場面が見られました。' },
+        { game_id: 'group_chat_game', summary: 'グループの空気を読みつつ、自分の意見も主張していました。' },
+    ],
+    // タイトル文字列は analysis/scoreCalculator.ts の実装値に合わせる
+    // （helpdesk_game: 'AIカスタマーサポート' / group_chat_game: '空気読みグループチャット'）
+    details: [
+        {
+            game_id: 'terms_game',
             title: '利用規約ゲーム',
             feature_scores: [
                 { axis: 'caution', name: '慎重さ', score: 45 },
@@ -338,7 +343,8 @@ export const resultsResponseExample = {
                 { label: '読了速度(px/s)', user: 2500, average: 800, category: 'scroll' },
             ],
         },
-        game_2: {
+        {
+            game_id: 'helpdesk_game',
             title: 'AIカスタマーサポート',
             feature_scores: [
                 { axis: 'positivity', name: '積極性', score: 70 },
@@ -347,7 +353,8 @@ export const resultsResponseExample = {
                 { label: '発話数', user: 8, average: 5, category: 'message' },
             ],
         },
-        game_3: {
+        {
+            game_id: 'group_chat_game',
             title: '空気読みグループチャット',
             feature_scores: [
                 { axis: 'cooperativeness', name: '協調性', score: 60 },
@@ -356,7 +363,7 @@ export const resultsResponseExample = {
                 { label: '発言数', user: 4, average: 3, category: 'message' },
             ],
         },
-    },
+    ],
 } as const;
 
 // ---------------------------------------------------------------------------
