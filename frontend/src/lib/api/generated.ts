@@ -717,7 +717,7 @@ export interface components {
          */
         GameId: "terms_game" | "helpdesk_game" | "group_chat_game";
         /**
-         * @description ゲームごとのスコア内訳の配列。各ゲームで測定される軸のみが含まれるため 5 軸すべてが揃うとは限らない（例: terms_game は caution / logic / calmness のみ）
+         * @description ゲームごとのスコア内訳の配列。各ゲームで測定される軸のみが含まれるため 5 軸すべてが揃うとは限らない（例: terms_game は caution / logic / calmness のみ）。配列長は登録ゲーム数（3）に固定され、game_id はユニーク。
          * @example [
          *       {
          *         "game_id": "terms_game",
@@ -787,7 +787,7 @@ export interface components {
             gap_point: string;
         };
         /**
-         * @description 各ゲーム終了後の行動を日本語テキストで振り返ったサマリーの配列
+         * @description 各ゲーム終了後の行動を日本語テキストで振り返ったサマリーの配列。配列長は登録ゲーム数（3）に固定され、game_id はユニーク。
          * @example [
          *       {
          *         "game_id": "terms_game",
@@ -856,7 +856,7 @@ export interface components {
             }[];
         };
         /**
-         * @description 各ゲーム固有の詳細情報（タイトル / feature_scores / metrics）の配列。構造は仕様書「データ構造」→ GameDetail を参照
+         * @description 各ゲーム固有の詳細情報（タイトル / feature_scores / metrics）の配列。構造は仕様書「データ構造」→ GameDetail を参照。配列長は登録ゲーム数（3）に固定され、game_id はユニーク。
          * @example [
          *       {
          *         "game_id": "terms_game",

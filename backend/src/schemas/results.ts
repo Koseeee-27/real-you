@@ -46,21 +46,73 @@ export const resultsParamsSchema = z.object({
 const partialBaselineScoresSchema = baselineScoresSchema.partial();
 
 /**
- * ゲーム識別子（文字列リテラル列挙）。
+ * ゲーム識別子（文字列リテラル列挙）の値。
  *
- * `game_breakdown` / `phase_summaries` / `details` の各要素を識別するキー。
- * Phase 3 で導入予定の `analysis/registry.ts` の `GameId` 型と同値（先取り定義）。
- * Phase 3 で `Object.keys(GAME_MODULES)` から導出する形に置換する想定。
+ * `game_breakdown` / `phase_summaries` / `details` の各要素を識別するキーで、
+ * `analysis/registry.ts` の `GAME_MODULES` のキーと一致する必要がある（registry.ts 側で
+ * `Record<GameId, ...>` の型整合性が強制される）。
+ *
+ * `analysis/registry.ts` の真実の単一ソース問題:
+ * - 本ファイル（schemas）が `analysis/registry.ts` を import すると schemas → analysis の
+ *   逆方向依存になる。既存のレイヤー方針（routes → services → repositories と並列で
+ *   schemas は analysis に依存されるが逆は持たない）を尊重するため、`GameId` の真実は
+ *   本ファイル側に維持する。
+ * - registry 側で `as const satisfies Record<GameId, ...>`（実装は GameModulesMap 型）を
+ *   使うことで「GAME_MODULES の登録漏れ・余分・キー名と module.id の不一致」を
+ *   コンパイル時に検出するため、Issue 本文の参考設計（GAME_MODULES 由来）と同等の
+ *   型安全性が得られる。
+ *
+ * 配列スキーマ（gameBreakdownSchema / phaseSummariesSchema / detailsSchema）の
+ * `.length()` 制約も `GAME_ID_VALUES.length` から導出する（registry を参照しない）。
  *
  * 文字列リテラル列挙で OpenAPI に公開する用途、かつエラーコード差別化が不要な
- * ケースのため `z.enum` を採用（数値リテラルなら `z.literal(VALUES).openapi({ enum: VALUES })`、
- * `invalid_request` と業務エラーコードを区別する必要があれば `z.string().refine()` を使う）。
- * これにより FE 生成型でも `'terms_game' | 'helpdesk_game' | 'group_chat_game'` の
- * リテラル絞り込みが効き、Swagger UI でも enum が明示される。
- *
- * 同パターンの先行例: `schemas/voice.ts` の `conversationMessageSchema.role`（`z.enum(['user', 'assistant'])`）。
+ * ケースのため `z.enum` を採用（同パターンの先行例: `schemas/voice.ts` の
+ * `conversationMessageSchema.role`）。
  */
 const GAME_ID_VALUES = ['terms_game', 'helpdesk_game', 'group_chat_game'] as const;
+
+/**
+ * 登録済みゲーム数（= 結果レスポンスの配列長制約）。
+ *
+ * `gameBreakdownSchema` / `phaseSummariesSchema` / `detailsSchema` は登録ゲーム分の
+ * 要素を必ず含む配列として扱い、`.length()` で長さを強制する。これは結果レスポンスの
+ * 上流で `incomplete_games` ガード（services/resultService.ts）により 3 ゲーム揃った
+ * ケースのみがレスポンスに到達する設計のため、欠落・重複を zod 層で検出する。
+ *
+ * `GAME_ID_VALUES` から導出するため、ゲームを追加したときは本ファイルの `GAME_ID_VALUES`
+ * と `analysis/registry.ts` の `GAME_MODULES` の両方を更新すれば自動で追従する
+ * （`GAME_MODULES` の登録漏れは registry 側の型 `GameModulesMap` で検出される）。
+ */
+const GAME_COUNT = GAME_ID_VALUES.length;
+
+/**
+ * 配列要素の `game_id` がユニークか判定する `.refine` 用ヘルパ。
+ *
+ * `gameBreakdownSchema` / `phaseSummariesSchema` / `detailsSchema` で共通利用する。
+ * 上流の `incomplete_games` ガードで 3 ゲーム完走が保証されている前提でも、
+ * バリデーション層で重複 `game_id` を弾くことで FE 側の `find(game_id === 'xxx')`
+ * が静かに `undefined` を返す状況を構造的に防止する（PR #104 レビュー指摘）。
+ */
+const hasUniqueGameIds = <T extends { game_id: string }>(arr: readonly T[]): boolean =>
+    new Set(arr.map((e) => e.game_id)).size === arr.length;
+const uniqueGameIdRefineMessage = 'game_id must be unique within the array';
+
+/**
+ * `.length(N).refine(...)` で zod runtime 検証を入れた配列スキーマに対し、
+ * OpenAPI 側で `minItems / maxItems` を明示するためのメタデータ片。
+ *
+ * 現状の `@asteasolutions/zod-to-openapi` v8 は `.refine()` でラップされた
+ * ZodEffects から内側の `.length()` 制約を辿らないため、`.length()` だけでは
+ * OpenAPI ドキュメントに `minItems/maxItems` が出ない。`.openapi({ minItems, maxItems })`
+ * で明示することで Swagger UI と FE 生成型の双方に長さ制約を伝える。
+ *
+ * runtime 検証は `.length()` チェーン側で担保しているので、本メタデータは
+ * ドキュメント表現の補強に過ぎない（値の二重管理は GAME_COUNT に集約済み）。
+ */
+const fixedGameCountOpenApi = {
+    minItems: GAME_COUNT,
+    maxItems: GAME_COUNT,
+} as const;
 
 export const gameIdSchema = registry.register(
     'GameId',
@@ -95,10 +147,17 @@ export const gameBreakdownSchema = registry.register(
                 }),
             }),
         )
+        // 配列長は登録ゲーム数に固定し、`game_id` の重複を弾く（PR #104 レビュー対応）。
+        // 上流の `incomplete_games` ガード（services/resultService.ts）で 3 ゲーム完走が
+        // 保証されている前提だが、欠落・重複をバリデーション層で構造的に防止する。
+        .length(GAME_COUNT)
+        .refine(hasUniqueGameIds, { message: uniqueGameIdRefineMessage })
         .openapi({
+            ...fixedGameCountOpenApi,
             description:
                 'ゲームごとのスコア内訳の配列。各ゲームで測定される軸のみが含まれるため ' +
-                '5 軸すべてが揃うとは限らない（例: terms_game は caution / logic / calmness のみ）',
+                '5 軸すべてが揃うとは限らない（例: terms_game は caution / logic / calmness のみ）。' +
+                `配列長は登録ゲーム数（${GAME_COUNT}）に固定され、game_id はユニーク。`,
             example: resultsResponseExample.game_breakdown,
         }),
 );
@@ -146,8 +205,15 @@ export const phaseSummariesSchema = registry.register(
                 }),
             }),
         )
+        // 配列長 = 登録ゲーム数 + `game_id` ユニーク強制（PR #104 レビュー対応）。
+        // 詳細は gameBreakdownSchema 側のコメント参照。
+        .length(GAME_COUNT)
+        .refine(hasUniqueGameIds, { message: uniqueGameIdRefineMessage })
         .openapi({
-            description: '各ゲーム終了後の行動を日本語テキストで振り返ったサマリーの配列',
+            ...fixedGameCountOpenApi,
+            description:
+                '各ゲーム終了後の行動を日本語テキストで振り返ったサマリーの配列。' +
+                `配列長は登録ゲーム数（${GAME_COUNT}）に固定され、game_id はユニーク。`,
             example: resultsResponseExample.phase_summaries,
         }),
 );
@@ -231,10 +297,16 @@ export const detailsSchema = registry.register(
     'Details',
     z
         .array(gameDetailSchema)
+        // 配列長 = 登録ゲーム数 + `game_id` ユニーク強制（PR #104 レビュー対応）。
+        // 詳細は gameBreakdownSchema 側のコメント参照。
+        .length(GAME_COUNT)
+        .refine(hasUniqueGameIds, { message: uniqueGameIdRefineMessage })
         .openapi({
+            ...fixedGameCountOpenApi,
             description:
                 '各ゲーム固有の詳細情報（タイトル / feature_scores / metrics）の配列。' +
-                '構造は仕様書「データ構造」→ GameDetail を参照',
+                '構造は仕様書「データ構造」→ GameDetail を参照。' +
+                `配列長は登録ゲーム数（${GAME_COUNT}）に固定され、game_id はユニーク。`,
             example: resultsResponseExample.details,
         }),
 );
