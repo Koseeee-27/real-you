@@ -35,11 +35,19 @@ export const MOCK_RESULT: ResultResponse = {
     cooperativeness: -20,
     positivity: 20,
   },
-  game_breakdown: {
-    game_1: { caution: 20 },
-    game_2: { logic: 60, calmness: 80, positivity: 90 },
-    game_3: { cooperativeness: 10, positivity: 85 },
-  },
+  // 配列形式（Phase 1 / Issue #97）。game_id は Phase 3（registry 導入）で
+  // 正式定義予定の文字列 ID を先取り使用。配列順は NORMAL_FLOW に揃える。
+  game_breakdown: [
+    { game_id: 'terms_game', scores: { caution: 20 } },
+    {
+      game_id: 'helpdesk_game',
+      scores: { logic: 60, calmness: 80, positivity: 90 },
+    },
+    {
+      game_id: 'group_chat_game',
+      scores: { cooperativeness: 10, positivity: 85 },
+    },
+  ],
   feedback: {
     title: '暴走する機関車',
     description:
@@ -47,13 +55,23 @@ export const MOCK_RESULT: ResultResponse = {
     gap_point: '慎重さ',
   },
   accuracy_score: 50,
-  phase_summaries: {
-    phase_1: '規約を2秒で読み飛ばし、即座に同意ボタンを押しました',
-    phase_2: 'AIの理不尽な対応に0.5秒で反応し、論理的に反論しました',
-    phase_3: 'グループの空気を読んで、全員と同じ選択をしました',
-  },
-  details: {
-    game_1: {
+  phase_summaries: [
+    {
+      game_id: 'terms_game',
+      summary: '規約を2秒で読み飛ばし、即座に同意ボタンを押しました',
+    },
+    {
+      game_id: 'helpdesk_game',
+      summary: 'AIの理不尽な対応に0.5秒で反応し、論理的に反論しました',
+    },
+    {
+      game_id: 'group_chat_game',
+      summary: 'グループの空気を読んで、全員と同じ選択をしました',
+    },
+  ],
+  details: [
+    {
+      game_id: 'terms_game',
       title: '利用規約ゲーム',
       feature_scores: [
         { axis: 'caution', name: '慎重さ', score: 20 },
@@ -85,7 +103,8 @@ export const MOCK_RESULT: ResultResponse = {
         { label: '無駄クリック(回)', user: 0, average: 1.5, category: 'mouse' },
       ],
     },
-    game_2: {
+    {
+      game_id: 'helpdesk_game',
       title: 'AIカスタマーサポート',
       feature_scores: [
         { axis: 'positivity', name: '積極性', score: 90 },
@@ -105,7 +124,8 @@ export const MOCK_RESULT: ResultResponse = {
         { label: '論理的接続詞(回)', user: 2, average: 0.5, category: 'logic' },
       ],
     },
-    game_3: {
+    {
+      game_id: 'group_chat_game',
       title: '空気読みグループチャット',
       feature_scores: [
         { axis: 'cooperativeness', name: '協調性', score: 10 },
@@ -124,5 +144,5 @@ export const MOCK_RESULT: ResultResponse = {
         },
       ],
     },
-  },
+  ],
 };
