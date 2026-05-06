@@ -1,19 +1,12 @@
 import { ZodType } from 'zod';
 import { userRepository } from '../repositories/userRepository';
 import { gameRepository } from '../repositories/gameRepository';
-import { generateAnalysisResult } from '../analysis/scoreCalculator';
+import { GameDataByGameId, generateAnalysisResult } from '../analysis/scoreCalculator';
+import { GAME_MODULES, NORMAL_FLOW } from '../analysis/registry';
 import { analysisResultRepository, AnalysisResultRow } from '../repositories/analysisResultRepository';
-import {
-    Game1Data,
-    Game2Data,
-    Game3Data,
-    game1DataSchema,
-    game2DataSchema,
-    game3DataSchema,
-} from '../schemas/gameData';
 
 import { getMbtiScores } from '../analysis/mbtiScoreTable';
-import { BaselineScores, GameLog, ResultResponse } from '../types';
+import { BaselineScores, GameId, GameLog, ResultResponse } from '../types';
 import { ERROR_CODES } from '../schemas/errorCodes';
 
 /**
@@ -23,12 +16,12 @@ import { ERROR_CODES } from '../schemas/errorCodes';
  * 500 `server_error` を throw する（運用上ほぼ起きない異常系。ログに詳細を残し、
  * クライアントへの message は固定文言にして内部情報の漏洩を防ぐ）。
  */
-function parseGameLogOrThrow<T>(
+function parseGameLogOrThrow(
     log: GameLog | undefined,
-    schema: ZodType<T>,
+    schema: ZodType,
     gameLabel: string,
     userId: string,
-): T | undefined {
+): unknown {
     if (!log) return undefined;
 
     const result = schema.safeParse(log.raw_data);
@@ -80,30 +73,30 @@ export const resultService = {
 
         // キャッシュなし → ゲームログから計算
         const gameLogs = await gameRepository.findLogsByUserId(userId);
-        if (gameLogs.length < 3) {
+        if (gameLogs.length < NORMAL_FLOW.length) {
             throw { status: 400, code: ERROR_CODES.INCOMPLETE_GAMES, message: 'All games must be completed' };
         }
 
         // 分析（analysis/ に委譲）。Issue #101 で GameLog はドメイン文字列 ID
         // （`game_id: GameId`）を保持する形に変更されたため、find のキーは文字列リテラル
         // で照合する（DB の数値 game_type は repositories 層で吸収済み）。
-        const game1Log = gameLogs.find(log => log.game_id === 'terms_game');
-        const game2Log = gameLogs.find(log => log.game_id === 'helpdesk_game');
-        const game3Log = gameLogs.find(log => log.game_id === 'group_chat_game');
-
+        // Issue #102 で registry でループする形に変更し、新ゲーム追加時は GAME_MODULES /
+        // NORMAL_FLOW への登録だけで scoreCalculator まで反映される設計にした。
+        //
         // raw_data は GameLog.raw_data: unknown のため、scoreCalculator に渡す前に
-        // game_id ごとの zod スキーマで parse する。DB 整合性が壊れていた場合は
+        // 各モジュールの zod スキーマで parse する。DB 整合性が壊れていた場合は
         // 500 `server_error` で明示的に失敗させる（parseGameLogOrThrow 内で throw）。
-        const game1Data: Game1Data | undefined = parseGameLogOrThrow(game1Log, game1DataSchema, 'game1', userId);
-        const game2Data: Game2Data | undefined = parseGameLogOrThrow(game2Log, game2DataSchema, 'game2', userId);
-        const game3Data: Game3Data | undefined = parseGameLogOrThrow(game3Log, game3DataSchema, 'game3', userId);
+        const dataByGameId = NORMAL_FLOW.reduce((acc, gameId) => {
+            const log = gameLogs.find((l) => l.game_id === gameId);
+            const gameModule = GAME_MODULES[gameId];
+            acc[gameId] = parseGameLogOrThrow(log, gameModule.schema, gameId, userId);
+            return acc;
+        }, {} as Record<GameId, unknown>) satisfies GameDataByGameId;
 
         const analysisResult = generateAnalysisResult(
             userId,
             user.self_mbti ?? undefined,
-            game1Data,
-            game2Data,
-            game3Data,
+            dataByGameId,
             baseline_scores
         );
 
