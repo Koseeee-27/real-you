@@ -94,17 +94,23 @@ export default function ResultReport({ data }: ResultReportProps) {
   }, [router]);
 
   // タブ一覧（overview + 各ゲーム）。ゲームタブは details の並び順に従う。
-  const gameTabs = data.details.map((detail) => {
+  // GAME_META に未登録の game_id（BE / FE の generated.ts が一時的にズレた場合等）が
+  // 含まれる可能性に備え、flatMap でスキップして安全側に倒す。
+  const gameTabs = data.details.flatMap((detail) => {
     const meta = GAME_META[detail.game_id];
-    return {
-      id: detail.game_id,
-      label: meta.label,
-      icon: meta.icon,
-      color: meta.color,
-      detail,
-      summary: summaryByGameId.get(detail.game_id) ?? '',
-    };
+    if (!meta) return [];
+    return [
+      {
+        id: detail.game_id,
+        label: meta.label,
+        icon: meta.icon,
+        color: meta.color,
+        detail,
+        summary: summaryByGameId.get(detail.game_id) ?? '',
+      },
+    ];
   });
+  const activeGameTab = gameTabs.find((tab) => tab.id === activeTab);
 
   return (
     <div
@@ -161,16 +167,12 @@ export default function ResultReport({ data }: ResultReportProps) {
 
         <div className="flex-1 bg-white border-4 border-black rounded-3xl rounded-tr-3xl shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-8 min-h-125">
           {activeTab === 'overview' && <OverviewTab data={data} />}
-          {gameTabs.map(
-            (tab) =>
-              activeTab === tab.id && (
-                <GameDetailTab
-                  key={tab.id}
-                  detail={tab.detail}
-                  comment={tab.summary}
-                  tabColor={tab.color}
-                />
-              )
+          {activeGameTab && (
+            <GameDetailTab
+              detail={activeGameTab.detail}
+              comment={activeGameTab.summary}
+              tabColor={activeGameTab.color}
+            />
           )}
         </div>
 
