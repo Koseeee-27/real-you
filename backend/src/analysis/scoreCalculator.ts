@@ -396,18 +396,19 @@ const feedback = generateFeedback(scores, gaps);
     gaps: gaps,
     // game_breakdown は配列形式（Phase 1 / Issue #97）。
     // game_id は Phase 3（registry 導入）で正式定義予定の文字列 ID を先取りで使用している。
-    // 配列順は NORMAL_FLOW（terms_game → helpdesk_game → group_chat_game）に揃える。
+    // 配列順は terms_game → helpdesk_game → group_chat_game の通常フロー順
+    // （Phase 3 で `analysis/registry.ts` の `NORMAL_FLOW` 定数として正式定義予定）。
     game_breakdown: [
       {
-        game_id: "terms_game",
+        game_id: "terms_game" as const,
         scores: { caution: g1.caution, logic: g1.logic, calmness: g1.calmness },
       },
       {
-        game_id: "helpdesk_game",
+        game_id: "helpdesk_game" as const,
         scores: { positivity: g2.positivity, calmness: g2.calmness, logic: g2.logic },
       },
       {
-        game_id: "group_chat_game",
+        game_id: "group_chat_game" as const,
         scores: { cooperativeness: g3.cooperativeness, positivity: g3.positivity, caution: g3.caution },
       },
     ],
@@ -415,10 +416,11 @@ const feedback = generateFeedback(scores, gaps);
     feedback: feedback,
     phase_summaries: phaseSummaries, // buildPhaseSummaries関数で作ったテキストを渡す（配列形式）
 
-    // details も配列形式（Phase 1 / Issue #97）。配列順は game_breakdown と揃える。
+    // details も配列形式（Phase 1 / Issue #97）。配列順は game_breakdown と揃える
+    // （terms_game → helpdesk_game → group_chat_game の通常フロー順）。
     details: [
       {
-        game_id: "terms_game",
+        game_id: "terms_game" as const,
         title: "利用規約ゲーム",
         feature_scores: [
           { axis: "caution", name: "慎重さ", score: g1.caution },
@@ -438,7 +440,7 @@ const feedback = generateFeedback(scores, gaps);
         ],
       },
       {
-        game_id: "helpdesk_game",
+        game_id: "helpdesk_game" as const,
         title: "AIカスタマーサポート",
         feature_scores: [
           { axis: "positivity", name: "積極性", score: g2.positivity },
@@ -453,7 +455,7 @@ const feedback = generateFeedback(scores, gaps);
         ],
       },
       {
-        game_id: "group_chat_game",
+        game_id: "group_chat_game" as const,
         title: "空気読みグループチャット",
         feature_scores: [
           { axis: "cooperativeness", name: "協調性", score: g3.cooperativeness },

@@ -711,6 +711,12 @@ export interface components {
             confidence: number;
         };
         /**
+         * @description ゲーム識別子。terms_game = 利用規約ゲーム / helpdesk_game = AIカスタマーサポート / group_chat_game = 空気読みグループチャット
+         * @example terms_game
+         * @enum {string}
+         */
+        GameId: "terms_game" | "helpdesk_game" | "group_chat_game";
+        /**
          * @description ゲームごとのスコア内訳の配列。各ゲームで測定される軸のみが含まれるため 5 軸すべてが揃うとは限らない（例: terms_game は caution / logic / calmness のみ）
          * @example [
          *       {
@@ -740,8 +746,7 @@ export interface components {
          *     ]
          */
         GameBreakdown: {
-            /** @description ゲーム識別子（例: terms_game / helpdesk_game / group_chat_game） */
-            game_id: string;
+            game_id: components["schemas"]["GameId"];
             /** @description 当該ゲームで測定した軸のスコア（測定軸のみ含むため 5 軸すべては揃わない） */
             scores: {
                 /** @description 慎重さ（0-100） */
@@ -799,8 +804,7 @@ export interface components {
          *     ]
          */
         PhaseSummaries: {
-            /** @description ゲーム識別子（例: terms_game / helpdesk_game / group_chat_game） */
-            game_id: string;
+            game_id: components["schemas"]["GameId"];
             /** @description 当該ゲームの行動を日本語テキストで振り返ったサマリー */
             summary: string;
         }[];
@@ -827,8 +831,7 @@ export interface components {
          *     }
          */
         GameDetail: {
-            /** @description ゲーム識別子（例: terms_game / helpdesk_game / group_chat_game） */
-            game_id: string;
+            game_id: components["schemas"]["GameId"];
             /** @description ゲーム名（例: 利用規約ゲーム / AIカスタマーサポート / 空気読みグループチャット） */
             title: string;
             /** @description 当該ゲームで測定した軸ごとのスコア配列（測定軸数はゲームごとに異なる） */

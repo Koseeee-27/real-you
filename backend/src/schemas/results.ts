@@ -37,13 +37,39 @@ export const resultsParamsSchema = z.object({
 /**
  * 5 軸各軸ごとのスコアを optional にした構造。
  *
- * ゲームごとにどの軸を測るかが異なるため（例: game_1 は caution/logic/calmness のみ）、
+ * ゲームごとにどの軸を測るかが異なるため（例: terms_game は caution/logic/calmness のみ）、
  * Partial 相当として各軸を optional にしている。
  *
  * `baselineScoresSchema.partial()` を使うことで、キー定義の単一ソース化と
  * 0-100 の範囲制約の継承を同時に実現している。
  */
 const partialBaselineScoresSchema = baselineScoresSchema.partial();
+
+/**
+ * ゲーム識別子（文字列リテラル列挙）。
+ *
+ * `game_breakdown` / `phase_summaries` / `details` の各要素を識別するキー。
+ * Phase 3 で導入予定の `analysis/registry.ts` の `GameId` 型と同値（先取り定義）。
+ * Phase 3 で `Object.keys(GAME_MODULES)` から導出する形に置換する想定。
+ *
+ * `.claude/rules/backend.md` の zod スキーマ規約に従い、
+ * 「OpenAPI 公開 × 文字列リテラル × エラーコード差別化不要」のため `z.enum` を採用。
+ * これにより FE 生成型でも `'terms_game' | 'helpdesk_game' | 'group_chat_game'` の
+ * リテラル絞り込みが効き、Swagger UI でも enum が明示される。
+ */
+const GAME_ID_VALUES = ['terms_game', 'helpdesk_game', 'group_chat_game'] as const;
+
+export const gameIdSchema = registry.register(
+    'GameId',
+    z.enum(GAME_ID_VALUES).openapi({
+        description:
+            'ゲーム識別子。terms_game = 利用規約ゲーム / helpdesk_game = AIカスタマーサポート / ' +
+            'group_chat_game = 空気読みグループチャット',
+        example: 'terms_game',
+    }),
+);
+
+export type GameId = z.infer<typeof gameIdSchema>;
 
 /**
  * ゲームごとのスコア内訳（配列形式）。
@@ -59,10 +85,7 @@ export const gameBreakdownSchema = registry.register(
     z
         .array(
             z.object({
-                game_id: z.string().openapi({
-                    description:
-                        'ゲーム識別子（例: terms_game / helpdesk_game / group_chat_game）',
-                }),
+                game_id: gameIdSchema,
                 scores: partialBaselineScoresSchema.openapi({
                     description:
                         '当該ゲームで測定した軸のスコア（測定軸のみ含むため 5 軸すべては揃わない）',
@@ -114,10 +137,7 @@ export const phaseSummariesSchema = registry.register(
     z
         .array(
             z.object({
-                game_id: z.string().openapi({
-                    description:
-                        'ゲーム識別子（例: terms_game / helpdesk_game / group_chat_game）',
-                }),
+                game_id: gameIdSchema,
                 summary: z.string().openapi({
                     description: '当該ゲームの行動を日本語テキストで振り返ったサマリー',
                 }),
@@ -149,10 +169,7 @@ export const gameDetailSchema = registry.register(
     'GameDetail',
     z
         .object({
-            game_id: z.string().openapi({
-                description:
-                    'ゲーム識別子（例: terms_game / helpdesk_game / group_chat_game）',
-            }),
+            game_id: gameIdSchema,
             title: z.string().openapi({
                 description: 'ゲーム名（例: 利用規約ゲーム / AIカスタマーサポート / 空気読みグループチャット）',
             }),

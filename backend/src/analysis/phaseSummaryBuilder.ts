@@ -103,11 +103,12 @@ export function buildPhaseSummaries(
     }
 
     // 配列形式（Phase 1 / Issue #97）。game_id は Phase 3（registry 導入）で
-    // 正式定義予定の文字列 ID を先取りで使用している。配列順は NORMAL_FLOW
-    // （terms_game → helpdesk_game → group_chat_game）に揃える。
+    // 正式定義予定の文字列 ID を先取りで使用している。配列順は
+    // terms_game → helpdesk_game → group_chat_game の通常フロー順
+    // （Phase 3 で `analysis/registry.ts` の `NORMAL_FLOW` 定数として正式定義予定）。
     return [
-        { game_id: 'terms_game', summary: phase1Text },
-        { game_id: 'helpdesk_game', summary: phase2Text },
-        { game_id: 'group_chat_game', summary: phase3Text },
+        { game_id: 'terms_game' as const, summary: phase1Text },
+        { game_id: 'helpdesk_game' as const, summary: phase2Text },
+        { game_id: 'group_chat_game' as const, summary: phase3Text },
     ];
 }

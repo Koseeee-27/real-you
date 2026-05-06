@@ -280,7 +280,8 @@ export const voiceRespondResponseExample = {
  * 実際のレスポンスでは複数要素の配列になる点に注意。
  *
  * game_id は Phase 3（registry 導入）で正式定義予定の文字列 ID を先取りで使用している。
- * 配列順は NORMAL_FLOW（terms_game → helpdesk_game → group_chat_game）に揃える。
+ * 配列順は terms_game → helpdesk_game → group_chat_game の通常フロー順
+ * （Phase 3 で `analysis/registry.ts` の `NORMAL_FLOW` 定数として正式定義予定）。
  */
 export const resultsResponseExample = {
     user_id: SAMPLE_USER_ID,
