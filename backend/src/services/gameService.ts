@@ -24,8 +24,10 @@ import type { GameId } from '../types';
  * クライアントへの message は固定文言にして内部構造の漏洩を防ぐ。
  */
 function parseGameData(gameId: GameId, data: Record<string, unknown>): GameRawDataPayload {
-    const module = GAME_MODULES[gameId];
-    const result = module.schema.safeParse(data);
+    // 変数名は CommonJS のグローバル `module` と衝突しないよう `gameModule` にする
+    // （tsconfig: "module": "commonjs" 環境ではシャドーするため）。
+    const gameModule = GAME_MODULES[gameId];
+    const result = gameModule.schema.safeParse(data);
     if (!result.success) throw invalidGameDataError(gameId, result.error.issues);
 
     // GameRawDataPayload は `gameId` ごとに rawData の型が異なる判別可能 union。

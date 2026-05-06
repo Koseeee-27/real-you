@@ -77,6 +77,8 @@ export const gameRepository = {
                 console.error('Unknown game_type in game_logs:', { userId, row });
                 continue;
             }
+            // DB 行から数値 `game_type` を取り除き、ドメインの文字列 `game_id` に置換する。
+            // `_omit` という名前は ESLint の `no-unused-vars` 規約（`_` 始まりは未使用許容）に従う。
             const { game_type: _omit, ...rest } = row;
             logs.push({ ...rest, game_id: gameId });
         }

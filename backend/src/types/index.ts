@@ -1,3 +1,8 @@
+// 値ではなく型のみ参照する import は通常の `export type { ... } from ...` では
+// このファイル内のスコープには値が入らない（再エクスポート専用）ため、`GameLog`
+// の型注釈用に別途明示的に import する。
+import type { GameId } from '../schemas/results';
+
 // ========================================
 // API Request/Response型
 // ========================================
@@ -62,13 +67,11 @@ export interface User {
   created_at: string;
 }
 
-// GameId のドメイン文字列 ID を `game_id` として保持する。GameLog はドメイン層
-// （services / analysis）で参照される型のため、Issue #101 の Anti-Corruption Layer 設計に
-// 従い文字列 ID で扱う。DB の game_logs テーブル自体は `game_type INT` のままで、
+// GameLog はドメイン層（services / analysis）で参照される型のため、Issue #101 の
+// Anti-Corruption Layer 設計に従い文字列 ID（`game_id: GameId`）で扱う。
+// DB の game_logs テーブル自体は `game_type INT` のままで、
 // `repositories/gameRepository.ts` が SELECT/INSERT 時に GAME_TYPE_TO_ID / ID_TO_GAME_TYPE で
 // 双方向変換する責務を持つ。
-import type { GameId } from '../schemas/results';
-
 export interface GameLog {
   id: number;
   user_id: string;
