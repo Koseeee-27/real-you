@@ -7,9 +7,6 @@ import { groupChatGameModule } from './games/groupChatGame';
 import { safeScore } from './scoreUtils';
 
 /**
- * 作成日: 2026-02-20
- * 作成者: たまちゃ
- * 説明:
  * 3ゲームの行動データから5軸特性を連続値(0-100)で算出する統合分析ロジック。
  *
  * Issue #100 で各ゲームの計算ロジック（旧 calculateGame1/2/3）と要約テキスト生成
