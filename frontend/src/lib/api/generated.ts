@@ -460,7 +460,7 @@ export interface components {
             status: "success";
         };
         /**
-         * @description Game1 のスクロールイベント（200ms 間隔のサンプリングログ）
+         * @description 利用規約ゲームのスクロールイベント（200ms 間隔のサンプリングログ）
          * @example {
          *       "position": 1200,
          *       "timestamp": 2500
@@ -473,7 +473,7 @@ export interface components {
             timestamp: number;
         };
         /**
-         * @description Game1 のチェックボックス状態（readConfirm / mailMagazine / thirdPartyShare で共通）
+         * @description 利用規約ゲームのチェックボックス状態（readConfirm / mailMagazine / thirdPartyShare で共通）
          * @example {
          *       "checked": true,
          *       "changed": true
@@ -486,7 +486,7 @@ export interface components {
             changed: boolean;
         };
         /**
-         * @description Game1 のポップアップ統計。高速スクロール時はポップアップ自体が出ないため Game1Data 側で optional
+         * @description 利用規約ゲームのポップアップ統計。高速スクロール時はポップアップ自体が出ないため TermsGameData 側で optional
          * @example {
          *       "timeToClose": 850,
          *       "clickCount": 1,
@@ -501,8 +501,8 @@ export interface components {
             /** @description マウス余剰移動距離（px） */
             mouseJitter: number;
         };
-        /** @description Game1（利用規約ゲーム）の行動データ。仕様書「データ構造 → Game1Data」準拠 */
-        Game1Data: {
+        /** @description 利用規約ゲームの行動データ。仕様書「データ構造 → TermsGameData」準拠 */
+        TermsGameData: {
             /** @description 滞在時間（秒） */
             totalTime: number;
             /**
@@ -599,7 +599,7 @@ export interface components {
             user_id: string;
             /** @enum {number} */
             game_type: 1;
-            data: components["schemas"]["Game1Data"];
+            data: components["schemas"]["TermsGameData"];
         } | {
             /**
              * Format: uuid

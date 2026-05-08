@@ -4,11 +4,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSetAtom } from 'jotai';
 import { useRouter } from 'next/navigation';
 import type {
-  Game1Data,
+  TermsGameData,
   PopupStats,
   ScrollEvent,
 } from '@/features/games/types';
-import { game1DataAtom } from '@/stores/games';
+import { termsGameDataAtom } from '@/stores/games';
 import PopupAd from './PopupAd';
 import PopupTerms from './PopupTerms';
 import LoadingScreen from '@/components/common/LoadingScreen';
@@ -24,7 +24,7 @@ const REACHED_BOTTOM_THRESHOLD = 0.9;
 
 export default function TermsGameFlow() {
   const router = useRouter();
-  const setGame1Data = useSetAtom(game1DataAtom);
+  const setTermsGameData = useSetAtom(termsGameDataAtom);
 
   const [checkboxStates, setCheckboxStates] = useState({
     readConfirm: false,
@@ -168,8 +168,8 @@ export default function TermsGameFlow() {
     return Date.now() - agreeHoverStartRef.current;
   }, []);
 
-  const buildGame1Data = useCallback(
-    (action: 'agree' | 'disagree'): Game1Data => {
+  const buildTermsGameData = useCallback(
+    (action: 'agree' | 'disagree'): TermsGameData => {
       const totalTime = Math.round((Date.now() - startTimeRef.current) / 1000);
 
       return {
@@ -205,8 +205,8 @@ export default function TermsGameFlow() {
       const se = new Audio('/sounds/general-button-se.mp3');
       se.play().catch(() => {});
 
-      const data = buildGame1Data(action);
-      setGame1Data(data);
+      const data = buildTermsGameData(action);
+      setTermsGameData(data);
 
       setIsCompleted(true);
 
@@ -218,7 +218,7 @@ export default function TermsGameFlow() {
         router.push('/diagnosis');
       }, 2000);
     },
-    [buildGame1Data, setGame1Data, router]
+    [buildTermsGameData, setTermsGameData, router]
   );
 
   if (isCompleted) {
