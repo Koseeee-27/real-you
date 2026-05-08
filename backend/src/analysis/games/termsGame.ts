@@ -1,13 +1,13 @@
-import { Game1Data, game1DataSchema } from '../../schemas/games/termsGame';
+import { TermsGameData, termsGameDataSchema } from '../../schemas/games/termsGame';
 import type { GameDetail } from '../../schemas/results';
 import { linear, linearInv, logNorm } from '../scoreUtils';
 
 /**
- * Game1（利用規約ゲーム）の分析モジュール。
+ * 利用規約ゲーム（terms_game）の分析モジュール。
  *
  * Issue #100 で `scoreCalculator.ts` の `calculateGame1` と
  * `phaseSummaryBuilder.ts` の Phase 1 テキスト生成ロジックを 1 ファイルに凝集した。
- * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の Game1 要素
+ * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の terms_game 要素
  * （title / feature_scores / metrics）も `buildDetails` として本ファイルに移管し、
  * scoreCalculator は薄い統合層に縮小した。
  *
@@ -29,7 +29,7 @@ import { linear, linearInv, logNorm } from '../scoreUtils';
  * 「軸スコアと中間メトリクス」を判別するロジックを持たずに済むようにするため。
  * scores キーは `keyof BaselineScores` の部分集合で、当該ゲームが測定する軸のみ。
  */
-export type Game1AnalyzeResult = {
+export type TermsGameAnalyzeResult = {
     scores: { caution: number; logic: number; calmness: number };
     changedCount: number;
     averageSpeed: number;
@@ -44,7 +44,7 @@ export type Game1AnalyzeResult = {
  * モジュール分割後は両関数が独立呼び出しになるため、内部で再計算する。
  * O(N) で軽量、計測値も同一になる。
  */
-function computeScrollMetrics(scrollEvents: Game1Data['scrollEvents']) {
+function computeScrollMetrics(scrollEvents: TermsGameData['scrollEvents']) {
     let totalDistance = 0;
     let reversalCount = 0;
 
@@ -66,14 +66,14 @@ function computeScrollMetrics(scrollEvents: Game1Data['scrollEvents']) {
 }
 
 /**
- * Game1 行動データ → 慎重さ・論理性・冷静さの中間集計。
+ * 利用規約ゲームの行動データ → 慎重さ・論理性・冷静さの中間集計。
  *
  * 評価軸:
  * - 慎重さ(caution): 滞在時間・スクロール速度・迷い時間・チェック変更
  * - 論理性(logic): 再確認行動・逆行スクロール・ポップアップ処理
  * - 冷静さ(calmness): マウスブレ・無駄クリック
  */
-function analyze(data: Game1Data | undefined): Game1AnalyzeResult {
+function analyze(data: TermsGameData | undefined): TermsGameAnalyzeResult {
     // 早期 return は通常 return と同じ shape を返す（buildDetails 側で欠損プロパティに
     // アクセスして undefined がレスポンスに漏れるのを防ぐため）
     if (!data)
@@ -90,7 +90,7 @@ function analyze(data: Game1Data | undefined): Game1AnalyzeResult {
     const { averageSpeed: speed, reversalCount } = computeScrollMetrics(scrollEvents);
 
     // checkboxStates の各エントリは { checked, changed } 形式。
-    // 型は Game1Data の indexed access で導出する（gameData.ts 側に新規 export を作らない）。
+    // 型は TermsGameData の indexed access で導出する（gameData.ts 側に新規 export を作らない）。
     const checkboxChanged = Object.values(data.checkboxStates).filter((c) => c.changed).length;
 
     //慎重さ: 滞在時間・スクロール速度・迷い時間・チェック変更
@@ -129,11 +129,11 @@ function analyze(data: Game1Data | undefined): Game1AnalyzeResult {
 }
 
 /**
- * Game1 行動データ → 結果画面に表示するサマリーテキスト。
+ * 利用規約ゲームの行動データ → 結果画面に表示するサマリーテキスト。
  *
  * 例: 「規約をじっくりと読み込み、わずか12.3秒で同意ボタンを押しました。メルマガの罠に見事に引っかかりました。」
  */
-function buildSummary(data: Game1Data | undefined): string {
+function buildSummary(data: TermsGameData | undefined): string {
     if (!data) return 'データなし';
 
     const timeSec = (data.totalTime ?? 0).toFixed(1);
@@ -143,7 +143,7 @@ function buildSummary(data: Game1Data | undefined): string {
     const speedText =
         speed > 2000 ? '爆速でスクロールし' : speed < 1000 ? 'じっくりと読み込み' : '平均的な速度で確認し';
 
-    // 仕様書「データ構造 → Game1Data → checkboxStates」で mailMagazine は { checked, changed } 形式
+    // 仕様書「データ構造 → TermsGameData → checkboxStates」で mailMagazine は { checked, changed } 形式
     // mailMagazine は初期値 ON のため checked === true が「外し忘れ＝罠にひっかかった」判定
     let trapText = '';
     const mailChecked = data.checkboxStates?.mailMagazine?.checked;
@@ -154,16 +154,16 @@ function buildSummary(data: Game1Data | undefined): string {
 }
 
 /**
- * Game1 行動データ + analyze 結果 → 結果画面 details 用の構造体。
+ * 利用規約ゲームの行動データ + analyze 結果 → 結果画面 details 用の構造体。
  *
- * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` の Game1 要素を移管。
+ * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` の terms_game 要素を移管。
  * scoreCalculator が「どの軸を測るか」「どのメトリクスを表示するか」を意識せず
  * モジュール側から `GameDetail` を完成形で受け取れるようにした。挙動は完全同一。
  *
  * `feature_scores` / `metrics` の各値は仕様書「データ構造」→ `GameDetail` 準拠。
  * `metrics` の平均値・カテゴリは旧 scoreCalculator の値をそのまま転記している。
  */
-function buildDetails(data: Game1Data | undefined, result: Game1AnalyzeResult): GameDetail {
+function buildDetails(data: TermsGameData | undefined, result: TermsGameAnalyzeResult): GameDetail {
     return {
         game_id: termsGameModule.id,
         title: termsGameModule.title,
@@ -223,7 +223,7 @@ function buildDetails(data: Game1Data | undefined, result: Game1AnalyzeResult): 
 }
 
 /**
- * Game1（利用規約ゲーム）モジュール。
+ * 利用規約ゲーム（terms_game）モジュール。
  *
  * `analysis/registry.ts` の `GAME_MODULES` から参照される。
  * `id` は `phase_summaries` / `details` / `game_breakdown` 配列内の `game_id` として
@@ -237,9 +237,9 @@ function buildDetails(data: Game1Data | undefined, result: Game1AnalyzeResult): 
 export const termsGameModule = {
     id: 'terms_game' as const,
     title: '利用規約ゲーム',
-    schema: game1DataSchema,
-    analyze: (data: unknown) => analyze(data as Game1Data | undefined),
-    buildSummary: (data: unknown) => buildSummary(data as Game1Data | undefined),
+    schema: termsGameDataSchema,
+    analyze: (data: unknown) => analyze(data as TermsGameData | undefined),
+    buildSummary: (data: unknown) => buildSummary(data as TermsGameData | undefined),
     buildDetails: (data: unknown, result: unknown) =>
-        buildDetails(data as Game1Data | undefined, result as Game1AnalyzeResult),
+        buildDetails(data as TermsGameData | undefined, result as TermsGameAnalyzeResult),
 };

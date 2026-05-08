@@ -13,7 +13,7 @@ import { linear, linearInv, logNorm, sigmoidInv } from '../scoreUtils';
 
 /**
  * `analyze()` の戻り値型（Issue #102 で 2 階層構造に変更）。
- * 詳細は `termsGame.ts` の `Game1AnalyzeResult` コメント参照。
+ * 詳細は `termsGame.ts` の `TermsGameAnalyzeResult` コメント参照。
  */
 export type Game2AnalyzeResult = {
     scores: { positivity: number; calmness: number; logic: number };
