@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { registry } from '../../openapi/registry';
 
 /**
- * Game3（空気読みグループチャット）の行動データ（raw_data）の zod スキーマ群。
+ * 空気読みグループチャット（group_chat_game / 旧 Game 3）の行動データ（raw_data）の zod スキーマ群。
  *
  * 設計方針:
  * - 仕様書「データ構造」を一次情報として、TS と zod の二重管理を避けるため
@@ -19,14 +19,14 @@ import { registry } from '../../openapi/registry';
  */
 
 /**
- * Game3 の 1 ステージ分のメトリクス。
+ * 空気読みグループチャットの 1 ステージ分のメトリクス。
  *
  * `selectedOptionId`: 1-4 が通常選択、タイムアウト時は 0（仕様書準拠）。
  * 意味的に整数のフィールドには `.int()` を付けて型レベルで小数を弾く。
  * `min/max` 等の値の範囲制約は本スキーマでは表現せず、analysis 層で個別に扱う。
  */
-const game3StageSchema = registry.register(
-    'Game3Stage',
+const groupChatGameStageSchema = registry.register(
+    'GroupChatGameStage',
     z
         .object({
             stageId: z.number().int().openapi({
@@ -43,17 +43,17 @@ const game3StageSchema = registry.register(
             }),
         })
         .openapi({
-            description: 'Game3 の 1 ステージ分のメトリクス',
+            description: '空気読みグループチャットの 1 ステージ分のメトリクス',
         }),
 );
 
 /**
- * Game3Data（グループチャット）。
+ * GroupChatGameData（空気読みグループチャット）。
  *
  * `typingIndicatorReactTimeMs` はステージ 3 / 5 のみで計測される値のため `nullable`。
  */
-export const game3DataSchema = registry.register(
-    'Game3Data',
+export const groupChatGameDataSchema = registry.register(
+    'GroupChatGameData',
     z
         .object({
             tutorialViewTime: z.number().openapi({
@@ -66,14 +66,14 @@ export const game3DataSchema = registry.register(
                 description:
                     'ステージ 3 / 5 で「入力中...」表示後の操作時間（ms）。未計測時は null',
             }),
-            stages: z.array(game3StageSchema).openapi({
+            stages: z.array(groupChatGameStageSchema).openapi({
                 description: '各ステージのメトリクス',
             }),
         })
         .openapi({
             description:
-                'Game3（空気読みグループチャット）の行動データ。仕様書「データ構造 → Game3Data」準拠',
+                '空気読みグループチャットの行動データ。仕様書「データ構造 → GroupChatGameData」準拠',
         }),
 );
 
-export type Game3Data = z.infer<typeof game3DataSchema>;
+export type GroupChatGameData = z.infer<typeof groupChatGameDataSchema>;

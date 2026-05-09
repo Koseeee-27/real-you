@@ -31,7 +31,7 @@ function parseGameData(gameId: GameId, data: Record<string, unknown>): GameRawDa
     if (!result.success) throw invalidGameDataError(gameId, result.error.issues);
 
     // GameRawDataPayload は `gameId` ごとに rawData の型が異なる判別可能 union。
-    // GAME_MODULES[gameId] の schema は対応する Game1Data / Game2Data / Game3Data を
+    // GAME_MODULES[gameId] の schema は対応する TermsGameData / HelpdeskGameData / GroupChatGameData を
     // parse するが、registry の `GameModuleEntry` では schema をジェネリックなしの
     // `ZodType` として保持しており parse 戻り値が unknown 化する。型整合性はキー名と
     // `module.id` の一致を `GameModulesMap` で強制した上で確保しているため、ここで

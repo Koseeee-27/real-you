@@ -36,7 +36,7 @@ import { safeScore } from './scoreUtils';
  * ゲーム ID → 該当ゲームの行動データ（zod-parsed 後の `unknown`）の対応マップ。
  *
  * resultService 側で `GAME_MODULES[gameId].schema` で parse 済みの値が入る。
- * 値の具体型（Game1Data 等）は registry レベルでは保持できないため `unknown` だが、
+ * 値の具体型（TermsGameData 等）は registry レベルでは保持できないため `unknown` だが、
  * 各モジュールの adapter（`termsGameModule.analyze` 等）が具体型に narrow する。
  *
  * 未送信ゲームの値は undefined（`incomplete_games` ガード後は実質起こらないが、

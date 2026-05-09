@@ -200,10 +200,10 @@ export const submitGameRequestExampleHelpdeskGame = {
 /**
  * game_type = 3（グループチャット）の data サンプル。
  *
- * 仕様書「データ構造」→ Game3Data を参照。stages は 5 ステージのうち代表 2 件を載せ、
+ * 仕様書「データ構造」→ GroupChatGameData を参照。stages は 5 ステージのうち代表 2 件を載せ、
  * `selectedOptionId: 0` でタイムアウト例も含める（仕様書準拠）。
  */
-export const submitGameRequestExampleGame3 = {
+export const submitGameRequestExampleGroupChatGame = {
     user_id: SAMPLE_USER_ID,
     game_type: 3,
     data: {

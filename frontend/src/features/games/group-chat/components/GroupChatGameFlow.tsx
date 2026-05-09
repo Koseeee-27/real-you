@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Game3Data } from '@/features/games/types';
+import type { GroupChatGameData } from '@/features/games/types';
 import { BOTS } from '../data/stages';
 import { useGroupChatGame } from '../hooks/useGroupChatGame';
 import { submitGame } from '@/lib/api';
@@ -38,7 +38,7 @@ export default function GroupChatGameFlow() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('loading');
   const [errorVariant, setErrorVariant] = useState<ErrorVariant>('retry');
-  const pendingDataRef = useRef<Game3Data | null>(null);
+  const pendingDataRef = useRef<GroupChatGameData | null>(null);
   const bgmRef = useRef<HTMLAudioElement | null>(null);
 
   // リトライ回数は描画ロジックに直接影響しない（catch 内で variant を決める材料
@@ -116,8 +116,8 @@ export default function GroupChatGameFlow() {
    * 成功時は `retryCountRef.current = 0` でリセットして次画面へ遷移する。
    * user_id 欠損は localStorage が空のままで回復不能なので即 `restart`。
    */
-  const submitGame3 = useCallback(
-    async (data: Game3Data) => {
+  const submitGroupChatGame = useCallback(
+    async (data: GroupChatGameData) => {
       const userId = localStorage.getItem('user_id');
       if (!userId) {
         setErrorVariant('restart');
@@ -164,16 +164,16 @@ export default function GroupChatGameFlow() {
   );
 
   const handleComplete = useCallback(
-    async (data: Game3Data) => {
+    async (data: GroupChatGameData) => {
       pendingDataRef.current = data;
       setSubmitStatus('loading');
       // 送信開始時点で BGM を停止する。HelpdeskGameFlow の handleComplete と
       // 揃えており、成功・duplicate_submission・error すべての経路で
       // BGM が止まる（ErrorScreen 表示中の音漏れを防ぐ）。
       bgmRef.current?.pause();
-      await submitGame3(data);
+      await submitGroupChatGame(data);
     },
-    [submitGame3]
+    [submitGroupChatGame]
   );
 
   const handleRetry = useCallback(async () => {
@@ -182,8 +182,8 @@ export default function GroupChatGameFlow() {
     if (!data) return;
     retryCountRef.current += 1;
     setSubmitStatus('loading');
-    await submitGame3(data);
-  }, [submitGame3, playSE]);
+    await submitGroupChatGame(data);
+  }, [submitGroupChatGame, playSE]);
 
   const handleGoTop = useCallback(() => {
     playSE('/sounds/general-button-se.mp3');

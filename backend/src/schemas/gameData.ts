@@ -7,9 +7,9 @@
  *
  * - 利用規約ゲーム（terms_game / 旧 Game 1）: `./games/termsGame`
  * - AI カスタマーサポート（helpdesk_game / 旧 Game 2）: `./games/helpdeskGame`
- * - Game3（空気読みグループチャット）: `./games/groupChatGame`
+ * - 空気読みグループチャット（group_chat_game / 旧 Game 3）: `./games/groupChatGame`
  */
 
 export { termsGameDataSchema, type TermsGameData } from './games/termsGame';
 export { helpdeskGameDataSchema, type HelpdeskGameData } from './games/helpdeskGame';
-export { game3DataSchema, type Game3Data } from './games/groupChatGame';
+export { groupChatGameDataSchema, type GroupChatGameData } from './games/groupChatGame';
