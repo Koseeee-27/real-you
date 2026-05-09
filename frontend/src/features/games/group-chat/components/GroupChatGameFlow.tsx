@@ -74,8 +74,7 @@ export default function GroupChatGameFlow() {
 
   // BGMの初期化と再生管理
   useEffect(() => {
-    // 指示はgame2でしたが、Game3の画面のためgame3-bgm.mp3を適用します
-    const bgm = new Audio('/sounds/game3-bgm.mp3');
+    const bgm = new Audio('/sounds/group-chat-game-bgm.mp3');
     bgm.loop = true;
     bgm.volume = 0.3;
     bgmRef.current = bgm;

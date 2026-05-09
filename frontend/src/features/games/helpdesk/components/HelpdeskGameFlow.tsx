@@ -67,7 +67,7 @@ export default function HelpdeskGameFlow() {
 
   // BGMの初期化と再生管理
   useEffect(() => {
-    const bgm = new Audio('/sounds/game2-bgm.mp3');
+    const bgm = new Audio('/sounds/helpdesk-game-bgm.mp3');
     bgm.loop = true;
     bgm.volume = 0.2;
     bgmRef.current = bgm;
