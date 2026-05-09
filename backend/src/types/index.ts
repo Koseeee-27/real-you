@@ -76,7 +76,7 @@ export interface GameLog {
   id: number;
   user_id: string;
   game_id: GameId;
-  // raw_data は JSONB カラム。型は Game1Data / Game2Data / Game3Data のいずれかで、
+  // raw_data は JSONB カラム。型は TermsGameData / HelpdeskGameData / GroupChatGameData のいずれかで、
   // game_id に応じて分かれるが、DB 読み出し時点では構造の整合性は未検証のため `unknown` とする。
   // service 境界（resultService）で対応モジュール（`GAME_MODULES[gameId].schema`）により
   // parse する（Issue #102 で registry でループする形に変更）。

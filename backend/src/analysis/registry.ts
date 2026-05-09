@@ -30,7 +30,7 @@ import { termsGameModule } from './games/termsGame';
 /**
  * `analyze()` の戻り値が必ず満たす最低限の構造（Issue #102 で導入）。
  *
- * 各ゲームモジュールはこれを拡張した具体型（Game1AnalyzeResult 等）を返すが、
+ * 各ゲームモジュールはこれを拡張した具体型（TermsGameAnalyzeResult 等）を返すが、
  * registry レベルではゲーム横断で利用される `scores` のみ型情報を保持する。
  * `scores` は当該ゲームが測定する軸の部分集合（`Partial<BaselineScores>`）で、
  * scoreCalculator は `result.scores` をそのまま `aggregator.aggregateScores`
@@ -53,7 +53,7 @@ export type GameAnalyzeResult = {
  *
  * Issue #102 で `analyze` の戻り値に共通の `scores` 構造を導入し、`buildDetails`
  * を追加した。各メソッドの引数は `unknown` で受け取り、各モジュール側の
- * アダプタが具体型（Game1Data 等）にキャストする方針（`gameService.parseGameData`
+ * アダプタが具体型（TermsGameData 等）にキャストする方針（`gameService.parseGameData`
  * と同じトラスト境界パターン）。これにより registry 経由のループ呼び出し
  * （`scoreCalculator` / `resultService` 側）で型エラーにならず、かつ
  * モジュール内部の typed 関数の契約は維持できる。
@@ -69,7 +69,7 @@ type GameModuleEntry<TId extends GameId> = {
     // 型として機能する（旧 `ZodTypeAny` と等価。v4 で `ZodTypeAny` が deprecated に
     // なったため `ZodType` に揃える）。`safeParse(data: unknown): SafeParseReturnType`
     // の判別可能 union（success: true → data / success: false → error.issues）が
-    // 呼び出し元で narrow できる。ゲームごとの具体型（Game1Data 等）は registry の
+    // 呼び出し元で narrow できる。ゲームごとの具体型（TermsGameData 等）は registry の
     // 値型として保持しないが、parseGameData 内のアサーションで判別可能 union 側に
     // 戻す形を取っている。
     readonly schema: ZodType;
