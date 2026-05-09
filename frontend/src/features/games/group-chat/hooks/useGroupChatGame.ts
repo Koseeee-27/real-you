@@ -1,7 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Game3Data, Game3Stage } from '@/features/games/types';
+import type {
+  GroupChatGameData,
+  GroupChatGameStage,
+} from '@/features/games/types';
 import {
   BOTS,
   STAGES,
@@ -25,7 +28,7 @@ const TYPING_INDICATOR_DURATION_MS = 1500;
  * stage-cutin   → ステージ切替カットイン演出（「場面1」等を1.2秒表示）
  * chat-playing  → Botメッセージを順次チャットに追加中
  * waiting-input → 選択肢表示中、ユーザーの入力待ち（10秒タイマー稼働）
- * submitting    → 全ステージ完了、Game3Dataを組み立ててonCompleteに渡す
+ * submitting    → 全ステージ完了、GroupChatGameDataを組み立ててonCompleteに渡す
  * completed     → 送信完了、次の画面への遷移待ち
  */
 export type GamePhase =
@@ -61,7 +64,7 @@ export type ChatMessage =
   | SeparatorTimelineMessage;
 
 /**
- * Game 3（空気読みグループチャット）全体のステート管理フック。
+ * 空気読みグループチャット（group_chat_game）全体のステート管理フック。
  *
  * 以下のフローを制御する:
  *   tutorial → stage-cutin → chat-playing → waiting-input
@@ -70,7 +73,7 @@ export type ChatMessage =
  *   → submitting → completed
  */
 export function useGroupChatGame(options: {
-  onComplete: (data: Game3Data) => void;
+  onComplete: (data: GroupChatGameData) => void;
 }) {
   const { onComplete } = options;
 
@@ -95,12 +98,12 @@ export function useGroupChatGame(options: {
   const hoveredOptionsCountRef = useRef(0);
   /** 最後にホバーした選択肢ID（1〜4）。同じボタンでの細かいenter発火を無視するため */
   const lastHoveredOptionIdRef = useRef<number | null>(null);
-  /** 全ステージ通じたホバー回数の累計（Game3Dataトップレベルに渡す） */
+  /** 全ステージ通じたホバー回数の累計（GroupChatGameDataトップレベルに渡す） */
   const totalHoveredOptionsRef = useRef(0);
   /** ステージ3の「○○が返信中」表示〜ユーザー操作までの時間(ms) */
   const stage3TypingReactRef = useRef<number | null>(null);
   /** 各ステージの操作ログを蓄積 */
-  const stageResultsRef = useRef<Game3Stage[]>([]);
+  const stageResultsRef = useRef<GroupChatGameStage[]>([]);
   const tutorialViewTimeRef = useRef(0);
   const timerIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -136,7 +139,7 @@ export function useGroupChatGame(options: {
       typingIndicatorReactTimeMs?: number | null
     ) => {
       const stage = STAGES[currentStageIndex];
-      const log: Game3Stage = {
+      const log: GroupChatGameStage = {
         stageId: stage.stageId,
         selectedOptionId,
         reactionTimeMs,
@@ -373,19 +376,19 @@ export function useGroupChatGame(options: {
   );
 
   // =========================================================
-  // ゲーム終了 → Game3Data組み立て → onComplete
+  // ゲーム終了 → GroupChatGameData組み立て → onComplete
   // =========================================================
   useEffect(() => {
     if (gamePhase !== 'submitting' || submittedRef.current) return;
     submittedRef.current = true;
 
-    const game3Data: Game3Data = {
+    const groupChatGameData: GroupChatGameData = {
       tutorialViewTime: tutorialViewTimeRef.current,
       stages: [...stageResultsRef.current],
       hoveredOptions: totalHoveredOptionsRef.current,
       typingIndicatorReactTimeMs: stage3TypingReactRef.current,
     };
-    onComplete(game3Data);
+    onComplete(groupChatGameData);
     const id = setTimeout(() => setGamePhase('completed'), 0);
     timeoutsRef.current.push(id);
     return () => clearTimeout(id);

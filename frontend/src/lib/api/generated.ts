@@ -561,8 +561,8 @@ export interface components {
             turns: components["schemas"]["HelpdeskGameTurn"][];
             textInputMetrics: components["schemas"]["HelpdeskGameTextInputMetrics"] | null;
         };
-        /** @description Game3 の 1 ステージ分のメトリクス */
-        Game3Stage: {
+        /** @description 空気読みグループチャットの 1 ステージ分のメトリクス */
+        GroupChatGameStage: {
             /** @description ステージ ID（1-5） */
             stageId: number;
             /** @description 選択した選択肢 ID（1-4 が通常選択、タイムアウト時は 0） */
@@ -572,8 +572,8 @@ export interface components {
             /** @description タイムアウトしたか */
             isTimeout: boolean;
         };
-        /** @description Game3（空気読みグループチャット）の行動データ。仕様書「データ構造 → Game3Data」準拠 */
-        Game3Data: {
+        /** @description 空気読みグループチャットの行動データ。仕様書「データ構造 → GroupChatGameData」準拠 */
+        GroupChatGameData: {
             /** @description チュートリアル閲覧時間（ms） */
             tutorialViewTime: number;
             /** @description 全ステージ通じた選択肢ホバー回数の合計 */
@@ -581,7 +581,7 @@ export interface components {
             /** @description ステージ 3 / 5 で「入力中...」表示後の操作時間（ms）。未計測時は null */
             typingIndicatorReactTimeMs: number | null;
             /** @description 各ステージのメトリクス */
-            stages: components["schemas"]["Game3Stage"][];
+            stages: components["schemas"]["GroupChatGameStage"][];
         };
         /**
          * @description ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット
@@ -619,7 +619,7 @@ export interface components {
             user_id: string;
             /** @enum {number} */
             game_type: 3;
-            data: components["schemas"]["Game3Data"];
+            data: components["schemas"]["GroupChatGameData"];
         };
         /**
          * @description ゲームデータ保存成功レスポンス（200 OK）

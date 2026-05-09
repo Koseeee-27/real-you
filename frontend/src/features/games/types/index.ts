@@ -31,7 +31,7 @@ export type VoiceRespondResponse =
   components['schemas']['VoiceRespondResponse'];
 
 // ========================================
-// Game 3: グループチャット（空気読み）
+// 空気読みグループチャット（group_chat_game / 旧 Game 3）
 // ========================================
-export type Game3Stage = components['schemas']['Game3Stage'];
-export type Game3Data = components['schemas']['Game3Data'];
+export type GroupChatGameStage = components['schemas']['GroupChatGameStage'];
+export type GroupChatGameData = components['schemas']['GroupChatGameData'];
