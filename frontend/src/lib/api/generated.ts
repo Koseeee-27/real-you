@@ -527,15 +527,15 @@ export interface components {
             agreeButtonHoverTimeMs: number;
         };
         /**
-         * @description Game2 の入力方式（voice: 音声 / text: テキスト）
+         * @description AI カスタマーサポートの入力方式（voice: 音声 / text: テキスト）
          * @enum {string}
          */
-        Game2InputMethod: "voice" | "text";
-        /** @description Game2 の 1 ターン分のメトリクス。テキスト入力時は音声系フィールドが null */
-        Game2Turn: {
+        HelpdeskGameInputMethod: "voice" | "text";
+        /** @description AI カスタマーサポートの 1 ターン分のメトリクス。テキスト入力時は音声系フィールドが null */
+        HelpdeskGameTurn: {
             /** @description ターン番号（1 始まり） */
             turnIndex: number;
-            inputMethod: components["schemas"]["Game2InputMethod"];
+            inputMethod: components["schemas"]["HelpdeskGameInputMethod"];
             /** @description 喋り出しまでの反応速度（ms）。テキスト入力時は null */
             reactionTimeMs: number | null;
             /** @description 発話時間（ms）。テキスト入力時は null */
@@ -547,19 +547,19 @@ export interface components {
             /** @description 文字起こし結果 or テキスト入力内容 */
             transcribedText: string;
         };
-        /** @description Game2 のテキスト入力メトリクス。全ターン音声入力の場合は Game2Data 側で null */
-        Game2TextInputMetrics: {
+        /** @description AI カスタマーサポートのテキスト入力メトリクス。全ターン音声入力の場合は HelpdeskGameData 側で null */
+        HelpdeskGameTextInputMetrics: {
             /** @description タイピング間隔の分散 */
             typingIntervalVariance: number;
         };
-        /** @description Game2（AI カスタマーサポート）の行動データ。仕様書「データ構造 → Game2Data」準拠 */
-        Game2Data: {
-            inputMethod: components["schemas"]["Game2InputMethod"];
+        /** @description AI カスタマーサポートの行動データ。仕様書「データ構造 → HelpdeskGameData」準拠 */
+        HelpdeskGameData: {
+            inputMethod: components["schemas"]["HelpdeskGameInputMethod"];
             /** @description 実施ターン数 */
             turnCount: number;
             /** @description 各ターンのメトリクス（turnCount 件） */
-            turns: components["schemas"]["Game2Turn"][];
-            textInputMetrics: components["schemas"]["Game2TextInputMetrics"] | null;
+            turns: components["schemas"]["HelpdeskGameTurn"][];
+            textInputMetrics: components["schemas"]["HelpdeskGameTextInputMetrics"] | null;
         };
         /** @description Game3 の 1 ステージ分のメトリクス */
         Game3Stage: {
@@ -609,7 +609,7 @@ export interface components {
             user_id: string;
             /** @enum {number} */
             game_type: 2;
-            data: components["schemas"]["Game2Data"];
+            data: components["schemas"]["HelpdeskGameData"];
         } | {
             /**
              * Format: uuid

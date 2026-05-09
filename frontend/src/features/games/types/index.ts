@@ -20,12 +20,12 @@ export type PopupStats = components['schemas']['PopupStats'];
 export type TermsGameData = components['schemas']['TermsGameData'];
 
 // ========================================
-// Game 2: カスタマーサポートチャット
+// AI カスタマーサポート（helpdesk_game / 旧 Game 2）
 // ========================================
-export type Game2Turn = components['schemas']['Game2Turn'];
-export type Game2TextInputMetrics =
-  components['schemas']['Game2TextInputMetrics'];
-export type Game2Data = components['schemas']['Game2Data'];
+export type HelpdeskGameTurn = components['schemas']['HelpdeskGameTurn'];
+export type HelpdeskGameTextInputMetrics =
+  components['schemas']['HelpdeskGameTextInputMetrics'];
+export type HelpdeskGameData = components['schemas']['HelpdeskGameData'];
 export type VoiceRespondRequest = components['schemas']['VoiceRespondRequest'];
 export type VoiceRespondResponse =
   components['schemas']['VoiceRespondResponse'];
