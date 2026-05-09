@@ -8,12 +8,12 @@ import { GAME_TYPES } from '../types';
 import {
     termsGameDataSchema,
     helpdeskGameDataSchema,
-    game3DataSchema,
+    groupChatGameDataSchema,
 } from './gameData';
 import {
     submitGameRequestExampleTermsGame,
     submitGameRequestExampleHelpdeskGame,
-    submitGameRequestExampleGame3,
+    submitGameRequestExampleGroupChatGame,
     submitGameResponseExample,
 } from '../openapi/examples';
 
@@ -77,7 +77,7 @@ export const gameTypeSchema = registry.register(
  * 型レベルで強制する（Issue #58）:
  * - game_type === 1 のとき data は TermsGameData
  * - game_type === 2 のとき data は HelpdeskGameData
- * - game_type === 3 のとき data は Game3Data
+ * - game_type === 3 のとき data は GroupChatGameData
  *
  * OpenAPI 上は `oneOf` で表現され、各 branch の
  * `game_type: { type: 'number', enum: [N] }` リテラル enum で判別する形になる。
@@ -126,12 +126,12 @@ export const submitGameRequestSchema = registry.register(
                 .object({
                     user_id: userIdSchema,
                     game_type: z.literal(GAME_TYPES.GROUP_CHAT),
-                    data: game3DataSchema,
+                    data: groupChatGameDataSchema,
                 })
                 .openapi({
                     description:
-                        'Game3（グループチャット）の終了時に送るリクエスト',
-                    example: submitGameRequestExampleGame3,
+                        '空気読みグループチャット（game_type=3）の終了時に送るリクエスト',
+                    example: submitGameRequestExampleGroupChatGame,
                 }),
         ])
         .openapi({

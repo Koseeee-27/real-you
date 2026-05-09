@@ -1,13 +1,13 @@
-import { Game3Data, game3DataSchema } from '../../schemas/games/groupChatGame';
+import { GroupChatGameData, groupChatGameDataSchema } from '../../schemas/games/groupChatGame';
 import type { GameDetail } from '../../schemas/results';
 import { linear, linearInv, logNorm } from '../scoreUtils';
 
 /**
- * Game3（空気読みグループチャット）の分析モジュール。
+ * 空気読みグループチャット（group_chat_game）の分析モジュール。
  *
  * Issue #100 で `scoreCalculator.ts` の `calculateGame3` と
  * `phaseSummaryBuilder.ts` の Phase 3 テキスト生成ロジックを 1 ファイルに凝集。
- * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の Game3 要素も
+ * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の group_chat_game 要素も
  * `buildDetails` として本ファイルに移管。
  */
 
@@ -15,21 +15,21 @@ import { linear, linearInv, logNorm } from '../scoreUtils';
  * `analyze()` の戻り値型（Issue #102 で 2 階層構造に変更）。
  * 詳細は `termsGame.ts` の `TermsGameAnalyzeResult` コメント参照。
  */
-export type Game3AnalyzeResult = {
+export type GroupChatGameAnalyzeResult = {
     scores: { cooperativeness: number; positivity: number; caution: number };
     conformCount: number;
     avgReact: number;
 };
 
 /**
- * Game3 行動データ → 協調性・積極性・慎重さの中間集計。
+ * 空気読みグループチャットの行動データ → 協調性・積極性・慎重さの中間集計。
  *
  * 評価軸:
  * - 協調性(cooperativeness): 同調率・譲り待機・本音葛藤
  * - 積極性(positivity): 即応性
  * - 慎重さ(caution): チュートリアル確認・反応安定
  */
-function analyze(data: Game3Data | undefined): Game3AnalyzeResult {
+function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResult {
     // 早期 return は通常 return と同じ shape を返す（buildDetails 側で欠損プロパティに
     // アクセスして undefined がレスポンスに漏れるのを防ぐため）
     if (!data)
@@ -81,11 +81,11 @@ function analyze(data: Game3Data | undefined): Game3AnalyzeResult {
 }
 
 /**
- * Game3 行動データ → 結果画面に表示するサマリーテキスト。
+ * 空気読みグループチャットの行動データ → 結果画面に表示するサマリーテキスト。
  *
  * 例: 「グループの空気を敏感に察知して周りに合わせ、即決でアクションを起こしました。」
  */
-function buildSummary(data: Game3Data | undefined): string {
+function buildSummary(data: GroupChatGameData | undefined): string {
     if (!data) return 'データなし';
 
     const stages = data.stages || [];
@@ -115,10 +115,13 @@ function buildSummary(data: Game3Data | undefined): string {
 }
 
 /**
- * Game3 行動データ + analyze 結果 → 結果画面 details 用の構造体。
- * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` の Game3 要素を移管。挙動は完全同一。
+ * 空気読みグループチャットの行動データ + analyze 結果 → 結果画面 details 用の構造体。
+ * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` の group_chat_game 要素を移管。挙動は完全同一。
  */
-function buildDetails(data: Game3Data | undefined, result: Game3AnalyzeResult): GameDetail {
+function buildDetails(
+    data: GroupChatGameData | undefined,
+    result: GroupChatGameAnalyzeResult,
+): GameDetail {
     // 旧 scoreCalculator では `(g3.conformCount / (game3Raw?.stages?.length || 1)) * 100` で
     // 同調率を算出していた。stages 件数は data 側、conformCount は analyze 結果側にあるため
     // 両方を参照する（挙動は完全同一）。
@@ -159,16 +162,16 @@ function buildDetails(data: Game3Data | undefined, result: Game3AnalyzeResult): 
 }
 
 /**
- * Game3（空気読みグループチャット）モジュール。
+ * 空気読みグループチャット（group_chat_game）モジュール。
  * registry の `GameModuleEntry` 型に合わせて `unknown` 入力のアダプタを薄く挟む
  * （詳細は `termsGame.ts` の export コメント参照）。
  */
 export const groupChatGameModule = {
     id: 'group_chat_game' as const,
     title: '空気読みグループチャット',
-    schema: game3DataSchema,
-    analyze: (data: unknown) => analyze(data as Game3Data | undefined),
-    buildSummary: (data: unknown) => buildSummary(data as Game3Data | undefined),
+    schema: groupChatGameDataSchema,
+    analyze: (data: unknown) => analyze(data as GroupChatGameData | undefined),
+    buildSummary: (data: unknown) => buildSummary(data as GroupChatGameData | undefined),
     buildDetails: (data: unknown, result: unknown) =>
-        buildDetails(data as Game3Data | undefined, result as Game3AnalyzeResult),
+        buildDetails(data as GroupChatGameData | undefined, result as GroupChatGameAnalyzeResult),
 };
