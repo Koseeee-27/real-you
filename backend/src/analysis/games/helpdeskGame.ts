@@ -5,8 +5,8 @@ import { linear, linearInv, logNorm, sigmoidInv } from '../scoreUtils';
 /**
  * AI カスタマーサポート（helpdesk_game）の分析モジュール。
  *
- * Issue #100 で `scoreCalculator.ts` の `calculateGame2` と
- * `phaseSummaryBuilder.ts` の Phase 2 テキスト生成ロジックを 1 ファイルに凝集。
+ * Issue #100 で `scoreCalculator.ts` 側にあった analyze ロジックと
+ * 旧 `phaseSummaryBuilder.ts` の Phase 2 テキスト生成ロジックを 1 ファイルに凝集。
  * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の helpdesk_game 要素も
  * `buildDetails` として本ファイルに移管。
  */
