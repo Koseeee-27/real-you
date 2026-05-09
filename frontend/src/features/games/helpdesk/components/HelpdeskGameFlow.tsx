@@ -67,7 +67,7 @@ export default function HelpdeskGameFlow() {
 
   // BGMの初期化と再生管理
   useEffect(() => {
-    const bgm = new Audio('/sounds/game2-bgm.mp3');
+    const bgm = new Audio('/sounds/helpdesk-game-bgm.mp3');
     bgm.loop = true;
     bgm.volume = 0.2;
     bgmRef.current = bgm;
@@ -266,7 +266,7 @@ export default function HelpdeskGameFlow() {
   return (
     <div
       className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#99c2ff] bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: "url('/images/game2_backcground.png')" }}
+      style={{ backgroundImage: "url('/images/helpdesk-game-background.png')" }}
     >
       {/* 画面右上: キーボード入力 切替ボタン */}
       {inputMethod === 'voice' &&
