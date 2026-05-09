@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
-  Game2Data,
-  Game2Turn,
-  Game2TextInputMetrics,
+  HelpdeskGameData,
+  HelpdeskGameTurn,
+  HelpdeskGameTextInputMetrics,
 } from '@/features/games/types';
 import { postVoiceRespond } from '@/lib/api';
 import {
@@ -35,7 +35,7 @@ import { useTypingMetrics } from './useTypingMetrics';
  * support-speaking  → サポート担当の発言をチャットに追加中
  * user-input        → ユーザーの音声/テキスト入力待ち（20秒タイマー稼働）
  * voice-api-error   → AI応答API失敗、リトライ待ち
- * submitting        → 全ラリー完了、Game2Data を組み立てて onComplete に渡す
+ * submitting        → 全ラリー完了、HelpdeskGameData を組み立てて onComplete に渡す
  * completed         → 送信完了、次の画面への遷移待ち
  * error             → その他エラー
  */
@@ -66,7 +66,7 @@ export interface ChatMessage {
 export type VoiceApiErrorVariant = 'retry' | 'restart';
 
 /**
- * Game 2（カスタマーサポートチャット）全体のステート管理フック。
+ * AI カスタマーサポート（helpdesk_game）全体のステート管理フック。
  *
  * useSpeechRecognition / useAudioMetrics / useTypingMetrics を統合し、
  * 以下のフローを制御する:
@@ -76,7 +76,7 @@ export type VoiceApiErrorVariant = 'retry' | 'restart';
  * 音声入力時は 20 秒で自動終了、テキスト入力時は送信ボタンで終了。
  */
 export function useHelpdeskGame(options: {
-  onComplete: (data: Game2Data) => void;
+  onComplete: (data: HelpdeskGameData) => void;
 }) {
   const { onComplete } = options;
 
@@ -84,7 +84,7 @@ export function useHelpdeskGame(options: {
   const [inputMethod, setInputMethod] = useState<'voice' | 'text'>('voice');
   const [currentTurn, setCurrentTurn] = useState(0); // 0〜2（3ラリー）
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]); // 表示用メッセージ履歴
-  const [turns, setTurns] = useState<Game2Turn[]>([]); // 収集データ用ターンログ
+  const [turns, setTurns] = useState<HelpdeskGameTurn[]>([]); // 収集データ用ターンログ
   const [gamePhase, setGamePhase] = useState<GamePhase>('tutorial');
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
   const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
@@ -224,7 +224,7 @@ export function useHelpdeskGame(options: {
   const speechAbort = speech.abort;
 
   // =========================================================
-  // ゲーム終了 → Game2Data 組み立て
+  // ゲーム終了 → HelpdeskGameData 組み立て
   // =========================================================
 
   // ステートの最新値をエフェクト外から参照するための ref
@@ -240,14 +240,14 @@ export function useHelpdeskGame(options: {
   }, [inputMethod]);
 
   /**
-   * 全ターンのデータを Game2Data にまとめて onComplete へ渡す。
+   * 全ターンのデータを HelpdeskGameData にまとめて onComplete へ渡す。
    * onComplete は副作用なのでアップデータ関数の外で呼ぶ
    * （Strict Mode でアップデータが2回呼ばれても副作用は1回だけにする）。
    */
   const buildAndSubmit = useCallback(() => {
     const currentTurns = turnsRef.current;
     const hasTextTurn = currentTurns.some((t) => t.inputMethod === 'text');
-    const textInputMetrics: Game2TextInputMetrics | null = hasTextTurn
+    const textInputMetrics: HelpdeskGameTextInputMetrics | null = hasTextTurn
       ? {
           typingIntervalVariance:
             typingVariancesRef.current.length > 0
@@ -256,13 +256,13 @@ export function useHelpdeskGame(options: {
               : 0,
         }
       : null;
-    const game2Data: Game2Data = {
+    const helpdeskGameData: HelpdeskGameData = {
       inputMethod: inputMethodRef.current,
       turnCount: currentTurns.length,
       turns: currentTurns,
       textInputMetrics,
     };
-    onComplete(game2Data);
+    onComplete(helpdeskGameData);
     setGamePhase('completed');
 
     // 電話終了音

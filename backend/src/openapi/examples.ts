@@ -162,10 +162,10 @@ export const submitGameRequestExampleTermsGame = {
 /**
  * game_type = 2（AI カスタマーサポート）の data サンプル。
  *
- * 仕様書「データ構造」→ Game2Data を参照。turns は最小 2 件（音声 1 件 + テキスト 1 件）で
+ * 仕様書「データ構造」→ HelpdeskGameData を参照。turns は最小 2 件（音声 1 件 + テキスト 1 件）で
  * 構造を示し、テキスト入力時は音声系メトリクスが null になる例を載せる。
  */
-export const submitGameRequestExampleGame2 = {
+export const submitGameRequestExampleHelpdeskGame = {
     user_id: SAMPLE_USER_ID,
     game_type: 2,
     data: {

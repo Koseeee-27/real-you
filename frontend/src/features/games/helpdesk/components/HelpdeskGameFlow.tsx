@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Game2Data } from '@/features/games/types';
+import type { HelpdeskGameData } from '@/features/games/types';
 import { submitGame } from '@/lib/api';
 import {
   MAX_RETRY_COUNT,
@@ -29,7 +29,7 @@ export default function HelpdeskGameFlow() {
   const [textInput, setTextInput] = useState('');
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('loading');
   const [errorVariant, setErrorVariant] = useState<ErrorVariant>('retry');
-  const pendingDataRef = useRef<Game2Data | null>(null);
+  const pendingDataRef = useRef<HelpdeskGameData | null>(null);
 
   // リトライ回数は描画ロジックに直接影響しない（catch 内で variant を決める材料
   // としてのみ使う）ため、useState ではなく useRef で扱う。
@@ -107,8 +107,8 @@ export default function HelpdeskGameFlow() {
    * 成功時は `retryCountRef.current = 0` でリセットして次画面へ遷移する。
    * user_id 欠損は localStorage が空のままで回復不能なので即 `restart`。
    */
-  const submitGame2 = useCallback(
-    async (data: Game2Data) => {
+  const submitHelpdeskGame = useCallback(
+    async (data: HelpdeskGameData) => {
       const userId = localStorage.getItem('user_id');
       if (!userId) {
         setErrorVariant('restart');
@@ -155,7 +155,7 @@ export default function HelpdeskGameFlow() {
   );
 
   const handleComplete = useCallback(
-    async (data: Game2Data) => {
+    async (data: HelpdeskGameData) => {
       pendingDataRef.current = data;
       setSubmitStatus('loading');
 
@@ -164,9 +164,9 @@ export default function HelpdeskGameFlow() {
         bgmRef.current.pause();
       }
 
-      await submitGame2(data);
+      await submitHelpdeskGame(data);
     },
-    [submitGame2]
+    [submitHelpdeskGame]
   );
 
   const {
@@ -238,8 +238,8 @@ export default function HelpdeskGameFlow() {
     if (!data) return;
     retryCountRef.current += 1;
     setSubmitStatus('loading');
-    await submitGame2(data);
-  }, [submitGame2, playSE]);
+    await submitHelpdeskGame(data);
+  }, [submitHelpdeskGame, playSE]);
 
   const handleGoTop = useCallback(() => {
     playSE('/sounds/general-button-se.mp3');

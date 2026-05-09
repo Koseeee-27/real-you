@@ -1,13 +1,13 @@
 import { GAME_TYPE_TO_ID, ID_TO_GAME_TYPE } from '../analysis/registry';
 import { supabase } from '../db/client';
-import { TermsGameData, Game2Data, Game3Data } from '../schemas/gameData';
+import { TermsGameData, HelpdeskGameData, Game3Data } from '../schemas/gameData';
 import { GameId, GameLog } from '../types';
 
 /**
  * 各 GameId に対応する raw_data の組（判別可能 union）。
  *
  * saveLog の引数として `gameId` と `rawData` を一緒に受け取ることで、
- * 「terms_game の gameId に Game2Data の rawData が渡る」といったミスマッチを
+ * 「terms_game の gameId に HelpdeskGameData の rawData が渡る」といったミスマッチを
  * コンパイル時に弾ける。呼び出し元（service 層）が zod スキーマで parse して
  * narrow 済みであることを型レベルで担保する想定で、repositories 層では構造検証しない。
  *
@@ -17,7 +17,7 @@ import { GameId, GameLog } from '../types';
  */
 export type GameRawDataPayload =
     | { gameId: 'terms_game'; rawData: TermsGameData }
-    | { gameId: 'helpdesk_game'; rawData: Game2Data }
+    | { gameId: 'helpdesk_game'; rawData: HelpdeskGameData }
     | { gameId: 'group_chat_game'; rawData: Game3Data };
 
 /**

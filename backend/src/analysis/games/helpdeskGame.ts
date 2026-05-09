@@ -1,13 +1,13 @@
-import { Game2Data, game2DataSchema } from '../../schemas/games/helpdeskGame';
+import { HelpdeskGameData, helpdeskGameDataSchema } from '../../schemas/games/helpdeskGame';
 import type { GameDetail } from '../../schemas/results';
 import { linear, linearInv, logNorm, sigmoidInv } from '../scoreUtils';
 
 /**
- * Game2（AI カスタマーサポート）の分析モジュール。
+ * AI カスタマーサポート（helpdesk_game）の分析モジュール。
  *
  * Issue #100 で `scoreCalculator.ts` の `calculateGame2` と
  * `phaseSummaryBuilder.ts` の Phase 2 テキスト生成ロジックを 1 ファイルに凝集。
- * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の Game2 要素も
+ * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の helpdesk_game 要素も
  * `buildDetails` として本ファイルに移管。
  */
 
@@ -15,7 +15,7 @@ import { linear, linearInv, logNorm, sigmoidInv } from '../scoreUtils';
  * `analyze()` の戻り値型（Issue #102 で 2 階層構造に変更）。
  * 詳細は `termsGame.ts` の `TermsGameAnalyzeResult` コメント参照。
  */
-export type Game2AnalyzeResult = {
+export type HelpdeskGameAnalyzeResult = {
     scores: { positivity: number; calmness: number; logic: number };
     avgReact: number;
     totalSpeech: number;
@@ -24,14 +24,14 @@ export type Game2AnalyzeResult = {
 };
 
 /**
- * Game2 行動データ → 積極性・冷静さ・論理性の中間集計。
+ * AI カスタマーサポートの行動データ → 積極性・冷静さ・論理性の中間集計。
  *
  * 評価軸:
  * - 積極性(positivity): 反応速度・発話量・音声使用
  * - 冷静さ(calmness): 音量安定・沈黙率・打鍵安定
  * - 論理性(logic): 論理接続詞・不要語
  */
-function analyze(data: Game2Data | undefined): Game2AnalyzeResult {
+function analyze(data: HelpdeskGameData | undefined): HelpdeskGameAnalyzeResult {
     // 早期 return は通常 return と同じ shape を返す（buildDetails 側で欠損プロパティに
     // アクセスして undefined がレスポンスに漏れるのを防ぐため）
     if (!data)
@@ -114,11 +114,11 @@ function analyze(data: Game2Data | undefined): Game2AnalyzeResult {
 }
 
 /**
- * Game2 行動データ → 結果画面に表示するサマリーテキスト。
+ * AI カスタマーサポートの行動データ → 結果画面に表示するサマリーテキスト。
  *
  * 例: 「AIの理不尽な対応に即座に反応し、音声で堂々と反論を展開しました。」
  */
-function buildSummary(data: Game2Data | undefined): string {
+function buildSummary(data: HelpdeskGameData | undefined): string {
     if (!data) return 'データなし';
 
     const turns = data.turns || [];
@@ -130,7 +130,7 @@ function buildSummary(data: Game2Data | undefined): string {
     //
     // 判定軸として `turns[i].inputMethod === 'text'` は使わず `reactionTimeMs === null`
     // のみで判定する。これは仕様書「Game 2 Null 値の扱い → 注: ターン単位の
-    // `Game2Turn.inputMethod` について」で「現状の集計ロジックは "null 判定" で同等の効果が
+    // `HelpdeskGameTurn.inputMethod` について」で「現状の集計ロジックは "null 判定" で同等の効果が
     // 得られるため、スコア計算では inputMethod を直接参照しない」と明記された方針に揃えた
     // ためで、analyze と同じ判定基準になる。
     const reactValues = turns.map((t) => t.reactionTimeMs).filter((v): v is number => v !== null);
@@ -154,9 +154,9 @@ function buildSummary(data: Game2Data | undefined): string {
         return `${reactionText}、音声で堂々と反論を展開しました。`;
     }
 
-    // 混在: null 除外平均で反応速度を判定し、method は Game2Data 直下の inputMethod を採用。
+    // 混在: null 除外平均で反応速度を判定し、method は HelpdeskGameData 直下の inputMethod を採用。
     // 直下フィールドを使う根拠は analyze の sVoice 算出と同じ方針（音声選択を 0/100
-    // で評価する積極性スコアが Game2Data.inputMethod を参照しているため、サマリー側もそろえる）。
+    // で評価する積極性スコアが HelpdeskGameData.inputMethod を参照しているため、サマリー側もそろえる）。
     // 「主に音声/テキストどちらだったか」をターン多数決で決める方が正確という議論はあるが、
     // 仕様書未定義のためスコアと同じ判定軸に揃える。
     const method = data.inputMethod === 'voice' ? '音声で堂々と' : 'テキストで冷静に';
@@ -164,10 +164,13 @@ function buildSummary(data: Game2Data | undefined): string {
 }
 
 /**
- * Game2 行動データ + analyze 結果 → 結果画面 details 用の構造体。
- * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` の Game2 要素を移管。挙動は完全同一。
+ * AI カスタマーサポートの行動データ + analyze 結果 → 結果画面 details 用の構造体。
+ * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` の helpdesk_game 要素を移管。挙動は完全同一。
  */
-function buildDetails(_data: Game2Data | undefined, result: Game2AnalyzeResult): GameDetail {
+function buildDetails(
+    _data: HelpdeskGameData | undefined,
+    result: HelpdeskGameAnalyzeResult,
+): GameDetail {
     return {
         game_id: helpdeskGameModule.id,
         title: helpdeskGameModule.title,
@@ -206,16 +209,16 @@ function buildDetails(_data: Game2Data | undefined, result: Game2AnalyzeResult):
 }
 
 /**
- * Game2（AI カスタマーサポート）モジュール。
+ * AI カスタマーサポート（helpdesk_game）モジュール。
  * registry の `GameModuleEntry` 型に合わせて `unknown` 入力のアダプタを薄く挟む
  * （詳細は `termsGame.ts` の export コメント参照）。
  */
 export const helpdeskGameModule = {
     id: 'helpdesk_game' as const,
     title: 'AIカスタマーサポート',
-    schema: game2DataSchema,
-    analyze: (data: unknown) => analyze(data as Game2Data | undefined),
-    buildSummary: (data: unknown) => buildSummary(data as Game2Data | undefined),
+    schema: helpdeskGameDataSchema,
+    analyze: (data: unknown) => analyze(data as HelpdeskGameData | undefined),
+    buildSummary: (data: unknown) => buildSummary(data as HelpdeskGameData | undefined),
     buildDetails: (data: unknown, result: unknown) =>
-        buildDetails(data as Game2Data | undefined, result as Game2AnalyzeResult),
+        buildDetails(data as HelpdeskGameData | undefined, result as HelpdeskGameAnalyzeResult),
 };
