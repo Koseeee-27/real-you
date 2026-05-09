@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { registry } from '../../openapi/registry';
 
 /**
- * Game2（AI カスタマーサポート）の行動データ（raw_data）の zod スキーマ群。
+ * AI カスタマーサポート（helpdesk_game / 旧 Game 2）の行動データ（raw_data）の zod スキーマ群。
  *
  * 設計方針:
  * - 仕様書「データ構造」を一次情報として、TS と zod の二重管理を避けるため
@@ -19,36 +19,36 @@ import { registry } from '../../openapi/registry';
  */
 
 /**
- * Game2 の入力方式（音声 / テキスト）。
+ * AI カスタマーサポートの入力方式（音声 / テキスト）。
  *
- * Game2Data 直下の `inputMethod` と各ターン（`turns[].inputMethod`）の両方で
+ * HelpdeskGameData 直下の `inputMethod` と各ターン（`turns[].inputMethod`）の両方で
  * 使うため、共通サブスキーマとして定義する。
  *
  * 文字列リテラルかつエラーコードの個別マッピング（invalid_xxx 等）が不要なため
  * z.enum で簡潔に書く（voice.ts の voiceEmotionSchema と同方針）。OpenAPI 出力は
  * `{ type: 'string', enum: [...] }` のクリーンな形になる。
  */
-const game2InputMethodSchema = registry.register(
-    'Game2InputMethod',
+const helpdeskGameInputMethodSchema = registry.register(
+    'HelpdeskGameInputMethod',
     z.enum(['voice', 'text']).openapi({
-        description: 'Game2 の入力方式（voice: 音声 / text: テキスト）',
+        description: 'AI カスタマーサポートの入力方式（voice: 音声 / text: テキスト）',
     }),
 );
 
 /**
- * Game2 の 1 ターン分のメトリクス。
+ * AI カスタマーサポートの 1 ターン分のメトリクス。
  *
  * テキスト入力時は音声系メトリクス（reactionTimeMs / speechDurationMs /
  * silenceDurationMs / volumeDb）が取得できないため `nullable`。
  */
-const game2TurnSchema = registry.register(
-    'Game2Turn',
+const helpdeskGameTurnSchema = registry.register(
+    'HelpdeskGameTurn',
     z
         .object({
             turnIndex: z.number().int().openapi({
                 description: 'ターン番号（1 始まり）',
             }),
-            inputMethod: game2InputMethodSchema,
+            inputMethod: helpdeskGameInputMethodSchema,
             reactionTimeMs: z.number().nullable().openapi({
                 description: '喋り出しまでの反応速度（ms）。テキスト入力時は null',
             }),
@@ -67,17 +67,17 @@ const game2TurnSchema = registry.register(
         })
         .openapi({
             description:
-                'Game2 の 1 ターン分のメトリクス。テキスト入力時は音声系フィールドが null',
+                'AI カスタマーサポートの 1 ターン分のメトリクス。テキスト入力時は音声系フィールドが null',
         }),
 );
 
 /**
- * Game2 のテキスト入力メトリクス。
+ * AI カスタマーサポートのテキスト入力メトリクス。
  *
  * テキスト入力が一度も発生しなかった場合（全ターン音声）は null。
  */
-const game2TextInputMetricsSchema = registry.register(
-    'Game2TextInputMetrics',
+const helpdeskGameTextInputMetricsSchema = registry.register(
+    'HelpdeskGameTextInputMetrics',
     z
         .object({
             typingIntervalVariance: z.number().openapi({
@@ -86,36 +86,36 @@ const game2TextInputMetricsSchema = registry.register(
         })
         .openapi({
             description:
-                'Game2 のテキスト入力メトリクス。全ターン音声入力の場合は Game2Data 側で null',
+                'AI カスタマーサポートのテキスト入力メトリクス。全ターン音声入力の場合は HelpdeskGameData 側で null',
         }),
 );
 
 /**
- * Game2Data（AI カスタマーサポート）。
+ * HelpdeskGameData（AI カスタマーサポート）。
  */
-export const game2DataSchema = registry.register(
-    'Game2Data',
+export const helpdeskGameDataSchema = registry.register(
+    'HelpdeskGameData',
     z
         .object({
-            inputMethod: game2InputMethodSchema,
+            inputMethod: helpdeskGameInputMethodSchema,
             turnCount: z.number().int().openapi({
                 description: '実施ターン数',
             }),
-            turns: z.array(game2TurnSchema).openapi({
+            turns: z.array(helpdeskGameTurnSchema).openapi({
                 description: '各ターンのメトリクス（turnCount 件）',
             }),
             // textInputMetrics は `z.union([..., z.null()])` で nullable にする。
             // `.nullable()` を使うと OpenAPI 3.1 上で `allOf: [$ref, type: ['object','null']]`
-            // という形になり、openapi-typescript が `Game2TextInputMetrics & (Record<string, never> | null)`
+            // という形になり、openapi-typescript が `HelpdeskGameTextInputMetrics & (Record<string, never> | null)`
             // という壊れた交差型を生成する（null も具体値も代入できなくなる）。
             // `z.union([schema, z.null()])` だと `oneOf: [$ref, type: 'null']` 形式になり、
-            // 生成型が `Game2TextInputMetrics | null` で正しく表現される。
-            textInputMetrics: z.union([game2TextInputMetricsSchema, z.null()]),
+            // 生成型が `HelpdeskGameTextInputMetrics | null` で正しく表現される。
+            textInputMetrics: z.union([helpdeskGameTextInputMetricsSchema, z.null()]),
         })
         .openapi({
             description:
-                'Game2（AI カスタマーサポート）の行動データ。仕様書「データ構造 → Game2Data」準拠',
+                'AI カスタマーサポートの行動データ。仕様書「データ構造 → HelpdeskGameData」準拠',
         }),
 );
 
-export type Game2Data = z.infer<typeof game2DataSchema>;
+export type HelpdeskGameData = z.infer<typeof helpdeskGameDataSchema>;

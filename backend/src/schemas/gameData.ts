@@ -6,10 +6,10 @@
  * 本 barrel 経由でも構わない（既存 import パスを壊さない方針）。
  *
  * - 利用規約ゲーム（terms_game / 旧 Game 1）: `./games/termsGame`
- * - Game2（AI カスタマーサポート）: `./games/helpdeskGame`
+ * - AI カスタマーサポート（helpdesk_game / 旧 Game 2）: `./games/helpdeskGame`
  * - Game3（空気読みグループチャット）: `./games/groupChatGame`
  */
 
 export { termsGameDataSchema, type TermsGameData } from './games/termsGame';
-export { game2DataSchema, type Game2Data } from './games/helpdeskGame';
+export { helpdeskGameDataSchema, type HelpdeskGameData } from './games/helpdeskGame';
 export { game3DataSchema, type Game3Data } from './games/groupChatGame';
