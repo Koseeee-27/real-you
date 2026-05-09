@@ -142,7 +142,7 @@ function buildSummary(data: HelpdeskGameData | undefined): string {
     const allVoice = turns.length > 0 && reactValues.length === turns.length;
 
     if (allTextOrEmpty) {
-        // 全ターンテキスト: 反応速度に言及しない(仕様書例文に準拠)
+        // 全ターンテキスト: 反応速度に言及しない（仕様書例文に準拠）
         return 'テキストで冷静に反論を展開しました。';
     }
 
