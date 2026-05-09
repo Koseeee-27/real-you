@@ -5,8 +5,8 @@ import { linear, linearInv, logNorm } from '../scoreUtils';
 /**
  * 空気読みグループチャット（group_chat_game）の分析モジュール。
  *
- * Issue #100 で `scoreCalculator.ts` の `calculateGame3` と
- * `phaseSummaryBuilder.ts` の Phase 3 テキスト生成ロジックを 1 ファイルに凝集。
+ * Issue #100 で `scoreCalculator.ts` 側にあった analyze ロジックと
+ * 旧 `phaseSummaryBuilder.ts` の Phase 3 テキスト生成ロジックを 1 ファイルに凝集。
  * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の group_chat_game 要素も
  * `buildDetails` として本ファイルに移管。
  */
@@ -122,9 +122,8 @@ function buildDetails(
     data: GroupChatGameData | undefined,
     result: GroupChatGameAnalyzeResult,
 ): GameDetail {
-    // 旧 scoreCalculator では `(g3.conformCount / (game3Raw?.stages?.length || 1)) * 100` で
-    // 同調率を算出していた。stages 件数は data 側、conformCount は analyze 結果側にあるため
-    // 両方を参照する（挙動は完全同一）。
+    // 同調率は「conformCount（analyze 結果側）」を「stages 件数（data 側）」で割って算出する。
+    // 旧構造から本ファイルへ移管する際もこの参照関係を維持している（挙動は完全同一）。
     return {
         game_id: groupChatGameModule.id,
         title: groupChatGameModule.title,

@@ -5,8 +5,8 @@ import { linear, linearInv, logNorm } from '../scoreUtils';
 /**
  * 利用規約ゲーム（terms_game）の分析モジュール。
  *
- * Issue #100 で `scoreCalculator.ts` の `calculateGame1` と
- * `phaseSummaryBuilder.ts` の Phase 1 テキスト生成ロジックを 1 ファイルに凝集した。
+ * Issue #100 で `scoreCalculator.ts` 側にあった analyze ロジックと
+ * 旧 `phaseSummaryBuilder.ts` の Phase 1 テキスト生成ロジックを 1 ファイルに凝集した。
  * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の terms_game 要素
  * （title / feature_scores / metrics）も `buildDetails` として本ファイルに移管し、
  * scoreCalculator は薄い統合層に縮小した。
@@ -39,8 +39,8 @@ export type TermsGameAnalyzeResult = {
 /**
  * scrollEvents から平均スクロール速度（px/s）と逆行スクロール回数を算出する内部 helper。
  *
- * `analyze()` と `buildSummary()` の両方から呼ばれる。旧構造では `calculateGame1`
- * の戻り値経由で `buildPhaseSummaries` に averageSpeed を引き渡していたが、
+ * `analyze()` と `buildSummary()` の両方から呼ばれる。旧構造では analyze ロジック
+ * の戻り値経由で要約生成側に averageSpeed を引き渡していたが、
  * モジュール分割後は両関数が独立呼び出しになるため、内部で再計算する。
  * O(N) で軽量、計測値も同一になる。
  */
@@ -137,7 +137,7 @@ function buildSummary(data: TermsGameData | undefined): string {
     if (!data) return 'データなし';
 
     const timeSec = (data.totalTime ?? 0).toFixed(1);
-    // scrollEvents から自前で算出（旧構造では calculateGame1 の戻り値経由で受け取っていた）。
+    // scrollEvents から自前で算出（旧構造では analyze ロジックの戻り値経由で受け取っていた）。
     // 仕様書上、FE は scrollEvents のみ送信する設計のため、raw_data には scrollMetrics は無い。
     const { averageSpeed: speed } = computeScrollMetrics(data.scrollEvents || []);
     const speedText =
