@@ -6,12 +6,12 @@ import { registry } from '../openapi/registry';
 import { userIdSchema } from './common';
 import { GAME_TYPES } from '../types';
 import {
-    game1DataSchema,
+    termsGameDataSchema,
     game2DataSchema,
     game3DataSchema,
 } from './gameData';
 import {
-    submitGameRequestExampleGame1,
+    submitGameRequestExampleTermsGame,
     submitGameRequestExampleGame2,
     submitGameRequestExampleGame3,
     submitGameResponseExample,
@@ -75,7 +75,7 @@ export const gameTypeSchema = registry.register(
  *
  * `z.discriminatedUnion('game_type', [...])` で `game_type` × `data` の対応を
  * 型レベルで強制する（Issue #58）:
- * - game_type === 1 のとき data は Game1Data
+ * - game_type === 1 のとき data は TermsGameData
  * - game_type === 2 のとき data は Game2Data
  * - game_type === 3 のとき data は Game3Data
  *
@@ -104,12 +104,12 @@ export const submitGameRequestSchema = registry.register(
                 .object({
                     user_id: userIdSchema,
                     game_type: z.literal(GAME_TYPES.TERMS_GAME),
-                    data: game1DataSchema,
+                    data: termsGameDataSchema,
                 })
                 .openapi({
                     description:
-                        'Game1（利用規約ゲーム）の終了時に送るリクエスト',
-                    example: submitGameRequestExampleGame1,
+                        '利用規約ゲーム（game_type=1）の終了時に送るリクエスト',
+                    example: submitGameRequestExampleTermsGame,
                 }),
             z
                 .object({

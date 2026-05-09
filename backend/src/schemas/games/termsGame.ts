@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { registry } from '../../openapi/registry';
 
 /**
- * Game1（利用規約ゲーム）の行動データ（raw_data）の zod スキーマ群。
+ * 利用規約ゲーム（terms_game / 旧 Game 1）の行動データ（raw_data）の zod スキーマ群。
  *
  * 設計方針:
  * - 仕様書「データ構造」を一次情報として、TS と zod の二重管理を避けるため
@@ -19,7 +19,7 @@ import { registry } from '../../openapi/registry';
  */
 
 /**
- * Game1 のスクロールイベント（200ms 間隔のサンプリングログ）。
+ * 利用規約ゲームのスクロールイベント（200ms 間隔のサンプリングログ）。
  */
 const scrollEventSchema = registry.register(
     'ScrollEvent',
@@ -33,18 +33,18 @@ const scrollEventSchema = registry.register(
             }),
         })
         .openapi({
-            description: 'Game1 のスクロールイベント（200ms 間隔のサンプリングログ）',
+            description: '利用規約ゲームのスクロールイベント（200ms 間隔のサンプリングログ）',
             example: { position: 1200, timestamp: 2500 },
         }),
 );
 
 /**
- * Game1 のチェックボックス状態。
+ * 利用規約ゲームのチェックボックス状態。
  *
  * - `checked`: 最終的なチェック状態
  * - `changed`: ユーザーが初期状態から変更したか
  *
- * 仕様書「データ構造 → Game1Data → checkboxStates」では readConfirm / mailMagazine /
+ * 仕様書「データ構造 → TermsGameData → checkboxStates」では readConfirm / mailMagazine /
  * thirdPartyShare の 3 つに同形が使われるため、共通サブスキーマとして定義する。
  */
 const checkboxStateSchema = registry.register(
@@ -60,16 +60,16 @@ const checkboxStateSchema = registry.register(
         })
         .openapi({
             description:
-                'Game1 のチェックボックス状態（readConfirm / mailMagazine / thirdPartyShare で共通）',
+                '利用規約ゲームのチェックボックス状態（readConfirm / mailMagazine / thirdPartyShare で共通）',
             example: { checked: true, changed: true },
         }),
 );
 
 /**
- * Game1 のポップアップ統計。
+ * 利用規約ゲームのポップアップ統計。
  *
  * ポップアップは滞在時間 timeout で出る仕様のため、高速スクロール時は
- * クライアントから送信されない（→ Game1Data 側で `optional`）。
+ * クライアントから送信されない（→ TermsGameData 側で `optional`）。
  */
 const popupStatsSchema = registry.register(
     'PopupStats',
@@ -87,19 +87,19 @@ const popupStatsSchema = registry.register(
         })
         .openapi({
             description:
-                'Game1 のポップアップ統計。高速スクロール時はポップアップ自体が出ないため Game1Data 側で optional',
+                '利用規約ゲームのポップアップ統計。高速スクロール時はポップアップ自体が出ないため TermsGameData 側で optional',
             example: { timeToClose: 850, clickCount: 1, mouseJitter: 42.3 },
         }),
 );
 
 /**
- * Game1Data（利用規約ゲーム）。
+ * TermsGameData（利用規約ゲーム）。
  *
- * 仕様書「データ構造 → Game1Data」と完全に一致させること。
+ * 仕様書「データ構造 → TermsGameData」と完全に一致させること。
  * `popupStats` のみ optional、それ以外は必須。
  */
-export const game1DataSchema = registry.register(
-    'Game1Data',
+export const termsGameDataSchema = registry.register(
+    'TermsGameData',
     z
         .object({
             totalTime: z.number().openapi({
@@ -140,8 +140,8 @@ export const game1DataSchema = registry.register(
         })
         .openapi({
             description:
-                'Game1（利用規約ゲーム）の行動データ。仕様書「データ構造 → Game1Data」準拠',
+                '利用規約ゲームの行動データ。仕様書「データ構造 → TermsGameData」準拠',
         }),
 );
 
-export type Game1Data = z.infer<typeof game1DataSchema>;
+export type TermsGameData = z.infer<typeof termsGameDataSchema>;

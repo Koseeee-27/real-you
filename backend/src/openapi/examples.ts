@@ -129,11 +129,11 @@ export const registerResponseExample = {
 /**
  * game_type = 1（利用規約ゲーム）の data サンプル。
  *
- * data 構造の詳細は仕様書「データ構造」→ Game1Data を参照。OpenAPI の example は
+ * data 構造の詳細は仕様書「データ構造」→ TermsGameData を参照。OpenAPI の example は
  * 「何を送るべきか」をざっくり示すだけなので、全フィールド網羅ではなく
  * 代表的な値を入れる（仕様書の最小例）。
  */
-export const submitGameRequestExampleGame1 = {
+export const submitGameRequestExampleTermsGame = {
     user_id: SAMPLE_USER_ID,
     game_type: 1,
     data: {

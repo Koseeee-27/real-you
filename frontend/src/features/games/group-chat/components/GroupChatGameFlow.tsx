@@ -137,7 +137,7 @@ export default function GroupChatGameFlow() {
       } catch (err: unknown) {
         // duplicate_submission（同一 user_id で同じゲームを再送信）は
         // 既にサーバ側で受理済みなので、エラーにせず次画面へ自動進行する。
-        // BaselineSurvey.tsx の game1 送信と同じ流儀。
+        // BaselineSurvey.tsx の terms_game 送信と同じ流儀。
         const isDuplicate =
           isApiClientError(err) && err.code === 'duplicate_submission';
         if (isDuplicate) {

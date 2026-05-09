@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { mbtiAtom } from '@/stores/diagnosis';
-import { game1DataAtom } from '@/stores/games';
+import { termsGameDataAtom } from '@/stores/games';
 import {
   QUESTIONS,
   type QuestionKey,
@@ -33,7 +33,7 @@ type ErrorVariant = 'retry' | 'restart';
 export default function BaselineSurvey() {
   const router = useRouter();
   const mbti = useAtomValue(mbtiAtom);
-  const game1Data = useAtomValue(game1DataAtom);
+  const termsGameData = useAtomValue(termsGameDataAtom);
 
   const bgmRef = useRef<HTMLAudioElement | null>(null);
 
@@ -91,12 +91,12 @@ export default function BaselineSurvey() {
 
         localStorage.setItem('user_id', result.user_id);
 
-        if (game1Data) {
+        if (termsGameData) {
           try {
             await submitGame({
               user_id: result.user_id,
               game_type: 1,
-              data: game1Data,
+              data: termsGameData,
             });
           } catch (gameErr) {
             // duplicate_submission（同一 user_id で同じゲームを再送信）は
@@ -129,7 +129,7 @@ export default function BaselineSurvey() {
         setStatus('error');
       }
     },
-    [mbti, router, game1Data]
+    [mbti, router, termsGameData]
   );
 
   const handleAnswer = (value: AnswerOption) => {

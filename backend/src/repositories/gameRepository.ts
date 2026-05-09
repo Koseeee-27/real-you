@@ -1,6 +1,6 @@
 import { GAME_TYPE_TO_ID, ID_TO_GAME_TYPE } from '../analysis/registry';
 import { supabase } from '../db/client';
-import { Game1Data, Game2Data, Game3Data } from '../schemas/gameData';
+import { TermsGameData, Game2Data, Game3Data } from '../schemas/gameData';
 import { GameId, GameLog } from '../types';
 
 /**
@@ -16,7 +16,7 @@ import { GameId, GameLog } from '../types';
  * INT に変換して INSERT する（Anti-Corruption Layer パターン）。
  */
 export type GameRawDataPayload =
-    | { gameId: 'terms_game'; rawData: Game1Data }
+    | { gameId: 'terms_game'; rawData: TermsGameData }
     | { gameId: 'helpdesk_game'; rawData: Game2Data }
     | { gameId: 'group_chat_game'; rawData: Game3Data };
 

@@ -12,12 +12,12 @@ export type SubmitGameRequest = components['schemas']['SubmitGameRequest'];
 export type SubmitGameResponse = components['schemas']['SubmitGameResponse'];
 
 // ========================================
-// Game 1: 利用規約ゲーム
+// 利用規約ゲーム（terms_game / 旧 Game 1）
 // ========================================
 export type ScrollEvent = components['schemas']['ScrollEvent'];
 export type CheckboxState = components['schemas']['CheckboxState'];
 export type PopupStats = components['schemas']['PopupStats'];
-export type Game1Data = components['schemas']['Game1Data'];
+export type TermsGameData = components['schemas']['TermsGameData'];
 
 // ========================================
 // Game 2: カスタマーサポートチャット
