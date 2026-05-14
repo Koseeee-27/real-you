@@ -588,7 +588,7 @@ export interface components {
          * @example 1
          * @enum {number}
          */
-        GameType: 1 | 2 | 3;
+        GameType: 1 | 2 | 3 | 4;
         /** @description 各ゲーム終了時に行動データを送信するリクエスト。game_type の値（1 / 2 / 3）で data 構造が決まる（oneOf）。同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す */
         SubmitGameRequest: {
             /**
@@ -711,11 +711,11 @@ export interface components {
             confidence: number;
         };
         /**
-         * @description ゲーム識別子。terms_game = 利用規約ゲーム / helpdesk_game = AIカスタマーサポート / group_chat_game = 空気読みグループチャット
+         * @description ゲーム識別子。terms_game = 利用規約ゲーム / helpdesk_game = AIカスタマーサポート（ロング版予備）/ sorter_game = 荷物仕分けゲーム / group_chat_game = 空気読みグループチャット
          * @example terms_game
          * @enum {string}
          */
-        GameId: "terms_game" | "helpdesk_game" | "group_chat_game";
+        GameId: "terms_game" | "helpdesk_game" | "sorter_game" | "group_chat_game";
         /**
          * @description ゲームごとのスコア内訳の配列。各ゲームで測定される軸のみが含まれるため 5 軸すべてが揃うとは限らない（例: terms_game は caution / logic / calmness のみ）。配列長は登録ゲーム数（3）に固定され、game_id はユニーク。
          * @example [
