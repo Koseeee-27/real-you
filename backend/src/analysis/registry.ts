@@ -3,6 +3,7 @@ import type { GameDetail, GameId } from '../schemas/results';
 import { BaselineScores, GAME_TYPES } from '../types';
 import { groupChatGameModule } from './games/groupChatGame';
 import { helpdeskGameModule } from './games/helpdeskGame';
+import { sorterGameModule } from './games/sorterGame';
 import { termsGameModule } from './games/termsGame';
 
 /**
@@ -97,6 +98,7 @@ type GameModulesMap = { readonly [K in GameId]: GameModuleEntry<K> };
 export const GAME_MODULES: GameModulesMap = {
     terms_game: termsGameModule,
     helpdesk_game: helpdeskGameModule,
+    sorter_game: sorterGameModule,
     group_chat_game: groupChatGameModule,
 };
 
@@ -120,6 +122,7 @@ export const GAME_MODULES: GameModulesMap = {
 export const ID_TO_GAME_TYPE: Readonly<Record<GameId, number>> = {
     terms_game: GAME_TYPES.TERMS_GAME,
     helpdesk_game: GAME_TYPES.AI_CHAT,
+    sorter_game: GAME_TYPES.SORTER,
     group_chat_game: GAME_TYPES.GROUP_CHAT,
 };
 
