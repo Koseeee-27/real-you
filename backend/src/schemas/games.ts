@@ -9,11 +9,13 @@ import {
     termsGameDataSchema,
     helpdeskGameDataSchema,
     groupChatGameDataSchema,
+    sorterGameDataSchema,
 } from './gameData';
 import {
     submitGameRequestExampleTermsGame,
     submitGameRequestExampleHelpdeskGame,
     submitGameRequestExampleGroupChatGame,
+    submitGameRequestExampleSorterGame,
     submitGameResponseExample,
 } from '../openapi/examples';
 
@@ -36,15 +38,15 @@ import {
  * 値の追加時に `types/index.ts` の `GAME_TYPES` のみを更新すれば
  * 型と OpenAPI enum が自動で追随する（二重管理を解消）。
  *
- * `Object.values(GAME_TYPES)` の戻り値型は `(1 | 2 | 3)[]` で、
+ * `Object.values(GAME_TYPES)` の戻り値型は `(1 | 2 | 3 | 4)[]` で、
  * `z.literal<const T extends ReadonlyArray<Literal>>(value: T)` の T[number] 推論により
- * 内部型は `1 | 2 | 3` のユニオンが維持される（`gameService.parseGameData` の
+ * 内部型は `1 | 2 | 3 | 4` のユニオンが維持される（`gameService.parseGameData` の
  * 網羅性チェック `const _exh: never = gameType` が機能するために必須）。
  */
 const GAME_TYPE_VALUES = Object.values(GAME_TYPES);
 
 /**
- * ゲーム種別（1: 利用規約 / 2: AI チャット / 3: グループチャット）。
+ * ゲーム種別（1: 利用規約 / 2: AI チャット / 3: グループチャット / 4: 荷物仕分け）。
  *
  * `types/index.ts` の `GAME_TYPES` 定数を唯一の真実とし、
  * `GAME_TYPE_VALUES` 経由で zod スキーマと OpenAPI enum の両方に展開する。
@@ -54,7 +56,7 @@ const GAME_TYPE_VALUES = Object.values(GAME_TYPES);
  * は OpenAPI 公開用の独立コンポーネント（GameType）として残し、他エンドポイントや
  * FE 生成型から再利用可能にする。
  *
- * NOTE: zod v4 の `z.literal(array)` は内部的に `1 | 2 | 3` の literal union として
+ * NOTE: zod v4 の `z.literal(array)` は内部的に `1 | 2 | 3 | 4` の literal union として
  * 振る舞うが、`@asteasolutions/zod-to-openapi` v8.5 の `LiteralTransformer` は
  * multi-value literal を `enum: [values[0]]`（先頭 1 要素のみ）にしか展開しない。
  * よって OpenAPI で正しい enum を出すには `.openapi({ enum: [...] })` で全値を
@@ -64,7 +66,7 @@ export const gameTypeSchema = registry.register(
     'GameType',
     z.literal(GAME_TYPE_VALUES).openapi({
         description:
-            'ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット',
+            'ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット / 4: 荷物仕分け',
         enum: GAME_TYPE_VALUES,
         example: GAME_TYPES.TERMS_GAME,
     }),
@@ -78,6 +80,7 @@ export const gameTypeSchema = registry.register(
  * - game_type === 1 のとき data は TermsGameData
  * - game_type === 2 のとき data は HelpdeskGameData
  * - game_type === 3 のとき data は GroupChatGameData
+ * - game_type === 4 のとき data は SorterGameData
  *
  * OpenAPI 上は `oneOf` で表現され、各 branch の
  * `game_type: { type: 'number', enum: [N] }` リテラル enum で判別する形になる。
@@ -86,8 +89,8 @@ export const gameTypeSchema = registry.register(
  *   `discriminator: { mapping: { '1': ..., '2': ..., '3': ... } }` を出力する
  * - OpenAPI 仕様上 `mapping` のキーは Map<string, string> のため数値リテラルでも
  *   文字列化される。openapi-typescript v7 はこのキーをそのまま tsLiteral に渡すため、
- *   FE 生成型の game_type が文字列リテラル "1" / "2" / "3" になり、BE の
- *   z.literal(1|2|3) と矛盾する（PR #64 のレビュー経緯参照）。
+ *   FE 生成型の game_type が文字列リテラル "1" / "2" / "3" / "4" になり、BE の
+ *   z.literal(1|2|3|4) と矛盾する（PR #64 のレビュー経緯参照）。
  *
  * Swagger UI / 生成型からも各 branch の game_type literal で構造が見えるため、
  * discriminator 等価の機能は維持される。
@@ -133,11 +136,22 @@ export const submitGameRequestSchema = registry.register(
                         '空気読みグループチャット（game_type=3）の終了時に送るリクエスト',
                     example: submitGameRequestExampleGroupChatGame,
                 }),
+            z
+                .object({
+                    user_id: userIdSchema,
+                    game_type: z.literal(GAME_TYPES.SORTER),
+                    data: sorterGameDataSchema,
+                })
+                .openapi({
+                    description:
+                        '荷物仕分けゲーム（game_type=4）の終了時に送るリクエスト',
+                    example: submitGameRequestExampleSorterGame,
+                }),
         ])
         .openapi({
             description:
                 '各ゲーム終了時に行動データを送信するリクエスト。' +
-                'game_type の値（1 / 2 / 3）で data 構造が決まる（oneOf）。' +
+                'game_type の値（1 / 2 / 3 / 4）で data 構造が決まる（oneOf）。' +
                 '同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す',
         }),
 );
@@ -164,7 +178,7 @@ export const submitGameResponseSchema = registry.register(
 );
 
 /**
- * ゲーム種別（1/2/3）の TS 型。
+ * ゲーム種別（1/2/3/4）の TS 型。
  * `gameTypeSchema` から `z.infer` で導出するため、値の追加時は
  * `types/index.ts` の `GAME_TYPES` のみを更新すれば本型・zod スキーマ・
  * OpenAPI enum の全てが `GAME_TYPE_VALUES` 経由で自動的に追随する。
