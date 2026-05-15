@@ -49,6 +49,7 @@ CREATE TABLE analysis_results (
   game_contributions JSONB NOT NULL,
   accuracy_score INT NOT NULL CHECK (accuracy_score BETWEEN 0 AND 100),
   phase_summaries JSONB NOT NULL,
+  details JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -67,4 +68,11 @@ CREATE INDEX idx_game_logs_game_type ON game_logs(game_type);
 -- ALTER TABLE game_logs
 -- ADD CONSTRAINT game_logs_game_type_check
 -- CHECK (game_type BETWEEN 1 AND 4);
+
+-- ---------------------------------------------------------------------------
+-- 既存環境向け（analysis_results に details カラムが無い場合）
+-- Supabase SQL エディタ等で実行。
+-- ---------------------------------------------------------------------------
+-- ALTER TABLE analysis_results
+-- ADD COLUMN details JSONB NOT NULL DEFAULT '[]'::jsonb;
 

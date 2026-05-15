@@ -29,8 +29,7 @@ export interface AnalysisResultRow {
     game_contributions: GameBreakdown;
     accuracy_score: number;
     phase_summaries: PhaseSummaries;
-    // JSONB カラム。zod スキーマ（schemas/results.ts → detailsSchema）由来の
-    // 型で保持し、PostgreSQL 側の JSONB はそのまま使う（DB スキーマ変更は不要）。
+    /** 各ゲーム詳細（GET /api/results の details と同一構造）。`analysis_results.details` JSONB。 */
     details: Details;
     created_at?: string;
 }
