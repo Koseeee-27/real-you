@@ -801,11 +801,12 @@ export interface components {
          *         }
          *       },
          *       {
-         *         "game_id": "helpdesk_game",
+         *         "game_id": "sorter_game",
          *         "scores": {
-         *           "positivity": 70,
+         *           "caution": 50,
          *           "calmness": 55,
-         *           "logic": 75
+         *           "positivity": 70,
+         *           "logic": 65
          *         }
          *       },
          *       {
@@ -867,8 +868,8 @@ export interface components {
          *         "summary": "規約を爆速でスクロールし、最後まで読まずに同意しました。"
          *       },
          *       {
-         *         "game_id": "helpdesk_game",
-         *         "summary": "AI の理不尽な対応に感情的に反応する場面が見られました。"
+         *         "game_id": "sorter_game",
+         *         "summary": "ルール変更には3.5秒で適応しました。システム障害中も落ち着いて待てました。"
          *       },
          *       {
          *         "game_id": "group_chat_game",
@@ -951,21 +952,21 @@ export interface components {
          *         ]
          *       },
          *       {
-         *         "game_id": "helpdesk_game",
-         *         "title": "AIカスタマーサポート",
+         *         "game_id": "sorter_game",
+         *         "title": "荷物仕分けゲーム",
          *         "feature_scores": [
          *           {
-         *             "axis": "positivity",
-         *             "name": "積極性",
-         *             "score": 70
+         *             "axis": "caution",
+         *             "name": "慎重さ",
+         *             "score": 50
          *           }
          *         ],
          *         "metrics": [
          *           {
-         *             "label": "発話数",
-         *             "user": 8,
-         *             "average": 5,
-         *             "category": "message"
+         *             "label": "平均判断時間(ms)",
+         *             "user": 1200,
+         *             "average": 1500,
+         *             "category": "time"
          *           }
          *         ]
          *       },
@@ -1034,11 +1035,12 @@ export interface components {
          *           }
          *         },
          *         {
-         *           "game_id": "helpdesk_game",
+         *           "game_id": "sorter_game",
          *           "scores": {
-         *             "positivity": 70,
+         *             "caution": 50,
          *             "calmness": 55,
-         *             "logic": 75
+         *             "positivity": 70,
+         *             "logic": 65
          *           }
          *         },
          *         {
@@ -1062,8 +1064,8 @@ export interface components {
          *           "summary": "規約を爆速でスクロールし、最後まで読まずに同意しました。"
          *         },
          *         {
-         *           "game_id": "helpdesk_game",
-         *           "summary": "AI の理不尽な対応に感情的に反応する場面が見られました。"
+         *           "game_id": "sorter_game",
+         *           "summary": "ルール変更には3.5秒で適応しました。システム障害中も落ち着いて待てました。"
          *         },
          *         {
          *           "game_id": "group_chat_game",
@@ -1091,21 +1093,21 @@ export interface components {
          *           ]
          *         },
          *         {
-         *           "game_id": "helpdesk_game",
-         *           "title": "AIカスタマーサポート",
+         *           "game_id": "sorter_game",
+         *           "title": "荷物仕分けゲーム",
          *           "feature_scores": [
          *             {
-         *               "axis": "positivity",
-         *               "name": "積極性",
-         *               "score": 70
+         *               "axis": "caution",
+         *               "name": "慎重さ",
+         *               "score": 50
          *             }
          *           ],
          *           "metrics": [
          *             {
-         *               "label": "発話数",
-         *               "user": 8,
-         *               "average": 5,
-         *               "category": "message"
+         *               "label": "平均判断時間(ms)",
+         *               "user": 1200,
+         *               "average": 1500,
+         *               "category": "time"
          *             }
          *           ]
          *         },

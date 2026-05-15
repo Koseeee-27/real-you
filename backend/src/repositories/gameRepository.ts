@@ -50,9 +50,10 @@ export const gameRepository = {
      * 戻り値の `raw_data` は `unknown`（GameLog.raw_data の定義どおり）。
      * 構造の検証は呼び出し元（resultService）が zod スキーマで parse して行う。
      *
-     * `order` は DB カラム名（game_type）で行う。出力上の並び順は
-     * `terms_game` (1) → `helpdesk_game` (2) → `group_chat_game` (3) になり、
-     * `analysis/registry.ts` の `NORMAL_FLOW` と一致する。
+     * `order` は DB カラム名（game_type）で行う。返却配列は数値昇順（1→4 =
+     * terms → helpdesk → group_chat → sorter）。
+     * 診断結果の game_breakdown / details の並びは `NORMAL_FLOW` であり、
+     * 本配列の並びとは一致しない（`resultService` が game_id で引き当てる）。
      * 未知の game_type が DB に紛れていた場合（DB 整合性破壊）はその行をスキップしつつ
      * `console.error` で報告する（呼び出し元の `gameLogs.length < 3` 判定で
      * 400 incomplete_games に倒れる流れになり、レスポンスに不整合行が漏れない）。

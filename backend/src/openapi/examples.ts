@@ -302,12 +302,12 @@ export const voiceRespondResponseExample = {
  * （Swagger UI の閲覧者が実際のレスポンスと突合しても齟齬が出ないようにするため）。
  * 値自体は「形を示すための代表値」で、特定ユーザーの実測値ではない。
  *
- * `details[*].feature_scores` は実装側では複数軸（terms_game: 3 軸 / helpdesk_game: 3 軸 /
- * group_chat_game: 2 軸）を返す。本 example は肥大化を避けて各ゲーム 1 軸のみ掲載しているが、
+ * `details[*].feature_scores` は実装側では複数軸（terms_game: 3 軸 / sorter_game: 4 軸 /
+ * helpdesk_game: 3 軸 / group_chat_game: 2 軸）を返す。本 example は肥大化を避けて各ゲーム 1 軸のみ掲載しているが、
  * 実際のレスポンスでは複数要素の配列になる点に注意。
  *
  * game_id は Phase 3（registry 導入）で正式定義予定の文字列 ID を先取りで使用している。
- * 配列順は terms_game → helpdesk_game → group_chat_game の通常フロー順
+ * 配列順は terms_game → sorter_game → group_chat_game の通常フロー順
  * （Phase 3 で `analysis/registry.ts` の `NORMAL_FLOW` 定数として正式定義予定）。
  */
 export const resultsResponseExample = {
@@ -343,7 +343,10 @@ export const resultsResponseExample = {
     },
     game_breakdown: [
         { game_id: 'terms_game', scores: { caution: 45, logic: 75, calmness: 55 } },
-        { game_id: 'helpdesk_game', scores: { positivity: 70, calmness: 55, logic: 75 } },
+        {
+            game_id: 'sorter_game',
+            scores: { caution: 50, calmness: 55, positivity: 70, logic: 65 },
+        },
         { game_id: 'group_chat_game', scores: { cooperativeness: 60, positivity: 70, caution: 45 } },
     ],
     feedback: {
@@ -354,11 +357,15 @@ export const resultsResponseExample = {
     accuracy_score: 78,
     phase_summaries: [
         { game_id: 'terms_game', summary: '規約を爆速でスクロールし、最後まで読まずに同意しました。' },
-        { game_id: 'helpdesk_game', summary: 'AI の理不尽な対応に感情的に反応する場面が見られました。' },
+        {
+            game_id: 'sorter_game',
+            summary:
+                'ルール変更には3.5秒で適応しました。システム障害中も落ち着いて待てました。',
+        },
         { game_id: 'group_chat_game', summary: 'グループの空気を読みつつ、自分の意見も主張していました。' },
     ],
     // タイトル文字列は analysis/scoreCalculator.ts の実装値に合わせる
-    // （helpdesk_game: 'AIカスタマーサポート' / group_chat_game: '空気読みグループチャット'）
+    // （sorter_game: '荷物仕分けゲーム' / group_chat_game: '空気読みグループチャット'）
     details: [
         {
             game_id: 'terms_game',
@@ -371,14 +378,10 @@ export const resultsResponseExample = {
             ],
         },
         {
-            game_id: 'helpdesk_game',
-            title: 'AIカスタマーサポート',
-            feature_scores: [
-                { axis: 'positivity', name: '積極性', score: 70 },
-            ],
-            metrics: [
-                { label: '発話数', user: 8, average: 5, category: 'message' },
-            ],
+            game_id: 'sorter_game',
+            title: '荷物仕分けゲーム',
+            feature_scores: [{ axis: 'caution', name: '慎重さ', score: 50 }],
+            metrics: [{ label: '平均判断時間(ms)', user: 1200, average: 1500, category: 'time' }],
         },
         {
             game_id: 'group_chat_game',
