@@ -1,6 +1,6 @@
 import { GAME_TYPE_TO_ID, ID_TO_GAME_TYPE } from '../analysis/registry';
 import { supabase } from '../db/client';
-import { TermsGameData, HelpdeskGameData, GroupChatGameData } from '../schemas/gameData';
+import { TermsGameData, HelpdeskGameData, GroupChatGameData, SorterGameData } from '../schemas/gameData';
 import { GameId, GameLog } from '../types';
 
 /**
@@ -18,7 +18,8 @@ import { GameId, GameLog } from '../types';
 export type GameRawDataPayload =
     | { gameId: 'terms_game'; rawData: TermsGameData }
     | { gameId: 'helpdesk_game'; rawData: HelpdeskGameData }
-    | { gameId: 'group_chat_game'; rawData: GroupChatGameData };
+    | { gameId: 'group_chat_game'; rawData: GroupChatGameData }
+    | { gameId: 'sorter_game'; rawData: SorterGameData };
 
 /**
  * DB 行（game_logs）の生レコード型。
