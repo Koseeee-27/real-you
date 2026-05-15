@@ -51,7 +51,7 @@ function analyze(data: SorterGameData | undefined): SorterGameAnalyzeResult {
 
     // --- 誤仕分け率 ---
     const sortEventCount = data.events.filter((e) => e.eventType === 'sort').length;
-    const wrongSortRate = data.wrongSortCount / Math.max(1, sortEventCount);
+    const wrongSortRate = Math.min(1, data.wrongSortCount / Math.max(1, sortEventCount));
 
     // --- 誤仕分け集中度（concentration）---
     // wrongPatterns の全エントリ数値を1配列にまとめ max/sum で算出
