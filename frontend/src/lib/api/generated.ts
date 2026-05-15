@@ -67,7 +67,7 @@ export interface paths {
         put?: never;
         /**
          * ゲームプレイデータ送信
-         * @description 各ゲーム（1: 利用規約 / 2: AI チャット / 3: グループチャット）の終了時に行動データを送信する。同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す。
+         * @description 各ゲーム（1: 利用規約 / 2: AI チャット / 3: グループチャット / 4: 荷物仕分け）の終了時に行動データを送信する。同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す。
          */
         post: {
             parameters: {
@@ -91,7 +91,7 @@ export interface paths {
                         "application/json": components["schemas"]["SubmitGameResponse"];
                     };
                 };
-                /** @description リクエスト不正。主な業務エラーコード: invalid_request（必須フィールド欠落 / data が空）/ invalid_user_id（user_id が不正 = 形式違反 / 欠落 / 存在しない）/ invalid_game_type（game_type が 1-3 の範囲外） */
+                /** @description リクエスト不正。主な業務エラーコード: invalid_request（必須フィールド欠落 / data が空）/ invalid_user_id（user_id が不正 = 形式違反 / 欠落 / 存在しない）/ invalid_game_type（game_type が 1-4 の範囲外） */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -584,12 +584,75 @@ export interface components {
             stages: components["schemas"]["GroupChatGameStage"][];
         };
         /**
-         * @description ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット
+         * @description 荷物の種類。urgent=特急 / fragile=取扱注意 / heavy=重量物
+         * @enum {string}
+         */
+        PackageType: "urgent" | "fragile" | "heavy";
+        /**
+         * @description sort=仕分け / cancel=取り消し / outflow=流出
+         * @enum {string}
+         */
+        SortEventType: "sort" | "cancel" | "outflow";
+        /** @description 正解ラベル別に、どのビンへ誤仕分けしたかの回数（省略キーは未定義＝0 回扱い） */
+        SorterWrongPatternCountsRow: {
+            urgent?: number;
+            fragile?: number;
+            heavy?: number;
+        };
+        /** @description 誤仕分けパターン。例: { urgent: { fragile: 2 } } = urgent を fragile に 2 回誤仕分け */
+        WrongPatterns: {
+            urgent: components["schemas"]["SorterWrongPatternCountsRow"] & unknown;
+            fragile: components["schemas"]["SorterWrongPatternCountsRow"] & unknown;
+            heavy: components["schemas"]["SorterWrongPatternCountsRow"] & unknown;
+        };
+        /** @description 荷物仕分けゲームの1イベント分のログ */
+        SortEvent: {
+            /** @description ゲーム開始からの経過時間（ms） */
+            timestamp: number;
+            eventType: components["schemas"]["SortEventType"];
+            packageType: components["schemas"]["PackageType"];
+            /** @description 仕分け先。流出・取り消し時は null */
+            binChosen: components["schemas"]["PackageType"] | null;
+            /** @description 選択→仕分けの ms。流出・取り消し時は null */
+            hesitationMs: number | null;
+            /** @description 正解判定（ルール変更後の判定込み）。流出・取り消し時は false */
+            correct: boolean;
+            /** @description ルール変更後のイベントか */
+            duringRuleChange: boolean;
+            /** @description 凍結中のクリックか（記録のみ、処理しない） */
+            duringFreeze: boolean;
+        };
+        /** @description 荷物仕分けゲームの行動データ。仕様書「データ構造 → SorterGameData」準拠 */
+        SorterGameData: {
+            /** @description 実プレイ時間（ms）。設計値 50000ms */
+            totalTimeMs: number;
+            /** @description プレイ画面の表示用スコア。5 軸スコア算出には使わない */
+            finalScore: number;
+            /** @description 平均判断時間（選択→仕分けまでの ms 平均） */
+            averageHesitationMs: number;
+            /** @description ゲーム中に出現した荷物の総数 */
+            spawnedPackages: number;
+            /** @description 誤仕分けの回数 */
+            wrongSortCount: number;
+            wrongPatterns: components["schemas"]["WrongPatterns"];
+            /** @description 選択取り消し回数 */
+            cancelCount: number;
+            /** @description 流出ミスの回数（仕分けされず画面外へ流れた荷物） */
+            outflowMissCount: number;
+            /** @description 凍結中（システム障害 5 秒間）のクリック数 */
+            panicClickCount: number;
+            /** @description ルール変更後、新ルールで初正解までの ms。未適応なら null */
+            ruleChangeAdaptMs: number | null;
+            /** @description ゲーム中のイベントログ */
+            events: components["schemas"]["SortEvent"][];
+        };
+        /**
+         * @description ゲーム種別。1: 利用規約ゲーム / 2: AI カスタマーサポート / 3: グループチャット / 4: 荷物仕分け
          * @example 1
          * @enum {number}
          */
         GameType: 1 | 2 | 3 | 4;
-        /** @description 各ゲーム終了時に行動データを送信するリクエスト。game_type の値（1 / 2 / 3）で data 構造が決まる（oneOf）。同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す */
+        /** @description 各ゲーム終了時に行動データを送信するリクエスト。game_type の値（1 / 2 / 3 / 4）で data 構造が決まる（oneOf）。同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す */
         SubmitGameRequest: {
             /**
              * Format: uuid
@@ -620,6 +683,16 @@ export interface components {
             /** @enum {number} */
             game_type: 3;
             data: components["schemas"]["GroupChatGameData"];
+        } | {
+            /**
+             * Format: uuid
+             * @description ユーザー識別子（UUID v4）
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            user_id: string;
+            /** @enum {number} */
+            game_type: 4;
+            data: components["schemas"]["SorterGameData"];
         };
         /**
          * @description ゲームデータ保存成功レスポンス（200 OK）
