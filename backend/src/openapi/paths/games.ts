@@ -22,7 +22,7 @@ registry.registerPath({
     tags: ['Games'],
     summary: 'ゲームプレイデータ送信',
     description:
-        '各ゲーム（1: 利用規約 / 2: AI チャット / 3: グループチャット）の終了時に行動データを送信する。' +
+        '各ゲーム（1: 利用規約 / 2: AI チャット / 3: グループチャット / 4: 荷物仕分け）の終了時に行動データを送信する。' +
         '同一ユーザー × 同一 game_type の重複送信は 409 `duplicate_submission` を返す。',
     request: {
         body: {
@@ -48,7 +48,7 @@ registry.registerPath({
                 'リクエスト不正。主な業務エラーコード: ' +
                 'invalid_request（必須フィールド欠落 / data が空）/ ' +
                 'invalid_user_id（user_id が不正 = 形式違反 / 欠落 / 存在しない）/ ' +
-                'invalid_game_type（game_type が 1-3 の範囲外）',
+                'invalid_game_type（game_type が 1-4 の範囲外）',
             content: {
                 'application/json': {
                     schema: apiErrorSchema,
