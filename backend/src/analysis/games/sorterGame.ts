@@ -1,15 +1,5 @@
-import type { ZodType } from 'zod';
 import type { GameDetail } from '../../schemas/results';
-
-// TODO: #114 で sorterGameDataSchema を作成後に正式 import に切り替える
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SorterGameData = any;
-
-const sorterGameDataSchemaStub = {
-    safeParse: (d: unknown) => ({ success: true as const, data: d }),
-};
-
-const sorterGameDataSchema = sorterGameDataSchemaStub as unknown as ZodType;
+import { SorterGameData, sorterGameDataSchema } from '../../schemas/games/sorterGame';
 
 export type SorterGameAnalyzeResult = {
     scores: { caution: number; calmness: number; logic: number; positivity: number };
