@@ -2,6 +2,37 @@ import { SorterGameData, sorterGameDataSchema } from '../../schemas/games/sorter
 import type { GameDetail } from '../../schemas/results';
 import { linear, linearInv } from '../scoreUtils';
 
+/**
+ * sorter_game の分析で使う閾値定数。
+ * チームで合意後にここだけ変更すれば全スコア式に反映される。
+ * 値は分析ロジック仕様書「閾値の根拠 Game 2」の初期値。
+ */
+const THRESHOLDS = {
+    hesitation: { best: 200, worst: 4000 },
+    cancelCount: { best: 0, worst: 5 },
+    wrongSortRate: { best: 0, worst: 0.3 },
+    panicClick: { best: 0, worst: 10 },
+    adaptMs: { best: 0, worst: 20000 },
+    concentration: { lo: 0, hi: 1 },
+} as const;
+
+/**
+ * 各軸スコアの重み定数。
+ * 合計が 1.0 になるよう維持すること。
+ */
+const WEIGHTS = {
+    caution: { hesitation: 0.7, cancel: 0.3 },
+    calmness: { wrongRate: 0.5, panic: 0.3, concentration: 0.2 },
+    logic: { adapt: 0.7, concentration: 0.3 },
+} as const;
+
+/**
+ * concentration の最低サンプル数閾値。
+ * 誤仕分けが少なすぎる場合に中立値 0.5 を使う。
+ * 仕様書「※注9」参照。実装段階で決定後に本書を更新する（暗定 3）。
+ */
+const MIN_SAMPLE_FOR_CONCENTRATION = 3;
+
 export type SorterGameAnalyzeResult = {
     scores: { caution: number; calmness: number; logic: number; positivity: number };
     avgHesitationMs: number;
@@ -31,36 +62,46 @@ function analyze(data: SorterGameData | undefined): SorterGameAnalyzeResult {
     ].filter((v): v is number => typeof v === 'number');
 
     const sumCounts = allCounts.reduce((a, b) => a + b, 0);
-    const MIN_SAMPLE = 3;
     const concentration =
-        data.wrongSortCount < MIN_SAMPLE || sumCounts === 0
+        data.wrongSortCount < MIN_SAMPLE_FOR_CONCENTRATION || sumCounts === 0
             ? 0.5
             : Math.max(...allCounts) / sumCounts;
 
     // --- 慎重さ ---
     // 平均判断時間(0.70) + やり直し・取り消し回数(0.30)
     const sCaution =
-        linearInv(data.averageHesitationMs, 200, 4000) * 0.7 +
-        linearInv(data.cancelCount, 0, 5) * 0.3;
+        linearInv(
+            data.averageHesitationMs,
+            THRESHOLDS.hesitation.best,
+            THRESHOLDS.hesitation.worst,
+        ) *
+            WEIGHTS.caution.hesitation +
+        linearInv(data.cancelCount, THRESHOLDS.cancelCount.best, THRESHOLDS.cancelCount.worst) *
+            WEIGHTS.caution.cancel;
 
     // --- 冷静さ ---
     // 誤仕分け率(0.50) + 凍結中パニッククリック(0.30) + 誤仕分け集中度(冷静さ向け)(0.20)
     // 冷静さ向け集中度は linear（散発=パニック=低得点 / 一貫=落ち着き=高得点）
     const sCalmness =
-        linearInv(wrongSortRate, 0, 0.3) * 0.5 +
-        linearInv(data.panicClickCount, 0, 10) * 0.3 +
-        linear(concentration, 0, 1) * 0.2;
+        linearInv(wrongSortRate, THRESHOLDS.wrongSortRate.best, THRESHOLDS.wrongSortRate.worst) *
+            WEIGHTS.calmness.wrongRate +
+        linearInv(data.panicClickCount, THRESHOLDS.panicClick.best, THRESHOLDS.panicClick.worst) *
+            WEIGHTS.calmness.panic +
+        linear(concentration, THRESHOLDS.concentration.lo, THRESHOLDS.concentration.hi) *
+            WEIGHTS.calmness.concentration;
 
     // --- 論理性 ---
     // ルール変更適応速度(0.70) + 誤仕分け集中度(論理性向け)(0.30)
     // 論理性向け集中度は linearInv（散らばり=高得点 / 一貫した誤認知=低得点）
-    const adaptMs = data.ruleChangeAdaptMs ?? 20000;
+    const adaptMs = data.ruleChangeAdaptMs ?? THRESHOLDS.adaptMs.worst;
     const sLogic =
-        linearInv(adaptMs, 0, 20000) * 0.7 + linearInv(concentration, 0, 1) * 0.3;
+        linearInv(adaptMs, THRESHOLDS.adaptMs.best, THRESHOLDS.adaptMs.worst) * WEIGHTS.logic.adapt +
+        linearInv(concentration, THRESHOLDS.concentration.lo, THRESHOLDS.concentration.hi) *
+            WEIGHTS.logic.concentration;
 
     // --- 積極性 ---
     // ルール変更適応速度(1.00)
-    const sPositivity = linearInv(adaptMs, 0, 20000);
+    const sPositivity = linearInv(adaptMs, THRESHOLDS.adaptMs.best, THRESHOLDS.adaptMs.worst);
 
     return {
         scores: {
@@ -122,7 +163,7 @@ function buildDetails(data: SorterGameData | undefined, result: SorterGameAnalyz
             },
             {
                 label: 'ルール適応速度(ms)',
-                user: data?.ruleChangeAdaptMs ?? 20000,
+                user: data?.ruleChangeAdaptMs ?? THRESHOLDS.adaptMs.worst,
                 average: 5000,
                 category: 'time',
             },
