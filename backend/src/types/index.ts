@@ -92,6 +92,7 @@ export const GAME_TYPES = {
   TERMS_GAME: 1,
   AI_CHAT: 2,
   GROUP_CHAT: 3,
+  SORTER: 4,
 } as const;
 
 export const SCORE_KEYS = {

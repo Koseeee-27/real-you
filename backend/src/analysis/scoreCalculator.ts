@@ -41,8 +41,11 @@ import { safeScore } from './scoreUtils';
  *
  * 未送信ゲームの値は undefined（`incomplete_games` ガード後は実質起こらないが、
  * モジュール側の早期 return で安全に扱える）。
+ *
+ * NORMAL_FLOW に含まれない GameId（例: sorter_game）は欠落してよいため Partial。
+ * resultService が NORMAL_FLOW をループして詰めるため、NORMAL_FLOW 外のキーは存在しない。
  */
-export type GameDataByGameId = Readonly<Record<GameId, unknown>>;
+export type GameDataByGameId = Readonly<Partial<Record<GameId, unknown>>>;
 
 /**
  * 5 軸スコアからベースラインとの差分を計算する。負値はベースライン下回り。

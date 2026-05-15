@@ -63,27 +63,31 @@ const partialBaselineScoresSchema = baselineScoresSchema.partial();
  *   型安全性が得られる。
  *
  * 配列スキーマ（gameBreakdownSchema / phaseSummariesSchema / detailsSchema）の
- * `.length()` 制約も `GAME_ID_VALUES.length` から導出する（registry を参照しない）。
+ * `.length()` 制約は `GAME_COUNT`（通常フロー本数 = 3）を用いる（`GAME_ID_VALUES` の
+ * 要素数とは一致しない。ロング版用 GameId が列挙に含まれるため）。
  *
  * 文字列リテラル列挙で OpenAPI に公開する用途、かつエラーコード差別化が不要な
  * ケースのため `z.enum` を採用（同パターンの先行例: `schemas/voice.ts` の
  * `conversationMessageSchema.role`）。
  */
-const GAME_ID_VALUES = ['terms_game', 'helpdesk_game', 'group_chat_game'] as const;
+const GAME_ID_VALUES = [
+    'terms_game',
+    'helpdesk_game',
+    'sorter_game',
+    'group_chat_game',
+] as const;
 
 /**
- * 登録済みゲーム数（= 結果レスポンスの配列長制約）。
+ * 結果レスポンスの game_breakdown / phase_summaries / details の配列長。
  *
- * `gameBreakdownSchema` / `phaseSummariesSchema` / `detailsSchema` は登録ゲーム分の
- * 要素を必ず含む配列として扱い、`.length()` で長さを強制する。これは結果レスポンスの
- * 上流で `incomplete_games` ガード（services/resultService.ts）により 3 ゲーム揃った
- * ケースのみがレスポンスに到達する設計のため、欠落・重複を zod 層で検出する。
+ * 通常フロー（`analysis/registry.ts` の `NORMAL_FLOW`）の本数（現状 3）であり、
+ * `GAME_ID_VALUES`（OpenAPI / `GameId` 列挙に含まれる識別子）の要素数とは一致しない。
  *
- * `GAME_ID_VALUES` から導出するため、ゲームを追加したときは本ファイルの `GAME_ID_VALUES`
- * と `analysis/registry.ts` の `GAME_MODULES` の両方を更新すれば自動で追従する
- * （`GAME_MODULES` の登録漏れは registry 側の型 `GameModulesMap` で検出される）。
+ * `gameBreakdownSchema` / `phaseSummariesSchema` / `detailsSchema` は `.length(GAME_COUNT)`
+ * と `game_id` ユニーク refine で欠落・重複を防ぐ。上流の `incomplete_games` ガード
+ * （services/resultService.ts）は `NORMAL_FLOW.length` と整合している。
  */
-const GAME_COUNT = GAME_ID_VALUES.length;
+const GAME_COUNT = 3;
 
 /**
  * 配列要素の `game_id` がユニークか判定する `.refine` 用ヘルパ。
@@ -118,8 +122,8 @@ export const gameIdSchema = registry.register(
     'GameId',
     z.enum(GAME_ID_VALUES).openapi({
         description:
-            'ゲーム識別子。terms_game = 利用規約ゲーム / helpdesk_game = AIカスタマーサポート / ' +
-            'group_chat_game = 空気読みグループチャット',
+            'ゲーム識別子。terms_game = 利用規約ゲーム / helpdesk_game = AIカスタマーサポート（ロング版予備）/ ' +
+            'sorter_game = 荷物仕分けゲーム / group_chat_game = 空気読みグループチャット',
         example: 'terms_game',
     }),
 );

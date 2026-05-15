@@ -1,4 +1,10 @@
-import { ShieldAlert, Users, Zap, type LucideIcon } from 'lucide-react';
+import {
+  Package,
+  ShieldAlert,
+  Users,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
 
 import type { GameId } from '../types';
 
@@ -32,6 +38,11 @@ export const GAME_META: Record<GameId, GameMeta> = {
     label: 'AIバトル',
     icon: Zap,
     color: '#f97316',
+  },
+  sorter_game: {
+    label: '荷物仕分け',
+    icon: Package,
+    color: '#22c55e',
   },
   group_chat_game: {
     label: '空気読み',
