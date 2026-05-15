@@ -71,7 +71,7 @@ export const apiErrorExamples = {
     [ERROR_CODES.INVALID_GAME_TYPE]: {
         status: 'error',
         error: ERROR_CODES.INVALID_GAME_TYPE,
-        message: 'game_type は 1 / 2 / 3 のいずれかで指定してください',
+        message: 'game_type は 1 / 2 / 3 / 4 のいずれかで指定してください',
     },
     [ERROR_CODES.INCOMPLETE_GAMES]: {
         status: 'error',
@@ -224,6 +224,33 @@ export const submitGameRequestExampleGroupChatGame = {
                 isTimeout: true,
             },
         ],
+    },
+} as const;
+
+/**
+ * game_type = 4（荷物仕分けゲーム）の data サンプル。
+ *
+ * 仕様書「データ構造」→ SorterGameData を参照。
+ */
+export const submitGameRequestExampleSorterGame = {
+    user_id: SAMPLE_USER_ID,
+    game_type: 4,
+    data: {
+        totalTimeMs: 50000,
+        finalScore: 120,
+        averageHesitationMs: 1200,
+        spawnedPackages: 25,
+        wrongSortCount: 3,
+        wrongPatterns: {
+            urgent: { fragile: 2, heavy: 1 },
+            fragile: {},
+            heavy: {},
+        },
+        cancelCount: 2,
+        outflowMissCount: 1,
+        panicClickCount: 4,
+        ruleChangeAdaptMs: 3500,
+        events: [],
     },
 } as const;
 
