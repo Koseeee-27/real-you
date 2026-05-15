@@ -20,7 +20,7 @@ router.post(
             // HTTP 境界（Anti-Corruption Layer / Issue #101）。
             // 仕様維持のため API の wire format は数値 game_type のままとし、
             // service 層へ渡す前にドメインの文字列 GameId に変換する。
-            // game_type は zod スキーマで 1/2/3 のいずれかに narrow 済みのため、
+            // game_type は zod スキーマで 1/2/3/4 のいずれかに narrow 済みのため、
             // GAME_TYPE_TO_ID のキー網羅性が保証される（ID_TO_GAME_TYPE と
             // 対称な定数を `analysis/registry.ts` に集約してある）。
             const gameId = GAME_TYPE_TO_ID[game_type];
