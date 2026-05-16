@@ -42,7 +42,7 @@ import { safeScore } from './scoreUtils';
  * 未送信ゲームの値は undefined（`incomplete_games` ガード後は実質起こらないが、
  * モジュール側の早期 return で安全に扱える）。
  *
- * NORMAL_FLOW に含まれない GameId（例: sorter_game）は欠落してよいため Partial。
+ * NORMAL_FLOW に含まれない GameId（例: helpdesk_game）は欠落してよいため Partial。
  * resultService が NORMAL_FLOW をループして詰めるため、NORMAL_FLOW 外のキーは存在しない。
  */
 export type GameDataByGameId = Readonly<Partial<Record<GameId, unknown>>>;
@@ -78,7 +78,7 @@ function computeAccuracyScore(gaps: BaselineScores): number {
  * 3 ゲームの行動データから 5 軸スコア・gaps・feedback・details 等の結果レスポンス
  * オブジェクトを組み立てる。
  *
- * 配列順は `NORMAL_FLOW`（terms_game → helpdesk_game → group_chat_game の通常フロー）に
+ * 配列順は `NORMAL_FLOW`（terms_game → sorter_game → group_chat_game の通常フロー）に
  * 合わせる。FE は配列内を `find(game_id === '...')` で参照する設計のため、配列順は
  * セマンティクスに影響しないが、API レスポンスの安定化のため固定順で出力する。
  */

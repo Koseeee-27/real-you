@@ -9,10 +9,10 @@ import { linear, linearInv } from '../scoreUtils';
  */
 const THRESHOLDS = {
     hesitation: { best: 200, worst: 4000 },
-    cancelCount: { best: 0, worst: 5 },
+    cancelCount: { best: 0, worst: 5, fallback: 0 },
     wrongSortRate: { best: 0, worst: 0.3 },
-    panicClick: { best: 0, worst: 10 },
-    adaptMs: { best: 0, worst: 20000 },
+    panicClick: { best: 0, worst: 10, fallback: 0 },
+    adaptMs: { best: 0, worst: 20000, fallback: 20000 },
     concentration: { lo: 0, hi: 1 },
 } as const;
 
@@ -51,7 +51,7 @@ function analyze(data: SorterGameData | undefined): SorterGameAnalyzeResult {
 
     // --- 誤仕分け率 ---
     const sortEventCount = data.events.filter((e) => e.eventType === 'sort').length;
-    const wrongSortRate = data.wrongSortCount / Math.max(1, sortEventCount);
+    const wrongSortRate = Math.min(1, data.wrongSortCount / Math.max(1, sortEventCount));
 
     // --- 誤仕分け集中度（concentration）---
     // wrongPatterns の全エントリ数値を1配列にまとめ max/sum で算出
@@ -93,7 +93,7 @@ function analyze(data: SorterGameData | undefined): SorterGameAnalyzeResult {
     // --- 論理性 ---
     // ルール変更適応速度(0.70) + 誤仕分け集中度(論理性向け)(0.30)
     // 論理性向け集中度は linearInv（散らばり=高得点 / 一貫した誤認知=低得点）
-    const adaptMs = data.ruleChangeAdaptMs ?? THRESHOLDS.adaptMs.worst;
+    const adaptMs = data.ruleChangeAdaptMs ?? THRESHOLDS.adaptMs.fallback;
     const sLogic =
         linearInv(adaptMs, THRESHOLDS.adaptMs.best, THRESHOLDS.adaptMs.worst) * WEIGHTS.logic.adapt +
         linearInv(concentration, THRESHOLDS.concentration.lo, THRESHOLDS.concentration.hi) *
@@ -156,14 +156,20 @@ function buildDetails(data: SorterGameData | undefined, result: SorterGameAnalyz
                 category: 'sort',
             },
             {
+                label: '流出ミス(回)',
+                user: data?.outflowMissCount ?? 0,
+                average: 2,
+                category: 'sort',
+            },
+            {
                 label: 'パニッククリック(回)',
-                user: data?.panicClickCount ?? 0,
+                user: data?.panicClickCount ?? THRESHOLDS.panicClick.fallback,
                 average: 3,
                 category: 'input',
             },
             {
                 label: 'ルール適応速度(ms)',
-                user: data?.ruleChangeAdaptMs ?? THRESHOLDS.adaptMs.worst,
+                user: data?.ruleChangeAdaptMs ?? THRESHOLDS.adaptMs.fallback,
                 average: 5000,
                 category: 'time',
             },

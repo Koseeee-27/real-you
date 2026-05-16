@@ -148,4 +148,4 @@ export const GAME_TYPE_TO_ID = Object.fromEntries(
  * 将来的なゲームフロー制御のソースとして利用する。
  * ロング版や別フローを実装する際は別の FLOW 定数を追加する想定（本リファクタ範囲外）。
  */
-export const NORMAL_FLOW: readonly GameId[] = ['terms_game', 'helpdesk_game', 'group_chat_game'];
+export const NORMAL_FLOW: readonly GameId[] = ['terms_game', 'sorter_game', 'group_chat_game'];
