@@ -8,8 +8,10 @@
  * - 利用規約ゲーム（terms_game / 旧 Game 1）: `./games/termsGame`
  * - AI カスタマーサポート（helpdesk_game / 旧 Game 2）: `./games/helpdeskGame`
  * - 空気読みグループチャット（group_chat_game / 旧 Game 3）: `./games/groupChatGame`
+ * - 荷物仕分けゲーム（sorter_game / game_type=4）: `./games/sorterGame`
  */
 
 export { termsGameDataSchema, type TermsGameData } from './games/termsGame';
 export { helpdeskGameDataSchema, type HelpdeskGameData } from './games/helpdeskGame';
 export { groupChatGameDataSchema, type GroupChatGameData } from './games/groupChatGame';
+export { sorterGameDataSchema, type SorterGameData } from './games/sorterGame';
