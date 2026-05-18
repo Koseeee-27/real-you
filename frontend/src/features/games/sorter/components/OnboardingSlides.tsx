@@ -190,9 +190,6 @@ function SlideIntro() {
           </div>
         ))}
       </div>
-      <p className="mt-4 text-xs font-bold text-gray-600">
-        判断力と冷静さが試されます
-      </p>
     </div>
   );
 }
@@ -335,7 +332,7 @@ function SlideScoring() {
         </div>
       </div>
       <p className="mt-4 text-xs font-bold text-gray-600">
-        慎重に！流れていく荷物を見逃すな！
+        頑張って高スコアを狙おう！
       </p>
     </div>
   );
