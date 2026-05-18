@@ -100,8 +100,13 @@ export default function OnboardingSlides({
           ))}
         </div>
 
-        {/* スライドコンテンツ（双方向アニメーション） */}
-        <div className="relative min-h-[320px] overflow-hidden">
+        {/*
+          スライドコンテンツ（双方向アニメーション）。
+          コンテナを固定高さにし、各スライドの中身は absolute + flex center で
+          中央寄せにする。これによりスライド切替時にカード全体の高さが揺れない。
+          高さ 420px は最大の SlideColorPairing（3 行カード）が収まるサイズ。
+        */}
+        <div className="relative h-[420px] overflow-hidden">
           <AnimatePresence mode="wait" custom={direction} initial={false}>
             <motion.div
               key={slideIndex}
@@ -111,7 +116,7 @@ export default function OnboardingSlides({
               animate="center"
               exit="exit"
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="px-6 py-8"
+              className="absolute inset-0 flex flex-col justify-center px-6"
             >
               {slideIndex === 0 && <SlideIntro />}
               {slideIndex === 1 && <SlideColorPairing />}
