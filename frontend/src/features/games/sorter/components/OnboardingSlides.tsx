@@ -300,18 +300,24 @@ function SlideScoring() {
       <div className="mt-6 space-y-3 text-left">
         <div
           className="flex items-center gap-3 rounded-xl border-[3px] border-black p-3"
-          style={{ backgroundColor: 'rgba(87, 208, 113, 0.2)' }}
+          style={{ backgroundColor: SORTER_UI_COLORS.successBgSubtle }}
         >
-          <span className="text-2xl font-black" style={{ color: '#2a8a3d' }}>
+          <span
+            className="text-2xl font-black"
+            style={{ color: SORTER_UI_COLORS.successText }}
+          >
             +{SCORE_CORRECT}
           </span>
           <span className="text-sm font-bold">正しい仕分け先に投入</span>
         </div>
         <div
           className="flex items-center gap-3 rounded-xl border-[3px] border-black p-3"
-          style={{ backgroundColor: 'rgba(224, 49, 49, 0.2)' }}
+          style={{ backgroundColor: SORTER_UI_COLORS.dangerBgSubtle }}
         >
-          <span className="text-2xl font-black" style={{ color: '#a52828' }}>
+          <span
+            className="text-2xl font-black"
+            style={{ color: SORTER_UI_COLORS.dangerText }}
+          >
             -{SCORE_WRONG_PENALTY}
           </span>
           <span className="text-sm font-bold">誤った仕分け先に投入</span>

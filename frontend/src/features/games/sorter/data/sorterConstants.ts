@@ -123,6 +123,14 @@ export const SORTER_UI_COLORS = {
   link: '#2d5be3',
   /** プレイ画面の背景色（緑、bg-page-pattern とは意図的に別色） */
   pageBg: '#b8e687',
+  /** 採点ルール「正解」バッジの薄背景（success の alpha 0.2） */
+  successBgSubtle: 'rgba(87, 208, 113, 0.2)',
+  /** 採点ルール「正解」バッジの濃文字色（success のダーク版） */
+  successText: '#2a8a3d',
+  /** 採点ルール「誤仕分け」バッジの薄背景（danger の alpha 0.2） */
+  dangerBgSubtle: 'rgba(224, 49, 49, 0.2)',
+  /** 採点ルール「誤仕分け」バッジの濃文字色（danger のダーク版） */
+  dangerText: '#a52828',
 } as const;
 
 /** 荷物種別 → 日本語表示ラベル */
