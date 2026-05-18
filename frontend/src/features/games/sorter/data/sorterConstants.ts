@@ -167,18 +167,6 @@ export const BIN_IMAGE_PATHS = {
   heavy: '/images/sorter-game-bin-heavy.png',
 } as const satisfies Record<PackageType, string>;
 
-/**
- * ベルトコンベア関連の画像。
- * 最低限プレイ可能な実装では未使用（ベルトは CSS の repeating-linear-gradient で描画）。
- * 後追いでビジュアル強化する際に参照する。
- */
-export const BELT_IMAGE_PATHS = {
-  full: '/images/sorter-game-belt-full.png',
-  surface: '/images/sorter-game-belt-surface.png',
-  roller: '/images/sorter-game-belt-roller.png',
-  intake: '/images/sorter-game-belt-intake.png',
-} as const;
-
 // ========================================
 // ルール変更（残り 35s で発動、固定）
 // ========================================
