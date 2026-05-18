@@ -246,7 +246,9 @@ function SlideColorPairing() {
 function SlideHowToPlay() {
   return (
     <div>
-      <h2 className="text-center text-xl font-black tracking-widest">操作方法</h2>
+      <h2 className="text-center text-xl font-black tracking-widest">
+        操作方法
+      </h2>
       <p className="mt-2 text-center text-xs font-bold text-gray-600">
         2 ステップで仕分け完了
       </p>
@@ -258,7 +260,9 @@ function SlideHowToPlay() {
           >
             1
           </span>
-          <span className="text-sm font-bold">流れている荷物をクリックして選択</span>
+          <span className="text-sm font-bold">
+            流れている荷物をクリックして選択
+          </span>
           <div className="relative ml-auto h-12 w-12 shrink-0">
             <Image
               src={PACKAGE_IMAGE_PATHS.urgent}
