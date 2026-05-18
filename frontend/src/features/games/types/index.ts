@@ -35,3 +35,14 @@ export type VoiceRespondResponse =
 // ========================================
 export type GroupChatGameStage = components['schemas']['GroupChatGameStage'];
 export type GroupChatGameData = components['schemas']['GroupChatGameData'];
+
+// ========================================
+// 荷物仕分けゲーム（sorter_game / Game 2）
+// ========================================
+export type PackageType = components['schemas']['PackageType'];
+export type SortEventType = components['schemas']['SortEventType'];
+export type SortEvent = components['schemas']['SortEvent'];
+export type SorterWrongPatternCountsRow =
+  components['schemas']['SorterWrongPatternCountsRow'];
+export type WrongPatterns = components['schemas']['WrongPatterns'];
+export type SorterGameData = components['schemas']['SorterGameData'];
