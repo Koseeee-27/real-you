@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import {
   BIN_IMAGE_PATHS,
+  GAME_DURATION_SEC,
+  ONBOARDING_SLIDE_COUNT,
   PACKAGE_COLORS,
   PACKAGE_IMAGE_PATHS,
   PACKAGE_LABELS,
@@ -16,19 +18,17 @@ import {
 } from '../data/sorterConstants';
 
 interface OnboardingSlidesProps {
-  /** 0..3 のスライド index */
+  /** 0..(ONBOARDING_SLIDE_COUNT - 1) のスライド index */
   slideIndex: number;
   onPrev: () => void;
   onNext: () => void;
   onStart: () => void;
 }
 
-const TOTAL_SLIDES = 4;
-
 /**
  * ゲーム開始時に表示する 4 スライドのオンボーディング。
  *
- * - スライド 1/4: ゲーム概要（50 秒で流れてくる荷物を、対応する仕分け先に投入）
+ * - スライド 1/4: ゲーム概要（流れてくる荷物を、対応する仕分け先に投入）
  * - スライド 2/4: 仕分けカテゴリーのカラーペアリング（特急=赤 / 取扱注意=青 / 重量物=茶）
  * - スライド 3/4: 操作方法（[1] 荷物クリック → [2] 振り分け先クリック の 2 ステップ）
  * - スライド 4/4: 採点ルール + スタートボタン
@@ -36,7 +36,7 @@ const TOTAL_SLIDES = 4;
  * スライド間は「← 戻る」「次へ →」で双方向移動可能。
  * 最終スライドの「スタート」を押すと親側で countdown phase に遷移する。
  *
- * 双方向アニメーション: `direction` を ref で保持し、`AnimatePresence` の custom prop で
+ * 双方向アニメーション: `direction` を useState で保持し、`AnimatePresence` の custom prop で
  * variants の `enter`/`exit` を方向別に切り替える。
  */
 export default function OnboardingSlides({
@@ -47,8 +47,8 @@ export default function OnboardingSlides({
 }: OnboardingSlidesProps) {
   /**
    * 直前操作の方向（-1 = 戻る、1 = 進む）。
-   * render 中に slideIndex 比較で判定すると ref 不正アクセスになるため、
-   * ハンドラ内で setDirection してから親の onPrev/onNext を呼ぶ流儀にする。
+   * ハンドラ内で setDirection を先に呼び、続けて親の onPrev/onNext を呼ぶ流儀にする
+   * （render 中に slideIndex から方向を計算するとフレーム間で値が安定しないため）。
    */
   const [direction, setDirection] = useState<1 | -1>(1);
 
@@ -62,7 +62,7 @@ export default function OnboardingSlides({
   };
 
   const isFirst = slideIndex === 0;
-  const isLast = slideIndex === TOTAL_SLIDES - 1;
+  const isLast = slideIndex === ONBOARDING_SLIDE_COUNT - 1;
 
   const variants = {
     enter: (dir: number) => ({
@@ -89,7 +89,7 @@ export default function OnboardingSlides({
           className="flex justify-center gap-2 border-b-[3px] border-black py-3"
           style={{ backgroundColor: SORTER_UI_COLORS.warning }}
         >
-          {Array.from({ length: TOTAL_SLIDES }).map((_, i) => (
+          {Array.from({ length: ONBOARDING_SLIDE_COUNT }).map((_, i) => (
             <span
               key={i}
               className={`h-3 w-3 rounded-full border-[2px] border-black ${
@@ -173,7 +173,7 @@ function SlideIntro() {
     <div className="text-center">
       <h2 className="text-2xl font-black tracking-widest">仕分けゲーム</h2>
       <p className="mt-4 text-sm font-bold leading-relaxed">
-        50 秒の間に流れてくる荷物を、
+        {GAME_DURATION_SEC} 秒の間に流れてくる荷物を、
         <br />
         対応する仕分け先に投入しよう！
       </p>

@@ -20,11 +20,28 @@ import type { PackageType } from '@/features/games/types';
 /** ゲーム本編の制限時間（ms）。カウントダウン終了後から計測 */
 export const GAME_DURATION_MS = 50_000;
 
+/**
+ * ゲーム本編の制限時間（秒）。
+ * オンボーディングなど UI のコピー表示で参照する。GAME_DURATION_MS から派生。
+ */
+export const GAME_DURATION_SEC = GAME_DURATION_MS / 1000;
+
 /** 荷物のスポーン間隔（ms） */
 export const SPAWN_INTERVAL_MS = 2_000;
 
 /** タイマー残り時間の表示更新間隔（ms） */
 export const TIMER_TICK_MS = 100;
+
+// ========================================
+// オンボーディング
+// ========================================
+
+/**
+ * 開始前オンボーディングのスライド枚数。
+ * OnboardingSlides の進捗ドット表示と、SorterGameFlow / useSorterGame の
+ * スライド index 上限制御で共有する真実の単一ソース。
+ */
+export const ONBOARDING_SLIDE_COUNT = 4;
 
 // ========================================
 // Phase 別 duration（ゲーム本編 50s 内で setTimeout チェーン進行）

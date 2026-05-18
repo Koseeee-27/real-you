@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { SORTER_AUDIO_PATHS, SORTER_UI_COLORS } from '../data/sorterConstants';
+import {
+  ONBOARDING_SLIDE_COUNT,
+  SORTER_AUDIO_PATHS,
+  SORTER_UI_COLORS,
+} from '../data/sorterConstants';
 import OnboardingSlides from './OnboardingSlides';
 
 /**
@@ -27,7 +31,7 @@ export default function SorterGameFlow() {
   };
   const onNext = () => {
     playSE();
-    setSlideIndex((i) => Math.min(3, i + 1));
+    setSlideIndex((i) => Math.min(ONBOARDING_SLIDE_COUNT - 1, i + 1));
   };
   const onStart = () => {
     playSE();
