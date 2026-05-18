@@ -34,7 +34,7 @@ interface OnboardingSlidesProps {
  * - スライド 4/4: 採点ルール + スタートボタン
  *
  * スライド間は「← 戻る」「次へ →」で双方向移動可能。
- * 最終スライドの「スタート」を押すと親側で countdown phase に遷移する。
+ * 最終スライドの「スタート」を押すと `onStart` を呼び、親側で次の phase に遷移する。
  *
  * 双方向アニメーション: `direction` を useState で保持し、`AnimatePresence` の custom prop で
  * variants の `enter`/`exit` を方向別に切り替える。
