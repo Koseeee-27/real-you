@@ -1,55 +1,67 @@
 'use client';
 
+import { useEffect, useRef } from "react";
+
 export default function HowtoPlayModal({
-  page,
-  setPage,
-  onClose,
+    page,
+    setPage,
+    onClose,
 }: {
   page: number;
   setPage: (fn: (p: number) => number) => void;
   onClose: () => void;
 }) {
 
-    // あそびかたの内容
-    const howToPlaySteps = [
+    const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+    useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    dialog.showModal();
+    }, []);
+
+
+  // あそびかたの内容
+  const howToPlaySteps = [
     {
-        title: 'Real Youとは？',
-        subtitle: '3つのミニゲームで本当の性格を知ろう！！',
-        bullets: [
-            '3つのミニゲームを通して、本当の性格に迫る診断です。',
-            'ひとつずつじっくり答えていきましょう。',
-        ],
+      title: 'Real Youとは？',
+      subtitle: '3つのミニゲームで本当の性格を知ろう！！',
+      bullets: [
+        '3つのミニゲームを通して、本当の性格に迫る診断です。',
+        'ひとつずつじっくり答えていきましょう。',
+      ],
     },
     {
-        title: '所要時間は約5分！',
-        subtitle: 'スキマ時間でサクッと診断⭐︎',
-        bullets: ['短時間で遊べるので、休憩時間や移動中にもおすすめです！'],
+      title: '所要時間は約5分！',
+      subtitle: 'スキマ時間でサクッと診断⭐︎',
+      bullets: ['短時間で遊べるので、休憩時間や移動中にもおすすめです！'],
     },
     {
-        title: '始める前に',
-        subtitle: '注意事項をチェック⚠️',
-        bullets: [
-            'マイクを使用します🎤',
-            'BGM・効果音が流れます🎵',
-            'イヤホン推奨🎧',
-        ],
+      title: '始める前に',
+      subtitle: '注意事項をチェック⚠️',
+      bullets: [
+        'マイクを使用します🎤',
+        'BGM・効果音が流れます🎵',
+        'イヤホン推奨🎧',
+      ],
     },
-];
+  ];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6"
-      onClick={onClose}
+    <dialog
+      ref={dialogRef}
+      className="rounded-[24px] border-[6px] border-black bg-white max-w-xl w-[90vw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden justify-center p-0"
+      onClose={onClose}
     >
       {/* ポップアップ本体 */}
       <div
-        className="relative w-full max-w-xl min-h-[460px] rounded-[24px] border-[6px] border-black bg-white p-5 shadow-[8px_8px_0_0_#000] animate-[fadeInUp_0.35s_ease-out] flex flex-col mx-auto"
+        className="relative w-full min-h-[460px] bg-white p-5 animate-[fadeInUp_0.35s_ease-out] flex flex-col"
         onClick={(event) => event.stopPropagation()}
       >
         <button
           type="button"
-          onClick={onClose}
           className="absolute top-3 right-3 inline-flex rounded-full border border-zinc-900 px-3 py-1.5 text-sm font-bold text-zinc-900 transition hover:bg-zinc-100"
+          onClick={() => dialogRef.current?.close()}
         >
           ✕
         </button>
@@ -109,7 +121,7 @@ export default function HowtoPlayModal({
               if (page < howToPlaySteps.length) {
                 setPage((p) => p + 1);
               } else {
-                onClose();
+                dialogRef.current?.close();
               }
             }}
             className="inline-flex rounded-full bg-black px-8 py-3 text-base font-bold text-white transition hover:bg-zinc-900"
@@ -118,6 +130,6 @@ export default function HowtoPlayModal({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
