@@ -276,8 +276,11 @@ export default function SorterGameFlow() {
         />
       </div>
 
-      {/* === 仕分け先 === */}
-      <div className="z-10 mt-4 px-4">
+      {/*
+        仕分け先。mb-6 で画面下端の fixed タイマーゲージと bin の補助ラベル
+        （「特急」「取扱注意」「重量物」）が重ならない余白を確保する。
+      */}
+      <div className="z-10 mt-4 mb-6 px-4">
         <BinTray
           isFrozen={isFrozen}
           onBinClick={handleBinClick}

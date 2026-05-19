@@ -50,7 +50,7 @@ export default function BinTray({
             <button
               type="button"
               onClick={() => onBinClick(binType)}
-              className="relative w-full transition-transform hover:scale-105 active:scale-95"
+              className="relative w-full max-h-52 transition-transform hover:scale-105 active:scale-95"
               style={{ aspectRatio: '4 / 5' }}
               aria-label={`${PACKAGE_LABELS[binType]}の仕分け先`}
             >
