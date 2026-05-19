@@ -25,24 +25,22 @@ export default function HowtoPlayModal({
   const howToPlaySteps = [
     {
       title: 'Real Youとは？',
-      subtitle: '3つのミニゲームで本当の性格を知ろう！！',
+      subtitle: '本当の私じゃ、ダメですか？',
       bullets: [
-        '3つのミニゲームを通して、本当の性格に迫る診断です。',
-        'ひとつずつじっくり答えていきましょう。',
-      ],
+        'その性格診断、「こうありたい自分」が混ざってませんか？',
+        'Real You は、あなたの バイアスを取り除いた"本当の自分" を映し出す診断です！',],
     },
     {
       title: '所要時間は約5分！',
-      subtitle: 'スキマ時間でサクッと診断⭐︎',
-      bullets: ['短時間で遊べるので、休憩時間や移動中にもおすすめです！'],
+      subtitle: 'ゲームでサクッと、診断完了！',
+      bullets: ['質問にじっくり答える時間も、細かい操作も必要ありません！直感のままにプレイしてください！'],
     },
     {
-      title: '始める前に',
-      subtitle: '注意事項をチェック⚠️',
+      title: '始める前に、ちょっとだけ',
+      subtitle: 'PC（Chrome 推奨）でのプレイをおすすめします',
+      subtitle2: 'いざ！本当の自分に会いに行こう！！',
       bullets: [
-        'マイクを使用します🎤',
-        'BGM・効果音が流れます🎵',
-        'イヤホン推奨🎧',
+        'ゲーム中、BGM や効果音が流れます',
       ],
     },
   ];
@@ -55,7 +53,7 @@ export default function HowtoPlayModal({
     >
       {/* ポップアップ本体 */}
       <div
-        className="relative w-full min-h-[460px] bg-white p-5 animate-[fadeInUp_0.35s_ease-out] flex flex-col"
+        className="relative w-full h-[460px] bg-white p-5 animate-[fadeInUp_0.35s_ease-out] flex flex-col"
         onClick={(event) => event.stopPropagation()}
       >
         <button
@@ -84,7 +82,7 @@ export default function HowtoPlayModal({
         </div>
 
         {/* メインコンテンツ */}
-        <div className="flex-1 flex flex-col justify-center">
+        <div className="flex flex-col h-[300px]">
           <h2
             id="how-to-play-title"
             className="mb-4 text-3xl font-bold leading-relaxed text-center"
@@ -97,13 +95,19 @@ export default function HowtoPlayModal({
               {howToPlaySteps[page - 1].subtitle}
             </p>
 
-            <ul className="min-h-[130px] space-y-3 text-base leading-relaxed text-[#111] list-disc pl-5">
+            <ul className="min-h-[60px] space-y-3 text-base leading-relaxed text-[#111] list-disc pl-5">
               {howToPlaySteps[page - 1].bullets.map((line, index) => (
                 <li key={index}>{line}</li>
               ))}
             </ul>
           </div>
         </div>
+
+        {howToPlaySteps[page - 1].subtitle2 && (
+            <p className="mt-0 mb-0 text-lg font-bold text-center">
+                {howToPlaySteps[page - 1].subtitle2}
+            </p>
+        )}
 
         {/* ナビゲーションボタン */}
         <div className="mt-5 flex min-h-[64px] items-center justify-center gap-4">
