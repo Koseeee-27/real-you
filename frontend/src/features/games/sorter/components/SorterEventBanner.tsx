@@ -128,7 +128,7 @@ export default function SorterEventBanner({
             style={{ backgroundColor: SORTER_UI_COLORS.warning }}
           >
             <p className="text-base font-black tracking-widest text-black sm:text-lg">
-              ⚡ 残り {SPEED_UP_REMAINING_SEC} 秒！速度が 2 倍になります！！
+              ⚡ 残り {SPEED_UP_REMAINING_SEC} 秒！スピード 2 倍突入！
             </p>
           </motion.div>
         )}

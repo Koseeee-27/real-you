@@ -40,7 +40,7 @@ type ErrorVariant = 'retry' | 'restart';
  * GroupChatGameFlow / HelpdeskGameFlow と同流儀で:
  *   - BGM の初期化（パス未設定なら生成しない）
  *   - `submitGame({ user_id, game_type: 4, data })` の retry/restart 分岐
- *   - `duplicate_submission` は次画面へ自動進行
+ *   - `duplicate_submission` は `success` と同じ扱い（結果画面のボタン押下で次画面へ）
  *   - 成功時は結果画面 + 「次のゲームへ ▶」ボタン → 押下で `/games/group-chat` へ遷移
  *
  * UI 構成は以下のサブコンポーネントに分割:
