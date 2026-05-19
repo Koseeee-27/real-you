@@ -240,8 +240,13 @@ export function useSorterGame(options: {
    * フェーズ遷移用 effect の外で起動された一時的な setTimeout の id を集約する。
    * フィードバックポップアップの自動消去・MISS バッジの自動消去・速度 2 倍バナーの
    * 自動消去など、副作用として走るものを unmount cleanup で一括 clear するため。
+   *
+   * Set で管理し、各 setTimeout は完了時に自身を Set から `delete` する
+   * （`trackTimeout` 内で wrap）。プレイ中に多数発火しても配列が肥大化しない。
    */
-  const pendingTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pendingTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(
+    new Set()
+  );
 
   /** onComplete の二重実行防止 */
   const submittedRef = useRef(false);
@@ -280,13 +285,20 @@ export function useSorterGame(options: {
   }
 
   /**
-   * unmount 時に cleanup したい一時的な setTimeout を登録する。
-   * `pendingTimeoutsRef` に id を蓄積し、unmount cleanup でまとめて clear する。
+   * unmount 時に cleanup したい一時的な setTimeout を登録するヘルパー。
+   * 内部で `setTimeout` を起動し、id を `pendingTimeoutsRef` の Set に追加する。
+   * 実行完了時には Set から自身の id を `delete` するため、長時間プレイでも
+   * Set が肥大化しない。unmount cleanup では Set 全体をまとめて clear する。
+   *
    * フェーズ遷移 effect 内の setTimeout は effect 自体の return で cleanup できるので
    * このヘルパーを介さず直接 setTimeout を使う。
    */
-  function trackTimeout(id: ReturnType<typeof setTimeout>): void {
-    pendingTimeoutsRef.current.push(id);
+  function trackTimeout(callback: () => void, ms: number): void {
+    const id = setTimeout(() => {
+      pendingTimeoutsRef.current.delete(id);
+      callback();
+    }, ms);
+    pendingTimeoutsRef.current.add(id);
   }
 
   /**
@@ -326,11 +338,16 @@ export function useSorterGame(options: {
   // unmount 時の全 timer cleanup
   // =========================================================
   useEffect(() => {
+    // mount 時の Set インスタンスをローカル変数に控えておく。
+    // cleanup 時に `pendingTimeoutsRef.current` を参照すると lint の
+    // `react-hooks/exhaustive-deps` 警告（ref 値が変わっている可能性）に該当するため。
+    // 本フックでは Set インスタンス自体を差し替えないので、ローカル参照のままで安全。
+    const pendingTimeouts = pendingTimeoutsRef.current;
     return () => {
       if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
       if (tickIntervalRef.current) clearInterval(tickIntervalRef.current);
-      pendingTimeoutsRef.current.forEach((id) => clearTimeout(id));
-      pendingTimeoutsRef.current = [];
+      pendingTimeouts.forEach((id) => clearTimeout(id));
+      pendingTimeouts.clear();
     };
   }, []);
 
@@ -396,7 +413,7 @@ export function useSorterGame(options: {
           )
         );
         setShowSpeedUpBanner(true);
-        trackTimeout(setTimeout(() => setShowSpeedUpBanner(false), 3000));
+        trackTimeout(() => setShowSpeedUpBanner(false), 3000);
       }
 
       // ended 突入時に submit + spawn 停止
@@ -547,7 +564,7 @@ export function useSorterGame(options: {
       scoreChange,
       at: Date.now(),
     });
-    trackTimeout(setTimeout(() => setLastFeedback(null), 700));
+    trackTimeout(() => setLastFeedback(null), 700);
 
     // 誤仕分けの集計
     if (!correct) {
@@ -618,11 +635,9 @@ export function useSorterGame(options: {
     // unmount リーク防止のため `trackTimeout` 経由で id を ref に登録する。
     const outflowAt = Date.now();
     setLastOutflowAt(outflowAt);
-    trackTimeout(
-      setTimeout(() => {
-        setLastOutflowAt((cur) => (cur === outflowAt ? null : cur));
-      }, 600)
-    );
+    trackTimeout(() => {
+      setLastOutflowAt((cur) => (cur === outflowAt ? null : cur));
+    }, 600);
 
     setPackages((prev) => prev.filter((p) => p.id !== id));
     if (selectedPackageId === id) {

@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react';
 import {
   BELT_HEIGHT_PX,
   BELT_LANE_HEIGHT_PX,
+  BELT_TURN_WIDTH_PX,
   PACKAGE_IMAGE_PATHS,
   PACKAGE_LABELS,
   SORTER_UI_COLORS,
@@ -24,6 +25,14 @@ interface PackageItemProps {
 
 /** 荷物 1 個分のサイズ（px） */
 const PACKAGE_SIZE_PX = 84;
+
+/**
+ * 折り返し位置の X 座標を決める際の視覚的な微調整値（px）。
+ * 単純に `beltWidth - BELT_TURN_WIDTH_PX - PACKAGE_SIZE_PX` で計算すると、
+ * 荷物の左上が折り返し領域の外側に当たって不自然に見えるため、内側に少しずらす。
+ * 元実装の `beltWidth - 130` と同等の見え方を維持するための値（80 + 84 - 34 = 130）。
+ */
+const PACKAGE_TURN_X_NUDGE_PX = 34;
 
 /** 上 lane / 下 lane の中央 Y 座標（荷物中心ではなく左上基準） */
 const TOP_LANE_Y = BELT_LANE_HEIGHT_PX / 2 - PACKAGE_SIZE_PX / 2;
@@ -87,7 +96,12 @@ export default function PackageItem({
   useEffect(() => {
     if (!scope.current || beltWidth === 0) return;
 
-    const turnX = Math.max(0, beltWidth - 130);
+    // 折り返し位置 (荷物の左上基準)。ベルト右端から折り返し領域 (BELT_TURN_WIDTH_PX) と
+    // 荷物自身のサイズを差し引き、さらに視覚的調整値 (PACKAGE_TURN_X_NUDGE_PX) で内側に寄せる。
+    const turnX = Math.max(
+      0,
+      beltWidth - BELT_TURN_WIDTH_PX - PACKAGE_SIZE_PX + PACKAGE_TURN_X_NUDGE_PX
+    );
     const controls = animate(
       scope.current,
       {

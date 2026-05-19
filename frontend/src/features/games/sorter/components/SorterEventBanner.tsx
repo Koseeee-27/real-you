@@ -11,8 +11,10 @@ import type { GamePhase } from '../hooks/useSorterGame';
 /**
  * 速度 2 倍予告バナーで「残り N 秒」を表示する際の秒数。
  * rule-changed-2 phase の長さから派生させて、定数変更時にコピーが自動追従する。
+ * 将来 duration が 1000ms 単位以外（例: 10_500ms）になっても整数秒で表示するよう
+ * Math.ceil で切り上げる（「最低でも N 秒残ってる」感を出すため）。
  */
-const SPEED_UP_REMAINING_SEC = RULE_CHANGED_2_DURATION_MS / 1000;
+const SPEED_UP_REMAINING_SEC = Math.ceil(RULE_CHANGED_2_DURATION_MS / 1000);
 
 interface SorterEventBannerProps {
   /** 現在の phase。バナー表示の切り替えに使う */
