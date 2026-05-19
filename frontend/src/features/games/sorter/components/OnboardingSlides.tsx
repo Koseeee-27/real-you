@@ -6,7 +6,6 @@ import { useState } from 'react';
 import {
   BIN_IMAGE_PATHS,
   GAME_DURATION_SEC,
-  ONBOARDING_SLIDE_COUNT,
   PACKAGE_COLORS,
   PACKAGE_IMAGE_PATHS,
   PACKAGE_LABELS,
@@ -18,12 +17,28 @@ import {
 } from '../data/sorterConstants';
 
 interface OnboardingSlidesProps {
-  /** 0..(ONBOARDING_SLIDE_COUNT - 1) のスライド index */
+  /** 0..(SLIDES.length - 1) のスライド index */
   slideIndex: number;
   onPrev: () => void;
   onNext: () => void;
   onStart: () => void;
 }
+
+/**
+ * オンボーディングスライドのコンポーネント配列。
+ * 描画・進捗ドット・末尾判定はすべてこの配列から派生する。
+ * スライドを追加・削除する場合はここを変更するだけで、配列長に依存する 3 箇所が
+ * 自動的に追従する。
+ *
+ * 外部から参照する `ONBOARDING_SLIDE_COUNT`（sorterConstants）も同じ値に
+ * 揃える必要がある（SorterGameFlow の onNext 上限制御で参照する）。
+ */
+const SLIDES = [
+  SlideIntro,
+  SlideColorPairing,
+  SlideHowToPlay,
+  SlideScoring,
+] as const;
 
 /**
  * ゲーム開始時に表示する 4 スライドのオンボーディング。
@@ -62,7 +77,7 @@ export default function OnboardingSlides({
   };
 
   const isFirst = slideIndex === 0;
-  const isLast = slideIndex === ONBOARDING_SLIDE_COUNT - 1;
+  const isLast = slideIndex === SLIDES.length - 1;
 
   const variants = {
     enter: (dir: number) => ({
@@ -89,7 +104,7 @@ export default function OnboardingSlides({
           className="flex justify-center gap-2 border-b-[3px] border-black py-3"
           style={{ backgroundColor: SORTER_UI_COLORS.warning }}
         >
-          {Array.from({ length: ONBOARDING_SLIDE_COUNT }).map((_, i) => (
+          {SLIDES.map((_, i) => (
             <span
               key={i}
               className={`h-3 w-3 rounded-full border-[2px] border-black ${
@@ -118,10 +133,10 @@ export default function OnboardingSlides({
               transition={{ duration: 0.3, ease: 'easeOut' }}
               className="absolute inset-0 flex flex-col justify-center px-6"
             >
-              {slideIndex === 0 && <SlideIntro />}
-              {slideIndex === 1 && <SlideColorPairing />}
-              {slideIndex === 2 && <SlideHowToPlay />}
-              {slideIndex === 3 && <SlideScoring />}
+              {(() => {
+                const Slide = SLIDES[slideIndex];
+                return Slide ? <Slide /> : null;
+              })()}
             </motion.div>
           </AnimatePresence>
         </div>
