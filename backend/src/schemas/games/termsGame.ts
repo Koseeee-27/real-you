@@ -92,6 +92,76 @@ const popupStatsSchema = registry.register(
         }),
 );
 
+
+/**
+ * 利用規約ゲームのエラー発火イベントログ
+ */
+const errorEventSchema = registry.register(
+    'TermsErrorEvent',
+    z
+        .object({
+            timestamp: z.number().openapi({
+                description: 'ゲーム開始からエラーが発生した時点までの時間（ms）',
+            }),
+            reason: z.string().openapi({
+                description: 'エラーの発生理由'
+            }),
+            scrollPositionAtError: z.number().openapi({
+                description: 'エラー発生時のスクロール位置（px）',
+            }),
+        })
+        .openapi({
+            description: 'エラー発火時のログデータ',
+            example: { timestamp: 8500, reason: 'missing_read_confirm', scrollPositionAtError: 1200 },
+        }),
+);
+
+/**
+ * 利用規約ゲームのエラー後クリックストリーム
+ */
+const postErrorClickSchema = registry.register(
+    'TermsPostErrorClick',
+    z
+        .object({
+            timestamp: z.number().openapi({
+                description: 'ゲーム開始からクリックイベントが発生した時点までの時間（ms）',
+            }),
+            type: z.enum(['agree', 'errorDialog', 'checkbox', 'other']).openapi({
+                description: 'クリック対象の種類',
+            }),
+        })
+        .openapi({
+            description: 'エラー表示中に行われたクリックのログ',
+            example: { timestamp: 9000, type: 'agree' },
+        }),
+);
+
+/**
+ * 利用規約ゲームのチャックボックス変更ログ
+ */
+const checkboxEventsSchema = registry.register(
+    'TermsCheckboxEvent',
+    z
+        .object({
+            timestamp: z.number().openapi({
+                description: 'ゲーム開始からチェックボックスの状態が変更された時点までの時間（ms）',
+            }),
+            target: z.enum(['readConfirm', 'mailMagazine', 'thirdPartyShare']).openapi({
+                description: '変更されたチェックボックスの種類',
+            }),
+            newState: checkboxStateSchema.openapi({
+                description: '変更後のチェックボックスの状態',
+            }),
+            afterError: z.boolean().openapi({   
+                description: 'この状態変更がエラー発生後かどうか',
+            }),
+        })
+        .openapi({
+            description: 'チェックボックスの状態が変更されたときのログ',
+            example: { timestamp: 3000, target: 'mailMagazine', newState: { checked: false, changed: true }, afterError: false },
+        }),
+);
+
 /**
  * TermsGameData（利用規約ゲーム）。
  *
@@ -136,6 +206,15 @@ export const termsGameDataSchema = registry.register(
             popupStats: popupStatsSchema.optional(),
             agreeButtonHoverTimeMs: z.number().openapi({
                 description: '同意ボタンホバー → クリックの迷い時間（ms）',
+            }),
+            errorEvents: z.array(errorEventSchema).openapi({
+                description: 'エラー発火イベントのログ',
+            }),
+            postErrorClicks: z.array(postErrorClickSchema).openapi({
+                description: 'エラー表示中のクリックイベントのログ',
+            }),
+            checkboxEvents: z.array(checkboxEventsSchema).openapi({
+                description: 'チェックボックス変更イベントのログ',
             }),
         })
         .openapi({
