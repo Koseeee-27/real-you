@@ -207,13 +207,13 @@ export const termsGameDataSchema = registry.register(
             agreeButtonHoverTimeMs: z.number().openapi({
                 description: '同意ボタンホバー → クリックの迷い時間（ms）',
             }),
-            errorEvents: z.array(errorEventSchema).openapi({
+            errorEvents: z.array(errorEventSchema).optional().openapi({
                 description: 'エラー発火イベントのログ',
             }),
-            postErrorClicks: z.array(postErrorClickSchema).openapi({
+            postErrorClicks: z.array(postErrorClickSchema).optional().openapi({
                 description: 'エラー表示中のクリックイベントのログ',
             }),
-            checkboxEvents: z.array(checkboxEventsSchema).openapi({
+            checkboxEvents: z.array(checkboxEventsSchema).optional().openapi({
                 description: 'チェックボックス変更イベントのログ',
             }),
         })
