@@ -200,30 +200,56 @@ export const submitGameRequestExampleHelpdeskGame = {
 /**
  * game_type = 3（グループチャット）の data サンプル。
  *
- * 仕様書「データ構造」→ GroupChatGameData を参照。stages は 5 ステージのうち代表 2 件を載せ、
- * `selectedOptionId: 0` でタイムアウト例も含める（仕様書準拠）。
+ * 仕様書「データ構造」→ GroupChatGameData を参照。3 ターン固定。
+ * ターン 2 でタイムアウト例を含める（仕様書準拠）。
  */
 export const submitGameRequestExampleGroupChatGame = {
     user_id: SAMPLE_USER_ID,
     game_type: 3,
     data: {
         tutorialViewTime: 8500,
-        hoveredOptions: 7,
-        typingIndicatorReactTimeMs: 1450,
-        stages: [
+        turns: [
             {
-                stageId: 1,
+                turnId: 1,
                 selectedOptionId: 2,
                 reactionTimeMs: 3200,
                 isTimeout: false,
+                firstHoverElapsedMs: 800,
+                finalChoiceHoverOrder: 2,
+                decisionConfidenceMs: 1200,
+                mouseMovementDistance: 345,
+                hoverSequence: [1, 3, 2],
+                scrolledChatHistoryCount: 0,
             },
             {
-                stageId: 2,
-                selectedOptionId: 0,
+                turnId: 2,
+                selectedOptionId: 1,
                 reactionTimeMs: 10000,
                 isTimeout: true,
+                firstHoverElapsedMs: null,
+                finalChoiceHoverOrder: null,
+                decisionConfidenceMs: null,
+                mouseMovementDistance: 0,
+                hoverSequence: [],
+                scrolledChatHistoryCount: 1,
+            },
+            {
+                turnId: 3,
+                selectedOptionId: 3,
+                reactionTimeMs: 2500,
+                isTimeout: false,
+                firstHoverElapsedMs: 600,
+                finalChoiceHoverOrder: 1,
+                decisionConfidenceMs: 900,
+                mouseMovementDistance: 210,
+                hoverSequence: [3],
+                scrolledChatHistoryCount: 0,
             },
         ],
+        turn1AnsweredBeforeColleagueA: true,
+        turn1TypingIndicatorReactTimeMs: 1450,
+        turn1HoverChangedAfterColleagueATyping: true,
+        inputDeviceType: 'mouse',
     },
 } as const;
 
