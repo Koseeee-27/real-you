@@ -561,27 +561,46 @@ export interface components {
             turns: components["schemas"]["HelpdeskGameTurn"][];
             textInputMetrics: components["schemas"]["HelpdeskGameTextInputMetrics"] | null;
         };
-        /** @description 空気読みグループチャットの 1 ステージ分のメトリクス */
-        GroupChatGameStage: {
-            /** @description ステージ ID（1-5） */
-            stageId: number;
-            /** @description 選択した選択肢 ID（1-4 が通常選択、タイムアウト時は 0） */
+        /** @description 空気読みグループチャットの 1 ターン分のメトリクス */
+        GroupChatGameTurn: {
+            /** @description ターン ID（1-3 固定） */
+            turnId: 1 | 2 | 3;
+            /** @description 選択した選択肢 ID（1-4 の内部設計上の意図 ID。表示順と独立） */
             selectedOptionId: number;
-            /** @description ステージ表示から選択までの反応時間（ms） */
+            /** @description 選択肢提示 → 選択までの反応時間（ms） */
             reactionTimeMs: number;
             /** @description タイムアウトしたか */
             isTimeout: boolean;
+            /** @description 選択肢表示 → 初ホバーまでの経過時間（ms）。ホバーなしの場合は null */
+            firstHoverElapsedMs: number | null;
+            /** @description 最終選択した選択肢が何番目にホバーされたか（1-4）。ホバーなしの場合は null */
+            finalChoiceHoverOrder: number | null;
+            /** @description 最終クリック直前の最後のホバー時間（ms）。ホバーなしの場合は null */
+            decisionConfidenceMs: number | null;
+            /** @description 選択肢表示 → 決定までのマウス総移動距離（px） */
+            mouseMovementDistance: number;
+            /** @description ホバーした選択肢 ID の順番（上限 10 件。超過分は切り捨て） */
+            hoverSequence: number[];
+            /** @description チャット履歴を遡るスクロールの回数 */
+            scrolledChatHistoryCount: number;
         };
         /** @description 空気読みグループチャットの行動データ。仕様書「データ構造 → GroupChatGameData」準拠 */
         GroupChatGameData: {
-            /** @description チュートリアル閲覧時間（ms） */
+            /** @description オンボーディング滞在時間（スライド 1 + 2 合計、ms） */
             tutorialViewTime: number;
-            /** @description 全ステージ通じた選択肢ホバー回数の合計 */
-            hoveredOptions: number;
-            /** @description ステージ 3 / 5 で「入力中...」表示後の操作時間（ms）。未計測時は null */
-            typingIndicatorReactTimeMs: number | null;
-            /** @description 各ステージのメトリクス */
-            stages: components["schemas"]["GroupChatGameStage"][];
+            /** @description 各ターンのメトリクス（要素数 3 固定） */
+            turns: components["schemas"]["GroupChatGameTurn"][];
+            /** @description ターン 1 でプレイヤーが同僚 A より先に回答したか。true=先回り / false=譲った / null=タイムアウト */
+            turn1AnsweredBeforeColleagueA: boolean | null;
+            /** @description ターン 1 で同僚 A の「入力中」表示 → プレイヤー操作までの時間（ms）。未計測時は null */
+            turn1TypingIndicatorReactTimeMs: number | null;
+            /** @description ターン 1 で同僚 A の「入力中」表示後にホバー先が変わったか。未計測時は null */
+            turn1HoverChangedAfterColleagueATyping: boolean | null;
+            /**
+             * @description 入力デバイスの種類
+             * @enum {string}
+             */
+            inputDeviceType: "mouse" | "touch" | "keyboard";
         };
         /**
          * @description 荷物の種類。urgent=特急 / fragile=取扱注意 / heavy=重量物
