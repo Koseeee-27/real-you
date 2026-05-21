@@ -98,10 +98,7 @@ function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResul
 
     // --- 積極性 ---
     const sAnsweredFirst = data.turn1AnsweredBeforeColleagueA === true ? 100 : 0; // null も 0（仕様書 ※注N3）
-    const avgReactionMs = nullAvg(
-        turns.map((t) => t.reactionTimeMs),
-        THRESHOLDS.reactionMs.fallback,
-    );
+    const avgReactionMs = turns.reduce((a, t) => a + t.reactionTimeMs, 0) / turns.length;
     const sReactionMs = linearInv(avgReactionMs, THRESHOLDS.reactionMs.best, THRESHOLDS.reactionMs.worst);
     const avgFirstHoverMs = nullAvg(
         turns.map((t) => t.firstHoverElapsedMs),
@@ -134,7 +131,7 @@ function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResul
     const avgMouseDist =
         data.inputDeviceType !== 'mouse'
             ? 50
-            : turns.reduce((a, t) => a + t.mouseMovementDistance, 0) / 3;
+            : turns.reduce((a, t) => a + t.mouseMovementDistance, 0) / turns.length;
     const sMouseDist = logNorm(avgMouseDist, THRESHOLDS.mouseMovementDist.lo, THRESHOLDS.mouseMovementDist.hi);
 
     const totalHoverSeqLen = turns.reduce((a, t) => a + t.hoverSequence.length, 0);
@@ -145,9 +142,9 @@ function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResul
 
     const sTutorial = logNorm(data.tutorialViewTime ?? 0, THRESHOLDS.tutorialViewTime.lo, THRESHOLDS.tutorialViewTime.hi);
 
-    const reactionMean = turns.reduce((a, t) => a + t.reactionTimeMs, 0) / 3;
+    const reactionMean = turns.reduce((a, t) => a + t.reactionTimeMs, 0) / turns.length;
     const reactionStdDev = Math.sqrt(
-        turns.reduce((a, t) => a + (t.reactionTimeMs - reactionMean) ** 2, 0) / 3,
+        turns.reduce((a, t) => a + (t.reactionTimeMs - reactionMean) ** 2, 0) / turns.length,
     );
     const sStdDev = linearInv(reactionStdDev, THRESHOLDS.reactionStdDev.best, THRESHOLDS.reactionStdDev.worst);
 
@@ -178,10 +175,7 @@ function buildSummary(data: GroupChatGameData | undefined): string {
     const turns = data.turns;
     const conformRate =
         turns.filter((t) => t.selectedOptionId === 1 || t.selectedOptionId === 2).length / 3;
-    const avgReactionMs =
-        turns.length > 0
-            ? turns.reduce((sum, t) => sum + t.reactionTimeMs, 0) / turns.length
-            : THRESHOLDS.reactionMs.fallback;
+    const avgReactionMs = turns.reduce((sum, t) => sum + t.reactionTimeMs, 0) / turns.length;
 
     const socialText =
         conformRate >= 0.67
