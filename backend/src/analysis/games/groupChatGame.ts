@@ -5,156 +5,235 @@ import { linear, linearInv, logNorm } from '../scoreUtils';
 /**
  * 空気読みグループチャット（group_chat_game）の分析モジュール。
  *
- * Issue #100 で `scoreCalculator.ts` 側にあった analyze ロジックと
- * 旧 `phaseSummaryBuilder.ts` の Phase 3 テキスト生成ロジックを 1 ファイルに凝集。
- * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` 内の group_chat_game 要素も
- * `buildDetails` として本ファイルに移管。
+ * 3 ターン実装（Task 2）として旧 5 ステージ版を全面置き換え。
+ * 評価軸: 協調性・積極性・慎重さ
  */
 
 /**
- * `analyze()` の戻り値型（Issue #102 で 2 階層構造に変更）。
- * 詳細は `termsGame.ts` の `TermsGameAnalyzeResult` コメント参照。
+ * 分析で使う閾値定数。
+ * 値は仕様書「閾値の根拠 Game 3」の初期値。
+ */
+const THRESHOLDS = {
+    typingReact:           { lo: 0,    hi: 5000  },
+    reactionMs:            { best: 1000, worst: 8000, fallback: 8000 },
+    firstHoverMs:          { best: 500,  worst: 5000, fallback: 5000 },
+    timeoutRate:           { best: 0,    worst: 1                    },
+    finalChoiceHoverOrder: { lo: 1,    hi: 4,    fallback: 2.5       },
+    decisionConfidenceMs:  { lo: 0,    hi: 2000, fallback: 0         },
+    mouseMovementDist:     { lo: 100,  hi: 3000, fallback: 50        },
+    hoverSeqLength:        { lo: 0,    hi: 15                        },
+    scrollCount:           { lo: 0,    hi: 5                         },
+    tutorialViewTime:      { lo: 2000, hi: 30000                     },
+    reactionStdDev:        { best: 500, worst: 5000                  },
+} as const;
+
+/**
+ * 各軸スコアの重み定数。
+ * 合計が 1.0 になるよう維持すること。
+ */
+const WEIGHTS = {
+    cooperativeness: { conformRate: 0.50, typingReact: 0.30, hoverChanged: 0.20 },
+    positivity:      { answeredFirst: 0.40, reactionMs: 0.30, firstHoverMs: 0.20, timeoutRate: 0.10 },
+    caution: {
+        finalChoiceHoverOrder: 0.15,
+        decisionConfidenceMs:  0.15,
+        mouseMovementDist:     0.15,
+        hoverSeqLength:        0.15,
+        scrollCount:           0.10,
+        tutorialViewTime:      0.10,
+        reactionStdDev:        0.20,
+    },
+} as const;
+
+/**
+ * `analyze()` の戻り値型。
+ * `conformRate` / `avgReactionMs` / `timeoutRate` は buildDetails / buildSummary でも参照する。
  */
 export type GroupChatGameAnalyzeResult = {
     scores: { cooperativeness: number; positivity: number; caution: number };
-    conformCount: number;
-    avgReact: number;
+    conformRate: number;
+    avgReactionMs: number;
+    timeoutRate: number;
 };
 
 /**
  * 空気読みグループチャットの行動データ → 協調性・積極性・慎重さの中間集計。
- *
- * 評価軸:
- * - 協調性(cooperativeness): 同調率・譲り待機・本音葛藤
- * - 積極性(positivity): 即応性
- * - 慎重さ(caution): チュートリアル確認・反応安定
  */
 function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResult {
-    // 早期 return は通常 return と同じ shape を返す（buildDetails 側で欠損プロパティに
-    // アクセスして undefined がレスポンスに漏れるのを防ぐため）
     if (!data)
         return {
             scores: { cooperativeness: 50, positivity: 50, caution: 50 },
-            conformCount: 0,
-            avgReact: 0,
+            conformRate: 0,
+            avgReactionMs: THRESHOLDS.reactionMs.fallback,
+            timeoutRate: 0,
         };
 
-    const stages = data.stages || [];
+    const turns = data.turns;
 
-    const conformCount = stages.filter(
-        (s) => s.selectedOptionId === 1 || s.selectedOptionId === 2,
-    ).length;
+    // null を除外した平均。全 null の場合は fallback を返す。
+    const nullAvg = (vals: (number | null)[], fallback: number): number => {
+        const filtered = vals.filter((v): v is number => v !== null);
+        return filtered.length === 0 ? fallback : filtered.reduce((a, b) => a + b, 0) / filtered.length;
+    };
 
-    const conformRate = conformCount / (stages.length || 1);
+    // --- 協調性 ---
+    const conformRate = turns.filter(
+        (t) => t.selectedOptionId === 1 || t.selectedOptionId === 2,
+    ).length / 3;
+    const sConformRate = linear(conformRate, 0, 1);
+    const sTypingReact = logNorm(
+        data.turn1TypingIndicatorReactTimeMs ?? 0,
+        THRESHOLDS.typingReact.lo,
+        THRESHOLDS.typingReact.hi,
+    );
+    const sHoverChanged =
+        data.turn1HoverChangedAfterColleagueATyping === true  ? 100
+        : data.turn1HoverChangedAfterColleagueATyping === false ? 0
+        : 50; // null = 中立（仕様書 ※注N2）
+    const cooperativeness = Math.round(
+        sConformRate  * WEIGHTS.cooperativeness.conformRate
+        + sTypingReact  * WEIGHTS.cooperativeness.typingReact
+        + sHoverChanged * WEIGHTS.cooperativeness.hoverChanged,
+    );
 
-    const avgReact =
-        stages.reduce((a, s) => a + (s.reactionTimeMs ?? 0), 0) / (stages.length || 1);
+    // --- 積極性 ---
+    const sAnsweredFirst = data.turn1AnsweredBeforeColleagueA === true ? 100 : 0; // null も 0（仕様書 ※注N3）
+    const avgReactionMs = nullAvg(
+        turns.map((t) => t.reactionTimeMs),
+        THRESHOLDS.reactionMs.fallback,
+    );
+    const sReactionMs = linearInv(avgReactionMs, THRESHOLDS.reactionMs.best, THRESHOLDS.reactionMs.worst);
+    const avgFirstHoverMs = nullAvg(
+        turns.map((t) => t.firstHoverElapsedMs),
+        THRESHOLDS.firstHoverMs.fallback,
+    );
+    const sFirstHoverMs = linearInv(avgFirstHoverMs, THRESHOLDS.firstHoverMs.best, THRESHOLDS.firstHoverMs.worst);
+    const timeoutRate = turns.filter((t) => t.isTimeout).length / 3;
+    const sTimeoutRate = linearInv(timeoutRate, THRESHOLDS.timeoutRate.best, THRESHOLDS.timeoutRate.worst);
+    const positivity = Math.round(
+        sAnsweredFirst * WEIGHTS.positivity.answeredFirst
+        + sReactionMs   * WEIGHTS.positivity.reactionMs
+        + sFirstHoverMs * WEIGHTS.positivity.firstHoverMs
+        + sTimeoutRate  * WEIGHTS.positivity.timeoutRate,
+    );
 
-    const reactionVariance =
-        stages.reduce((a, s) => a + Math.pow((s.reactionTimeMs ?? 0) - avgReact, 2), 0) /
-        (stages.length || 1);
+    // --- 慎重さ ---
+    const avgFinalChoice = nullAvg(
+        turns.map((t) => t.finalChoiceHoverOrder),
+        THRESHOLDS.finalChoiceHoverOrder.fallback,
+    );
+    const sFinalChoice = linear(avgFinalChoice, THRESHOLDS.finalChoiceHoverOrder.lo, THRESHOLDS.finalChoiceHoverOrder.hi);
 
-    //協調性: 同調率・譲り待機・本音葛藤
-    const sConform = linear(conformRate, 0, 1);
-    const sWait = logNorm(data.typingIndicatorReactTimeMs ?? 0, 0, 5000);
+    const avgDecisionConf = nullAvg(
+        turns.map((t) => t.decisionConfidenceMs),
+        THRESHOLDS.decisionConfidenceMs.fallback,
+    );
+    const sDecisionConf = logNorm(avgDecisionConf, THRESHOLDS.decisionConfidenceMs.lo, THRESHOLDS.decisionConfidenceMs.hi);
 
-    const hoverCount = data.hoveredOptions ?? 0;
+    // inputDeviceType が mouse 以外のときはマウス移動距離を中立値 50 に固定（仕様書 ※注N6）
+    const avgMouseDist =
+        data.inputDeviceType !== 'mouse'
+            ? 50
+            : turns.reduce((a, t) => a + t.mouseMovementDistance, 0) / 3;
+    const sMouseDist = logNorm(avgMouseDist, THRESHOLDS.mouseMovementDist.lo, THRESHOLDS.mouseMovementDist.hi);
 
-    const sHover = linear(hoverCount, 0, 5);
+    const totalHoverSeqLen = turns.reduce((a, t) => a + t.hoverSequence.length, 0);
+    const sHoverSeq = linear(totalHoverSeqLen, THRESHOLDS.hoverSeqLength.lo, THRESHOLDS.hoverSeqLength.hi);
 
-    const cooperativeness = Math.round(sConform * 0.5 + sWait * 0.3 + sHover * 0.2);
+    const totalScrollCount = turns.reduce((a, t) => a + t.scrolledChatHistoryCount, 0);
+    const sScrollCount = linear(totalScrollCount, THRESHOLDS.scrollCount.lo, THRESHOLDS.scrollCount.hi);
 
-    //積極性: 即応性
-    const positivity = Math.round(linearInv(avgReact, 1000, 8000));
+    const sTutorial = logNorm(data.tutorialViewTime ?? 0, THRESHOLDS.tutorialViewTime.lo, THRESHOLDS.tutorialViewTime.hi);
 
-    //慎重さ: チュートリアル確認・反応安定
-    const sTutorial = logNorm(data.tutorialViewTime ?? 0, 1000, 15000);
-    const sVariance = linearInv(reactionVariance, 500, 5000);
+    const reactionMean = turns.reduce((a, t) => a + t.reactionTimeMs, 0) / 3;
+    const reactionStdDev = Math.sqrt(
+        turns.reduce((a, t) => a + (t.reactionTimeMs - reactionMean) ** 2, 0) / 3,
+    );
+    const sStdDev = linearInv(reactionStdDev, THRESHOLDS.reactionStdDev.best, THRESHOLDS.reactionStdDev.worst);
 
-    const caution = Math.round(sTutorial * 0.5 + sVariance * 0.5);
+    const caution = Math.round(
+        sFinalChoice   * WEIGHTS.caution.finalChoiceHoverOrder
+        + sDecisionConf  * WEIGHTS.caution.decisionConfidenceMs
+        + sMouseDist     * WEIGHTS.caution.mouseMovementDist
+        + sHoverSeq      * WEIGHTS.caution.hoverSeqLength
+        + sScrollCount   * WEIGHTS.caution.scrollCount
+        + sTutorial      * WEIGHTS.caution.tutorialViewTime
+        + sStdDev        * WEIGHTS.caution.reactionStdDev,
+    );
 
     return {
         scores: { cooperativeness, positivity, caution },
-        conformCount,
-        avgReact,
+        conformRate,
+        avgReactionMs,
+        timeoutRate,
     };
 }
 
 /**
  * 空気読みグループチャットの行動データ → 結果画面に表示するサマリーテキスト。
- *
- * 例: 「グループの空気を敏感に察知して周りに合わせ、即決でアクションを起こしました。」
  */
 function buildSummary(data: GroupChatGameData | undefined): string {
     if (!data) return 'データなし';
 
-    const stages = data.stages || [];
-
-    // 多数派（仮に選択肢1と2を多数派とする）を選んだ回数で同調率を算出
-    const conformCount = stages.filter(
-        (s) => s.selectedOptionId === 1 || s.selectedOptionId === 2,
-    ).length;
-    const conformRate = (conformCount / (stages.length || 1)) * 100;
+    const turns = data.turns;
+    const conformRate =
+        turns.filter((t) => t.selectedOptionId === 1 || t.selectedOptionId === 2).length / 3;
+    const avgReactionMs =
+        turns.length > 0
+            ? turns.reduce((sum, t) => sum + t.reactionTimeMs, 0) / turns.length
+            : THRESHOLDS.reactionMs.fallback;
 
     const socialText =
-        conformRate >= 60
-            ? 'グループの空気を敏感に察知して周りに合わせ'
-            : '周りに流されず我が道をゆく選択肢を取り';
-
-    // 平均反応速度から速度感を表現する。
-    // Phase 3 の reactionTimeMs は仕様上 null が来ない（タイムアウト時も実時間 ≈ 10000ms で記録される）。
-    // 防御的に `?? 2000`（中立値）でフォールバックし、stages 0 件のときも 2000ms を使う。
-    const avgReaction =
-        stages.length > 0
-            ? stages.reduce((sum, s) => sum + (s.reactionTimeMs ?? 2000), 0) / stages.length
-            : 2000;
+        conformRate >= 0.67
+            ? '周りの空気を読んで行動し'
+            : '自分の判断を優先し';
     const speedText =
-        avgReaction < 2000 ? '即決でアクションを起こしました。' : '慎重にタイミングを伺いました。';
+        avgReactionMs < 3000
+            ? '素早く決断しました。'
+            : '慎重に考えてから選択しました。';
 
     return `${socialText}、${speedText}`;
 }
 
 /**
  * 空気読みグループチャットの行動データ + analyze 結果 → 結果画面 details 用の構造体。
- * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` の group_chat_game 要素を移管。挙動は完全同一。
  */
 function buildDetails(
     data: GroupChatGameData | undefined,
     result: GroupChatGameAnalyzeResult,
 ): GameDetail {
-    // 同調率は「conformCount（analyze 結果側）」を「stages 件数（data 側）」で割って算出する。
-    // 旧構造から本ファイルへ移管する際もこの参照関係を維持している（挙動は完全同一）。
     return {
         game_id: groupChatGameModule.id,
         title: groupChatGameModule.title,
         feature_scores: [
             { axis: 'cooperativeness', name: '協調性', score: result.scores.cooperativeness },
-            { axis: 'positivity', name: '積極性', score: result.scores.positivity },
+            { axis: 'positivity',      name: '積極性', score: result.scores.positivity },
+            { axis: 'caution',         name: '慎重さ', score: result.scores.caution },
         ],
         metrics: [
             {
                 label: '同調率(%)',
-                user: Math.round(((result.conformCount ?? 0) / (data?.stages?.length || 1)) * 100),
-                average: 75,
+                user: Math.round(result.conformRate * 100),
+                average: 67,
                 category: 'social',
             },
             {
-                label: '反応潜時(ms)',
-                user: Math.round(result.avgReact ?? 0),
+                label: '反応時間平均(ms)',
+                user: Math.round(result.avgReactionMs),
                 average: 3500,
                 category: 'time',
             },
             {
-                label: '本音ホバー(回)',
-                user: data?.hoveredOptions ?? 0,
-                average: 2.4,
-                category: 'mouse',
+                label: 'タイムアウト率(%)',
+                user: Math.round(result.timeoutRate * 100),
+                average: 10,
+                category: 'input',
             },
             {
-                label: '譲り合い待機(ms)',
-                user: data?.typingIndicatorReactTimeMs ?? 0,
-                average: 2000,
-                category: 'time',
+                label: '先回り回答',
+                user: data?.turn1AnsweredBeforeColleagueA === true ? 1 : 0,
+                average: 0.5,
+                category: 'social',
             },
         ],
     };
