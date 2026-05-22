@@ -1,10 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type {
-  GroupChatGameData,
-  GroupChatGameStage,
-} from '@/features/games/types';
+import type { GroupChatGameData } from '@/features/games/types';
 import {
   BOTS,
   STAGES,
@@ -64,6 +61,19 @@ export type ChatMessage =
   | SeparatorTimelineMessage;
 
 /**
+ * 旧5ステージ仕様の1ステージ分の操作ログ。
+ * 以前は generated.ts の GroupChatGameStage を参照していたが、新3ターン仕様で
+ * 同型が廃止されたためローカルに退避している。
+ * TODO(#140 / #141): 新3ターン仕様の収集ロジックに作り直す際に削除する。
+ */
+interface LegacyStageResult {
+  stageId: number;
+  selectedOptionId: number;
+  reactionTimeMs: number;
+  isTimeout: boolean;
+}
+
+/**
  * 空気読みグループチャット（group_chat_game）全体のステート管理フック。
  *
  * 以下のフローを制御する:
@@ -103,7 +113,7 @@ export function useGroupChatGame(options: {
   /** ステージ3の「○○が返信中」表示〜ユーザー操作までの時間(ms) */
   const stage3TypingReactRef = useRef<number | null>(null);
   /** 各ステージの操作ログを蓄積 */
-  const stageResultsRef = useRef<GroupChatGameStage[]>([]);
+  const stageResultsRef = useRef<LegacyStageResult[]>([]);
   const tutorialViewTimeRef = useRef(0);
   const timerIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -139,7 +149,7 @@ export function useGroupChatGame(options: {
       typingIndicatorReactTimeMs?: number | null
     ) => {
       const stage = STAGES[currentStageIndex];
-      const log: GroupChatGameStage = {
+      const log: LegacyStageResult = {
         stageId: stage.stageId,
         selectedOptionId,
         reactionTimeMs,
@@ -382,11 +392,30 @@ export function useGroupChatGame(options: {
     if (gamePhase !== 'submitting' || submittedRef.current) return;
     submittedRef.current = true;
 
+    // TODO(#140 / #141): 新3ターン仕様の収集ロジックに置き換える。
+    // 現状は旧5ステージ仕様で集めたデータを新型 GroupChatGameData の形に
+    // 暫定マッピングして型を満たしているだけ（収集値の意味的な正しさは未対応）。
     const groupChatGameData: GroupChatGameData = {
       tutorialViewTime: tutorialViewTimeRef.current,
-      stages: [...stageResultsRef.current],
-      hoveredOptions: totalHoveredOptionsRef.current,
-      typingIndicatorReactTimeMs: stage3TypingReactRef.current,
+      turns: ([1, 2, 3] as const).map((turnId) => {
+        const stage = stageResultsRef.current[turnId - 1];
+        return {
+          turnId,
+          selectedOptionId: stage?.selectedOptionId ?? 0,
+          reactionTimeMs: stage?.reactionTimeMs ?? 0,
+          isTimeout: stage?.isTimeout ?? false,
+          firstHoverElapsedMs: null,
+          finalChoiceHoverOrder: null,
+          decisionConfidenceMs: null,
+          mouseMovementDistance: 0,
+          hoverSequence: [],
+          scrolledChatHistoryCount: 0,
+        };
+      }),
+      turn1AnsweredBeforeColleagueA: null,
+      turn1TypingIndicatorReactTimeMs: stage3TypingReactRef.current,
+      turn1HoverChangedAfterColleagueATyping: null,
+      inputDeviceType: 'mouse',
     };
     onComplete(groupChatGameData);
     const id = setTimeout(() => setGamePhase('completed'), 0);
