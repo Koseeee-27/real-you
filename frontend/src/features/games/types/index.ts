@@ -33,5 +33,4 @@ export type VoiceRespondResponse =
 // ========================================
 // 空気読みグループチャット（group_chat_game / 旧 Game 3）
 // ========================================
-export type GroupChatGameStage = components['schemas']['GroupChatGameStage'];
 export type GroupChatGameData = components['schemas']['GroupChatGameData'];
