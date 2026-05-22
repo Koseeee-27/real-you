@@ -77,8 +77,9 @@ function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResul
     };
 
     // --- 協調性 ---
+    // タイムアウトしたターンは「選択していない」ため同調にカウントしない（分母は 3 固定 = 非同調扱い）。
     const conformRate = turns.filter(
-        (t) => t.selectedOptionId === 1 || t.selectedOptionId === 2,
+        (t) => !t.isTimeout && (t.selectedOptionId === 1 || t.selectedOptionId === 2),
     ).length / 3;
     const sConformRate = linear(conformRate, 0, 1);
     const sTypingReact = logNorm(
@@ -127,12 +128,17 @@ function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResul
     );
     const sDecisionConf = logNorm(avgDecisionConf, THRESHOLDS.decisionConfidenceMs.lo, THRESHOLDS.decisionConfidenceMs.hi);
 
-    // inputDeviceType が mouse 以外のときはマウス移動距離を中立値 50 に固定（仕様書 ※注N6）
-    const avgMouseDist =
+    // inputDeviceType が mouse 以外のときはマウス移動距離が無意味なため、
+    // 正規化後スコアを中立値 50 に固定する（仕様書 ※注N6）。
+    // raw 50 を logNorm(lo=100, ...) に渡すと下限クランプで 0 点になり中立にならないため、ここで直接 50 を入れる。
+    const sMouseDist =
         data.inputDeviceType !== 'mouse'
             ? 50
-            : turns.reduce((a, t) => a + t.mouseMovementDistance, 0) / turns.length;
-    const sMouseDist = logNorm(avgMouseDist, THRESHOLDS.mouseMovementDist.lo, THRESHOLDS.mouseMovementDist.hi);
+            : logNorm(
+                  turns.reduce((a, t) => a + t.mouseMovementDistance, 0) / turns.length,
+                  THRESHOLDS.mouseMovementDist.lo,
+                  THRESHOLDS.mouseMovementDist.hi,
+              );
 
     const totalHoverSeqLen = turns.reduce((a, t) => a + t.hoverSequence.length, 0);
     const sHoverSeq = linear(totalHoverSeqLen, THRESHOLDS.hoverSeqLength.lo, THRESHOLDS.hoverSeqLength.hi);
@@ -174,7 +180,8 @@ function buildSummary(data: GroupChatGameData | undefined): string {
 
     const turns = data.turns;
     const conformRate =
-        turns.filter((t) => t.selectedOptionId === 1 || t.selectedOptionId === 2).length / 3;
+        turns.filter((t) => !t.isTimeout && (t.selectedOptionId === 1 || t.selectedOptionId === 2))
+            .length / 3;
     const avgReactionMs = turns.reduce((sum, t) => sum + t.reactionTimeMs, 0) / turns.length;
 
     const socialText =

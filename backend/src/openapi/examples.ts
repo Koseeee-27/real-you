@@ -223,7 +223,7 @@ export const submitGameRequestExampleGroupChatGame = {
             },
             {
                 turnId: 2,
-                selectedOptionId: 1,
+                selectedOptionId: 0,
                 reactionTimeMs: 10000,
                 isTimeout: true,
                 firstHoverElapsedMs: null,
