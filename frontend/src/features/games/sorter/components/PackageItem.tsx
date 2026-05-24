@@ -23,21 +23,42 @@ interface PackageItemProps {
   onOutflow: (id: number) => void;
 }
 
-/** 荷物 1 個分のサイズ（px） */
-const PACKAGE_SIZE_PX = 84;
+/**
+ * 荷物画像の表示サイズ（px、見た目のサイズ）。
+ * 当たり判定（button）はこれより一回り大きい HIT サイズにし、画像はその中央に置く。
+ */
+const PACKAGE_IMAGE_SIZE_PX = 90;
+
+/**
+ * 画像の周囲に設ける透明な当たり判定パディング（各辺、px）。
+ * 見た目を変えずにクリック可能領域だけ広げ、流れる荷物を押しやすくする。
+ */
+const PACKAGE_HIT_PADDING_PX = 14;
+
+/**
+ * 当たり判定（button）のサイズ（px）。画像サイズ + 上下左右パディング。
+ * lane 高さ（BELT_LANE_HEIGHT_PX = 130）に収まる範囲（90 + 14*2 = 118）。
+ * この値が BELT_LANE_HEIGHT_PX を超えると lane からはみ出すので注意。
+ */
+const PACKAGE_HIT_SIZE_PX = PACKAGE_IMAGE_SIZE_PX + PACKAGE_HIT_PADDING_PX * 2;
 
 /**
  * 折り返し位置の X 座標を決める際の視覚的な微調整値（px）。
- * 単純に `beltWidth - BELT_TURN_WIDTH_PX - PACKAGE_SIZE_PX` で計算すると、
- * 荷物の左上が折り返し領域の外側に当たって不自然に見えるため、内側に少しずらす。
- * 元実装の `beltWidth - 130` と同等の見え方を維持するための値（80 + 84 - 34 = 130）。
+ * button（HIT サイズ）の左上を基準に置くと、画像中心は `buttonLeft + HIT/2` に来る。
+ * `beltWidth - BELT_TURN_WIDTH_PX - PACKAGE_HIT_SIZE_PX` のままだと画像が折り返し
+ * 領域の手前に寄りすぎるため、内側に少し寄せて画像をわずかに折り返しへ重ねる。
+ * （HIT 基準での見た目調整。実際のプレイ画面で違和感がないか確認のうえ微調整可。）
  */
-const PACKAGE_TURN_X_NUDGE_PX = 34;
+const PACKAGE_TURN_X_NUDGE_PX = 30;
 
-/** 上 lane / 下 lane の中央 Y 座標（荷物中心ではなく左上基準） */
-const TOP_LANE_Y = BELT_LANE_HEIGHT_PX / 2 - PACKAGE_SIZE_PX / 2;
+/**
+ * 上 lane / 下 lane の中央 Y 座標（button = HIT サイズの左上基準）。
+ * button 中心が lane の縦中央に来るよう HIT サイズで算出する。
+ * 画像は button 内で中央寄せのため、結果として画像も lane 中央に保たれる。
+ */
+const TOP_LANE_Y = BELT_LANE_HEIGHT_PX / 2 - PACKAGE_HIT_SIZE_PX / 2;
 const BOTTOM_LANE_Y =
-  BELT_HEIGHT_PX - BELT_LANE_HEIGHT_PX / 2 - PACKAGE_SIZE_PX / 2;
+  BELT_HEIGHT_PX - BELT_LANE_HEIGHT_PX / 2 - PACKAGE_HIT_SIZE_PX / 2;
 
 /**
  * 画面に流れている荷物 1 個。
@@ -96,16 +117,20 @@ export default function PackageItem({
   useEffect(() => {
     if (!scope.current || beltWidth === 0) return;
 
-    // 折り返し位置 (荷物の左上基準)。ベルト右端から折り返し領域 (BELT_TURN_WIDTH_PX) と
-    // 荷物自身のサイズを差し引き、さらに視覚的調整値 (PACKAGE_TURN_X_NUDGE_PX) で内側に寄せる。
+    // 折り返し位置 (button = HIT サイズの左上基準)。ベルト右端から折り返し領域
+    // (BELT_TURN_WIDTH_PX) と button 自身のサイズを差し引き、さらに視覚的調整値
+    // (PACKAGE_TURN_X_NUDGE_PX) で内側に寄せて画像をわずかに折り返しへ重ねる。
     const turnX = Math.max(
       0,
-      beltWidth - BELT_TURN_WIDTH_PX - PACKAGE_SIZE_PX + PACKAGE_TURN_X_NUDGE_PX
+      beltWidth -
+        BELT_TURN_WIDTH_PX -
+        PACKAGE_HIT_SIZE_PX +
+        PACKAGE_TURN_X_NUDGE_PX
     );
     const controls = animate(
       scope.current,
       {
-        x: [-PACKAGE_SIZE_PX - 20, turnX, turnX, -PACKAGE_SIZE_PX - 20],
+        x: [-PACKAGE_HIT_SIZE_PX - 20, turnX, turnX, -PACKAGE_HIT_SIZE_PX - 20],
         y: [TOP_LANE_Y, TOP_LANE_Y, BOTTOM_LANE_Y, BOTTOM_LANE_Y],
       },
       {
@@ -143,10 +168,11 @@ export default function PackageItem({
       ref={scope}
       type="button"
       onClick={() => onClick(pkg.id)}
-      className="absolute cursor-pointer border-none bg-transparent p-0 select-none"
+      className="absolute flex cursor-pointer items-center justify-center border-none bg-transparent p-0 select-none"
       style={{
-        width: `${PACKAGE_SIZE_PX}px`,
-        height: `${PACKAGE_SIZE_PX}px`,
+        // button = 当たり判定サイズ（画像 + 透明パディング）。押しやすさのため画像より大きい。
+        width: `${PACKAGE_HIT_SIZE_PX}px`,
+        height: `${PACKAGE_HIT_SIZE_PX}px`,
         top: 0,
         left: 0,
         zIndex: isSelected ? 20 : 10,
@@ -154,12 +180,17 @@ export default function PackageItem({
       aria-label={`荷物（${PACKAGE_LABELS[pkg.type]}）${isSelected ? '・選択中' : ''}`}
     >
       {/*
-        選択演出用の内側 wrapper（motion.div）。
+        選択演出用の内側 wrapper（motion.div）= 見た目の画像サイズ。
+        button（HIT サイズ）の中央に配置されるため、当たり判定だけ広げて見た目は変えない。
         親 button は useAnimate で位置アニメ（x/y）を担当するので、
         scale/glow のパルスはここで独立して制御する（transform の衝突回避）。
       */}
       <motion.div
-        className="relative h-full w-full"
+        className="relative"
+        style={{
+          width: `${PACKAGE_IMAGE_SIZE_PX}px`,
+          height: `${PACKAGE_IMAGE_SIZE_PX}px`,
+        }}
         animate={
           isSelected
             ? {
@@ -186,7 +217,7 @@ export default function PackageItem({
           src={PACKAGE_IMAGE_PATHS[pkg.type]}
           alt=""
           fill
-          sizes={`${PACKAGE_SIZE_PX}px`}
+          sizes={`${PACKAGE_IMAGE_SIZE_PX}px`}
           className="object-contain"
           priority={false}
         />
