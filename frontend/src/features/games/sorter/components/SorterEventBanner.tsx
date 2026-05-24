@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   RULE_CHANGED_2_DURATION_MS,
-  SCORE_OUTFLOW_PENALTY,
   SORTER_UI_COLORS,
 } from '../data/sorterConstants';
 import type { GamePhase } from '../hooks/useSorterGame';
@@ -21,45 +20,61 @@ interface SorterEventBannerProps {
   phase: GamePhase;
   /** 速度 2 倍突入の予告バナー表示フラグ */
   showSpeedUpBanner: boolean;
-  /** MISS バッジ表示用の key（流出ごとに更新される Date.now() 値）。null なら非表示 */
-  missBadgeKey: number | null;
 }
 
 /**
- * ベルトコンテナ内に絶対配置される割り込みイベントの表示群。
+ * 盤面（ベルト + 仕分け先）全体に重ねる割り込みイベント表示群。
  *
+ *  - 危機感オーバーレイ（frozen-warning / frozen phase の赤フラッシュ + 暗転ビネット）
  *  - ルール変更通知バナー（rule-change-notice phase）
  *  - 凍結予告バナー（frozen-warning phase、シェイク演出）
  *  - 復旧バナー（recovery phase）
  *  - 速度 2 倍予告バナー（rule-changed-2 突入直後 3 秒）
- *  - MISS バッジ（流出時にフラッシュ）
  *
- * 表示位置はベルトコンテナの上端中央を基準にしている。
+ * 配置の前提:
+ *   `SorterGameFlow` の **盤面ラッパー（ベルトコンテナ + BinTray を包む relative）** 直下に
+ *   `absolute inset-0` で配置する。これにより危機感オーバーレイが上段のベルトだけでなく
+ *   下段の bin エリアまで覆い、「盤面全体がやばい」演出になる（HUD は覆わずタイマー可読性を優先）。
+ *
+ * 重なり順（このコンポーネント内）:
+ *   危機感オーバーレイ（z-0）＜ 上部イベントバナー群（z-20〜30）。
+ *   コンポーネント全体は盤面ラッパー内で BinTray（z-10）より前面に来るよう
+ *   ルートを z-20 にし、オーバーレイが bin をうっすら赤暗く染めつつ
+ *   「⚠ 機械が停止します」バナーは必ず前面でクッキリ読めるようにする。
+ *
+ * MISS バッジは流出口（ベルト左下）基準で位置が異なるため `SorterMissBadge` に分離し、
+ * ベルトコンテナ内に配置する。
  */
 export default function SorterEventBanner({
   phase,
   showSpeedUpBanner,
-  missBadgeKey,
 }: SorterEventBannerProps) {
-  // 凍結予告（frozen-warning）と停止中（frozen）でベルト領域に重ねる危機感オーバーレイ。
+  // 凍結予告（frozen-warning）と停止中（frozen）で盤面に重ねる危機感オーバーレイ。
   // 予告中は弱め・点滅速め、停止中は強め・点滅ゆっくりにして段階感を出す。
+  // 被覆範囲がベルトのみから盤面全体（ベルト + bin）に広がったため、覆う面積が増えても
+  // 暗転が強すぎないよう peak をやや下げて調整（予告 0.18→0.15 / 停止 0.32→0.26）。
   const isDangerOverlay = phase === 'frozen-warning' || phase === 'frozen';
-  const dangerFlashPeak = phase === 'frozen' ? 0.32 : 0.18;
+  const dangerFlashPeak = phase === 'frozen' ? 0.26 : 0.15;
   const dangerFlashDuration = phase === 'frozen' ? 0.9 : 0.55;
 
   return (
-    <>
+    // 盤面ラッパー全体を覆う割り込みイベント層。frozen-warning フェーズは操作可能なため
+    // クリックを透過させる（pointer-events-none）。BinTray(z-10) より前面に置く。
+    // この層は装飾用 danger-overlay と読ませたいバナーの混在コンテナなので層自体は
+    // aria-hidden にせず、装飾の danger-overlay 側に個別に aria-hidden を付与する。
+    <div className="pointer-events-none absolute inset-0 z-20">
       {/*
         危機感オーバーレイ（凍結予告 → 停止）。
-        ベルト領域全体に赤フラッシュ + 暗転ビネットを重ねて「やばい感」を出す。
+        盤面（ベルト + bin）全体に赤フラッシュ + 暗転ビネットを重ねて「やばい感」を出す。
         操作を邪魔しないよう pointer-events-none / aria-hidden。
+        上部イベントバナー群より背面（z-0）に置き、バナーは前面で読めるようにする。
       */}
       <AnimatePresence>
         {isDangerOverlay && (
           <motion.div
             key="danger-overlay"
             aria-hidden
-            className="pointer-events-none absolute inset-0 z-10"
+            className="pointer-events-none absolute inset-0 z-0"
             initial={{ opacity: 0 }}
             exit={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -88,28 +103,7 @@ export default function SorterEventBanner({
         )}
       </AnimatePresence>
 
-      {/* MISS バッジ: 流出口付近にフラッシュ表示 */}
-      <AnimatePresence>
-        {missBadgeKey != null && (
-          <motion.span
-            key={missBadgeKey}
-            initial={{ opacity: 0, scale: 0.6, x: 30 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.8, x: -20 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute z-30 inline-block rounded-lg border-[3px] border-black px-3 py-1 text-sm font-black tracking-wider text-white shadow-[3px_3px_0_0_#000] sm:text-base"
-            style={{
-              left: '16px',
-              bottom: '-8px',
-              backgroundColor: SORTER_UI_COLORS.danger,
-            }}
-          >
-            🚨 MISS -{SCORE_OUTFLOW_PENALTY}
-          </motion.span>
-        )}
-      </AnimatePresence>
-
-      {/* イベントバナー */}
+      {/* イベントバナー（危機感オーバーレイより前面で読ませる） */}
       <AnimatePresence>
         {phase === 'rule-change-notice' && (
           <motion.div
@@ -195,6 +189,6 @@ export default function SorterEventBanner({
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }

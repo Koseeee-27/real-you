@@ -23,6 +23,7 @@ import PackageItem from './PackageItem';
 import SorterCountdownOverlay from './SorterCountdownOverlay';
 import SorterEventBanner from './SorterEventBanner';
 import SorterHUD from './SorterHUD';
+import SorterMissBadge from './SorterMissBadge';
 import SorterResultOverlay from './SorterResultOverlay';
 
 type SubmitStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -47,7 +48,8 @@ type ErrorVariant = 'retry' | 'restart';
  *   - `SorterHUD`              … タイトル / 残り時間 / SCORE + 状態バッジ列
  *   - `Belt` + `PackageItem`   … U 字経路ベルトと荷物
  *   - `BinTray`                … 3 つの仕分け先
- *   - `SorterEventBanner`      … ルール変更 / 凍結予告 / 復旧 / 速度 2 倍 / MISS
+ *   - `SorterEventBanner`      … 危機感オーバーレイ / ルール変更 / 凍結予告 / 復旧 / 速度 2 倍
+ *   - `SorterMissBadge`        … 流出時の MISS バッジ（流出口基準）
  *   - `OnboardingSlides`       … 開始前 4 スライド
  *   - `SorterCountdownOverlay` … 3-2-1-START
  *   - `SorterResultOverlay`    … 結果画面
@@ -265,45 +267,64 @@ export default function SorterGameFlow() {
         isSpeedUp={isSpeedUp}
       />
 
-      {/* === ベルトと荷物（画面端まで広げる）=== */}
-      <div ref={beltContainerRef} className="relative z-0 mt-4 w-full flex-1">
-        <Belt isSpeedUp={isSpeedUp} />
+      {/*
+        === 盤面ラッパー（ベルト + 仕分け先を包む relative コンテナ）===
+        危機感オーバーレイ（SorterEventBanner 内）をこのラッパー直下に absolute inset-0 で
+        重ねることで、上段のベルトだけでなく下段の bin エリアまで「やばい感」を覆える。
+        HUD は外に置いたままにして、タイマー / スコアの可読性を最優先する。
+        flex-1 でこのラッパーが HUD と下部余白の間を縦いっぱいに占める。
+        z-0 で stacking context を確立し、内部の z-20（EventBanner）が HUD など外側に漏れないよう閉じ込める。
+      */}
+      <div className="relative z-0 mt-4 flex flex-1 flex-col">
+        {/* === ベルトと荷物（画面端まで広げる）=== */}
+        <div ref={beltContainerRef} className="relative z-0 w-full flex-1">
+          <Belt isSpeedUp={isSpeedUp} />
 
-        {/* 荷物群（beltWidth が確定してからレンダリング） */}
-        {beltWidth > 0 && (
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute inset-0 pointer-events-auto">
-              {packages.map((pkg) => (
-                <PackageItem
-                  key={pkg.id}
-                  pkg={pkg}
-                  beltWidth={beltWidth}
-                  isSelected={selectedPackageId === pkg.id}
-                  onClick={onPackageClick}
-                  onOutflow={handlePackageOutflow}
-                />
-              ))}
+          {/* 荷物群（beltWidth が確定してからレンダリング） */}
+          {beltWidth > 0 && (
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-0 pointer-events-auto">
+                {packages.map((pkg) => (
+                  <PackageItem
+                    key={pkg.id}
+                    pkg={pkg}
+                    beltWidth={beltWidth}
+                    isSelected={selectedPackageId === pkg.id}
+                    onClick={onPackageClick}
+                    onOutflow={handlePackageOutflow}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* MISS バッジ + ルール変更 / 凍結予告 / 復旧 / 速度 2 倍 のバナー群 */}
+          {/* MISS バッジ（流出口=ベルト左下基準のためベルトコンテナ内に置く） */}
+          <SorterMissBadge missBadgeKey={lastOutflowAt} />
+        </div>
+
+        {/*
+          仕分け先。mb-6 で画面下端の fixed タイマーゲージと bin の補助ラベル
+          （「特急」「取扱注意」「重量物」）が重ならない余白を確保する。
+          relative を付けて positioned 要素にすることで z-10 を有効化し、bin の
+          重なり順を明示的に制御する（static のままだと z-10 は効かない）。
+        */}
+        <div className="relative z-10 mt-4 mb-6 px-4">
+          <BinTray
+            isFrozen={isFrozen}
+            onBinClick={onBinClick}
+            lastFeedback={lastFeedback}
+          />
+        </div>
+
+        {/*
+          危機感オーバーレイ + 上部イベントバナー群（ルール変更 / 凍結予告 / 復旧 / 速度 2 倍）。
+          盤面ラッパー全体（ベルト + bin）を覆い、bin エリアまで赤暗く染める。
+          z-20 で BinTray（relative z-10）より前面。bin を relative z-10 にしてあるため
+          この z 比較が成立する。内部で danger-overlay < バナーの重なりを保つ。
+        */}
         <SorterEventBanner
           phase={phase}
           showSpeedUpBanner={showSpeedUpBanner}
-          missBadgeKey={lastOutflowAt}
-        />
-      </div>
-
-      {/*
-        仕分け先。mb-6 で画面下端の fixed タイマーゲージと bin の補助ラベル
-        （「特急」「取扱注意」「重量物」）が重ならない余白を確保する。
-      */}
-      <div className="z-10 mt-4 mb-6 px-4">
-        <BinTray
-          isFrozen={isFrozen}
-          onBinClick={onBinClick}
-          lastFeedback={lastFeedback}
         />
       </div>
 
