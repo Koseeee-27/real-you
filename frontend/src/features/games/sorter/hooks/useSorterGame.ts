@@ -557,14 +557,19 @@ export function useSorterGame(options: {
     setDisplayScore(nextScore);
 
     // フィードバックポップアップ（0.7s 後に消す）。
+    // 連続仕分け時に古い setTimeout が新しい値をクリアしないよう関数型更新で照合する。
     // unmount リーク防止のため `trackTimeout` 経由で id を ref に登録する。
+    const feedbackAt = Date.now();
     setLastFeedback({
       binType,
       correct,
       scoreChange,
-      at: Date.now(),
+      at: feedbackAt,
     });
-    trackTimeout(() => setLastFeedback(null), 700);
+    trackTimeout(
+      () => setLastFeedback((cur) => (cur?.at === feedbackAt ? null : cur)),
+      700
+    );
 
     // 誤仕分けの集計
     if (!correct) {
