@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import ErrorScreen from '@/components/common/ErrorScreen';
-import type { SorterGameData } from '@/features/games/types';
+import type { PackageType, SorterGameData } from '@/features/games/types';
 import { submitGame } from '@/lib/api';
 import {
   MAX_RETRY_COUNT,
@@ -213,7 +213,7 @@ export default function SorterGameFlow() {
     handleOnboardingStart,
   } = useSorterGame({ onComplete: handleComplete });
 
-  // SE を鳴らすラッパー
+  // SE を鳴らすラッパー（オンボーディング操作）
   const onPrev = () => {
     playSE(SORTER_AUDIO_PATHS.generalSE);
     handleOnboardingPrev();
@@ -225,6 +225,25 @@ export default function SorterGameFlow() {
   const onStart = () => {
     playSE(SORTER_AUDIO_PATHS.generalSE);
     handleOnboardingStart();
+  };
+
+  // SE を鳴らすラッパー（ゲーム本編操作）。
+  // 「実際に選択 / 仕分けが起きるとき」だけ鳴らす。
+  // 同じ荷物の再クリック（選択解除）や frozen 中のパニッククリックでは鳴らさない。
+  const onPackageClick = (id: number) => {
+    // 新しく選択するときだけ SE。再クリック（解除）・凍結中は鳴らさない。
+    if (!isFrozen && selectedPackageId !== id) {
+      playSE(SORTER_AUDIO_PATHS.generalSE);
+    }
+    handlePackageClick(id);
+  };
+  const onBinClick = (binType: PackageType) => {
+    // 荷物を選択した状態で仕分けが実行されるときだけ SE。
+    // bin の空打ち（未選択）・凍結中は鳴らさない。
+    if (!isFrozen && selectedPackageId != null) {
+      playSE(SORTER_AUDIO_PATHS.generalSE);
+    }
+    handleBinClick(binType);
   };
 
   return (
@@ -260,7 +279,7 @@ export default function SorterGameFlow() {
                   pkg={pkg}
                   beltWidth={beltWidth}
                   isSelected={selectedPackageId === pkg.id}
-                  onClick={handlePackageClick}
+                  onClick={onPackageClick}
                   onOutflow={handlePackageOutflow}
                 />
               ))}
@@ -283,7 +302,7 @@ export default function SorterGameFlow() {
       <div className="z-10 mt-4 mb-6 px-4">
         <BinTray
           isFrozen={isFrozen}
-          onBinClick={handleBinClick}
+          onBinClick={onBinClick}
           lastFeedback={lastFeedback}
         />
       </div>
