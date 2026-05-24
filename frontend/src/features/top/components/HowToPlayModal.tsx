@@ -1,25 +1,23 @@
 'use client';
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
 export default function HowtoPlayModal({
-    page,
-    setPage,
-    onClose,
+  page,
+  setPage,
+  onClose,
 }: {
   page: number;
   setPage: (fn: (p: number) => number) => void;
   onClose: () => void;
 }) {
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
 
-    const dialogRef = useRef<HTMLDialogElement | null>(null);
-
-    useEffect(() => {
+  useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     dialog.showModal();
-    }, []);
-
+  }, []);
 
   // あそびかたの内容
   const howToPlaySteps = [
@@ -28,27 +26,28 @@ export default function HowtoPlayModal({
       subtitle: '本当の私じゃ、ダメですか？',
       bullets: [
         'その性格診断、「こうありたい自分」が混ざってませんか？',
-        'Real You は、あなたの バイアスを取り除いた"本当の自分" を映し出す診断です！',],
+        'Real You は、あなたの バイアスを取り除いた"本当の自分" を映し出す診断です！',
+      ],
     },
     {
       title: '所要時間は約5分！',
       subtitle: 'ゲームでサクッと、診断完了！',
-      bullets: ['質問にじっくり答える時間も、細かい操作も必要ありません！直感のままにプレイしてください！'],
+      bullets: [
+        '質問にじっくり答える時間も、細かい操作も必要ありません！直感のままにプレイしてください！',
+      ],
     },
     {
       title: '始める前に、ちょっとだけ',
       subtitle: 'PC（Chrome 推奨）でのプレイをおすすめします',
       subtitle2: 'いざ！本当の自分に会いに行こう！！',
-      bullets: [
-        'ゲーム中、BGM や効果音が流れます',
-      ],
+      bullets: ['ゲーム中、BGM や効果音が流れます'],
     },
   ];
 
   return (
     <dialog
       ref={dialogRef}
-      className="rounded-[24px] border-[6px] border-black bg-white max-w-xl w-[90vw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden justify-center p-0"
+      className="rounded-[24px] border-[6px] border-black bg-white max-w-xl w-[90vw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden justify-center p-0 animate-[fadeIn_0.35s_ease-out]"
       onClose={onClose}
     >
       {/* ポップアップ本体 */}
@@ -104,9 +103,9 @@ export default function HowtoPlayModal({
         </div>
 
         {howToPlaySteps[page - 1].subtitle2 && (
-            <p className="mt-0 mb-0 text-lg font-bold text-center">
-                {howToPlaySteps[page - 1].subtitle2}
-            </p>
+          <p className="mt-0 mb-0 text-lg font-bold text-center">
+            {howToPlaySteps[page - 1].subtitle2}
+          </p>
         )}
 
         {/* ナビゲーションボタン */}
