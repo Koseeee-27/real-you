@@ -34,3 +34,14 @@ export type VoiceRespondResponse =
 // 空気読みグループチャット（group_chat_game / 旧 Game 3）
 // ========================================
 export type GroupChatGameData = components['schemas']['GroupChatGameData'];
+
+// ========================================
+// 荷物仕分けゲーム（sorter_game / Game 2）
+// ========================================
+export type PackageType = components['schemas']['PackageType'];
+export type SortEventType = components['schemas']['SortEventType'];
+export type SortEvent = components['schemas']['SortEvent'];
+export type SorterWrongPatternCountsRow =
+  components['schemas']['SorterWrongPatternCountsRow'];
+export type WrongPatterns = components['schemas']['WrongPatterns'];
+export type SorterGameData = components['schemas']['SorterGameData'];
