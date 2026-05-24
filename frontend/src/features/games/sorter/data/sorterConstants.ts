@@ -8,7 +8,9 @@
  *   - 採点ロジックを動的減点式 `max(5, 20 - floor(hesitation_ms / 400))` から
  *     固定値 +10/-5/-3 に簡略化（仕様書側も実装に合わせて更新済み）
  *
- * 主要なタイミング: 残り 35s でルール変更、残り 18〜12s で凍結。
+ * 主要なタイミング: 残り 39s でルール変更通知、残り 22〜15s で凍結（予告→停止）。
+ * （仕様書では「残り 35s でルール変更 / 残り 18〜12s で凍結」と定義しているが、
+ *  仕様書側で「FE 実装段階で微調整可」と明記されているため、プレイ感を優先して調整済み。）
  */
 
 import type { PackageType } from '@/features/games/types';
@@ -48,23 +50,26 @@ export const ONBOARDING_SLIDE_COUNT = 4;
 // ========================================
 // onboarding phase はユーザー操作で進むため duration を持たない
 //
-// 累積時間（カウントダウン除く）:
-//   0s   - 15s : normal
-//   15s  - 18s : rule-change-notice    （= 仕様の「残り 35s でルール変更」）
-//   18s  - 32s : rule-changed-1
-//   32s  - 34s : frozen-warning        （= 仕様の「残り 18〜12s で凍結」域内）
-//   34s  - 39s : frozen                 （5s に延長、視認性とゲーム性のため）
-//   39s  - 40s : recovery
-//   40s  - 50s : rule-changed-2         （速度 2 倍、凍結延長分を rule-changed-2 から削減）
+// 累積時間（カウントダウン除く）。プレイ感優先で調整済み（仕様書は微調整可と明記）:
+//   0s   - 11s : normal
+//   11s  - 14s : rule-change-notice    （= 残り 39s でルール変更通知）
+//   14s  - 28s : rule-changed-1
+//   28s  - 30s : frozen-warning        （= 残り 22s 前後で凍結予告）
+//   30s  - 35s : frozen                 （5s 停止、操作不可）
+//   35s  - 40s : recovery               （5s、通常速度で立て直す猶予）
+//   40s  - 50s : rule-changed-2         （速度 2 倍、停止明けに通常速度を挟んでから発動）
 //   50s  -     : ended
+//
+// 狙い: frozen（操作不可）→ recovery（通常速度 5s）→ rule-changed-2（×2）と段階を踏み、
+//       停止明けに通常速度で立て直す猶予を作ってから 2 倍速の高難度に入る。
 
 export const COUNTDOWN_DURATION_MS = 3_500;
-export const NORMAL_DURATION_MS = 15_000;
+export const NORMAL_DURATION_MS = 11_000;
 export const RULE_CHANGE_NOTICE_DURATION_MS = 3_000;
 export const RULE_CHANGED_1_DURATION_MS = 14_000;
 export const FROZEN_WARNING_DURATION_MS = 2_000;
 export const FROZEN_DURATION_MS = 5_000;
-export const RECOVERY_DURATION_MS = 1_000;
+export const RECOVERY_DURATION_MS = 5_000;
 export const RULE_CHANGED_2_DURATION_MS = 10_000;
 
 // ========================================

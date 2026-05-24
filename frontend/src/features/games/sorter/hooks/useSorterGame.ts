@@ -70,12 +70,12 @@ export interface SorterFeedback {
  *
  *   onboarding         → 4 スライドのチュートリアル（ユーザー操作で進む）
  *   countdown          → 3 → 2 → 1 → START のオーバーレイ（3.5s）
- *   normal             → 通常ルール（15s）
+ *   normal             → 通常ルール（11s）
  *   rule-change-notice → ルール変更通知バナー表示中、通常ルール継続（3s）
  *   rule-changed-1     → ルール変更後、urgent → heavy が正解（14s）
  *   frozen-warning     → 機械停止予告（2s、まだ操作可）
  *   frozen             → 機械停止（5s、クリック無効化 + panicClick 計測）
- *   recovery           → 復旧（1s）
+ *   recovery           → 復旧（5s、通常速度で立て直す猶予）
  *   rule-changed-2     → ルール変更ルール継続 + 速度 2 倍（10s）
  *   ended              → 終了、submit 待ち
  */
