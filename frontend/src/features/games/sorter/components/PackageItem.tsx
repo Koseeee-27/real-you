@@ -27,7 +27,7 @@ interface PackageItemProps {
  * 荷物画像の表示サイズ（px、見た目のサイズ）。
  * 当たり判定（button）はこれより一回り大きい HIT サイズにし、画像はその中央に置く。
  */
-const PACKAGE_IMAGE_SIZE_PX = 90;
+const PACKAGE_IMAGE_SIZE_PX = 110;
 
 /**
  * 画像の周囲に設ける透明な当たり判定パディング（各辺、px）。
@@ -36,8 +36,10 @@ const PACKAGE_IMAGE_SIZE_PX = 90;
 const PACKAGE_HIT_PADDING_PX = 14;
 
 /**
- * 当たり判定（button）のサイズ（px）。画像サイズ + 上下左右パディング。
- * lane 高さ（BELT_LANE_HEIGHT_PX = 130）に収まる範囲（90 + 14*2 = 118）。
+ * 当たり判定（button）のサイズ（px）。画像サイズ + 上下左右パディング
+ * （= PACKAGE_IMAGE_SIZE_PX + PACKAGE_HIT_PADDING_PX × 2）。
+ * lane 高さ（BELT_LANE_HEIGHT_PX）に収まる必要がある
+ * （PACKAGE_HIT_SIZE_PX ≤ BELT_LANE_HEIGHT_PX）。
  * この値が BELT_LANE_HEIGHT_PX を超えると lane からはみ出すので注意。
  */
 const PACKAGE_HIT_SIZE_PX = PACKAGE_IMAGE_SIZE_PX + PACKAGE_HIT_PADDING_PX * 2;
@@ -48,6 +50,10 @@ const PACKAGE_HIT_SIZE_PX = PACKAGE_IMAGE_SIZE_PX + PACKAGE_HIT_PADDING_PX * 2;
  * `beltWidth - BELT_TURN_WIDTH_PX - PACKAGE_HIT_SIZE_PX` のままだと画像が折り返し
  * 領域の手前に寄りすぎるため、内側に少し寄せて画像をわずかに折り返しへ重ねる。
  * （HIT 基準での見た目調整。実際のプレイ画面で違和感がないか確認のうえ微調整可。）
+ *
+ * NOTE: 荷物サイズ拡大（PACKAGE_HIT_SIZE_PX の増加）に伴い画像中心の折り返し位置が
+ * 内側へ移動する。この nudge 値は実機 playtest 未検証のまま据え置いている。折り返しで
+ * 荷物が折り返し帯に重なりすぎる / 手前に浮くようなら、この値で微調整すること。
  */
 const PACKAGE_TURN_X_NUDGE_PX = 30;
 

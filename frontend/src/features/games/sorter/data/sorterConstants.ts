@@ -94,10 +94,20 @@ export const PACKAGE_FLOW_DURATION_SPEED_UP_MS =
 // ベルトコンベア表示
 // ========================================
 
-/** ベルトコンベア全体の高さ（px） */
-export const BELT_HEIGHT_PX = 380;
-/** 上下それぞれの lane の高さ（px） */
-export const BELT_LANE_HEIGHT_PX = 130;
+/**
+ * ベルトコンベア全体の高さ（px）。
+ * 中央ギャップ（上下 lane の隙間）= BELT_HEIGHT_PX − BELT_LANE_HEIGHT_PX × 2。
+ * lane の高さを変える場合は、中央ギャップが破綻しないようこの値も合わせて調整する。
+ */
+export const BELT_HEIGHT_PX = 420;
+/**
+ * 上下それぞれの lane の高さ（px）。
+ * 荷物の当たり判定（PackageItem.tsx の PACKAGE_HIT_SIZE_PX
+ * = PACKAGE_IMAGE_SIZE_PX + PACKAGE_HIT_PADDING_PX × 2）が
+ * この高さに収まる必要がある（PACKAGE_HIT_SIZE_PX ≤ BELT_LANE_HEIGHT_PX）。
+ * 荷物サイズを変える場合はこの制約を満たすこと。
+ */
+export const BELT_LANE_HEIGHT_PX = 150;
 /** U 字の折り返し部分の幅（px） */
 export const BELT_TURN_WIDTH_PX = 80;
 
