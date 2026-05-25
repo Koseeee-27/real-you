@@ -27,9 +27,12 @@ import type {
 const TIMER_TICK_MS = 100;
 /** オンボーディングのスライド枚数（slide1 + slide2） */
 const SLIDE_COUNT = 2;
+/** hoverSequence の上限件数（超過は切り捨て）。仕様書「データ構造」準拠 */
+const HOVER_SEQUENCE_CAP = 10;
 
-/** OpenAPI 生成型から 1 ターン分の型を取り出す（名前付き型の再エクスポート有無に依存しない） */
+/** OpenAPI 生成型から 1 ターン分 / 入力デバイス種別の型を取り出す */
 type GroupChatGameTurn = GroupChatGameData['turns'][number];
+type InputDeviceType = GroupChatGameData['inputDeviceType'];
 
 /**
  * ゲームの進行状態。
@@ -79,9 +82,8 @@ function toChatBotMessage(m: BotMessage): ChatMessage {
  *   コールバック内で行う（react-hooks/set-state-in-effect 対策）
  * - 一時 timeout は Set で追跡し、ターン遷移・unmount でまとめて解除する
  *
- * 取得データのうちホバー系・マウス移動距離・履歴スクロール・inputDeviceType・
- * turn1HoverChangedAfterColleagueATyping は本 PR（#140）ではデフォルト値で埋め、
- * 実計測は #141 で実装する。
+ * 取得データ（仕様書「データ構造 → GroupChatGameData」準拠）はホバー・マウス軌跡・
+ * 履歴スクロール・入力デバイスを含めすべて実計測する。
  */
 export function useGroupChatGame(options: {
   onComplete: (data: GroupChatGameData) => void;
@@ -110,7 +112,7 @@ export function useGroupChatGame(options: {
   // =========================================================
   const onboardingOpenedAtRef = useRef(0);
   const tutorialViewTimeRef = useRef(0);
-  /** turn-active 開始時刻（reactionTimeMs の起点） */
+  /** turn-active 開始時刻（reactionTimeMs / firstHoverElapsedMs の起点） */
   const optionsShownAtRef = useRef(0);
   /** ターン1「入力中」表示時刻（未表示は null） */
   const t1TypingIndicatorShownAtRef = useRef<number | null>(null);
@@ -120,6 +122,37 @@ export function useGroupChatGame(options: {
   const turn1AnsweredBeforeColleagueARef = useRef<boolean | null>(null);
   /** ターン1:「入力中」表示 → 操作までの ms（未計測は null） */
   const turn1TypingIndicatorReactTimeMsRef = useRef<number | null>(null);
+  /** ターン1:「入力中」表示の前後でホバー先が変わったか（null=ホバーなし/表示前に確定） */
+  const turn1HoverChangedAfterColleagueATypingRef = useRef<boolean | null>(
+    null
+  );
+
+  // --- 現ターンのホバー / マウス / スクロール計測（turn-active 開始時にリセット）---
+  /** 選択肢表示 → 初ホバーまでの時刻（未ホバーは null） */
+  const firstHoverAtRef = useRef<number | null>(null);
+  /** ホバーした選択肢 ID の順番（上限 HOVER_SEQUENCE_CAP） */
+  const hoverSequenceRef = useRef<number[]>([]);
+  /** distinct な初ホバー順（finalChoiceHoverOrder 算出用） */
+  const distinctHoverOrderRef = useRef<OptionIntentId[]>([]);
+  /** 直近にホバーした選択肢 ID（連続重複の除外 + 現在ホバー） */
+  const lastHoverChoiceRef = useRef<OptionIntentId | null>(null);
+  /** 直近ホバー開始時刻（decisionConfidenceMs 算出用） */
+  const lastHoverEnterAtRef = useRef<number | null>(null);
+  /** 選択肢表示 → 決定までのマウス総移動距離（px） */
+  const mouseDistanceRef = useRef(0);
+  /** 直近の pointer 座標（移動距離の差分計算用） */
+  const lastPointerPosRef = useRef<{ x: number; y: number } | null>(null);
+  /** チャット履歴を遡るスクロール回数 */
+  const scrollUpCountRef = useRef(0);
+  /** ターン1で「入力中」表示が出たか（hover変化判定の起点フラグ） */
+  const typingShownForHoverRef = useRef(false);
+  /** ターン1「入力中」表示時点でホバーしていた選択肢 ID（未ホバーは null） */
+  const hoverChoiceAtTypingRef = useRef<OptionIntentId | null>(null);
+
+  /** 入力デバイス種別（初回操作で確定） */
+  const inputDeviceTypeRef = useRef<InputDeviceType>('mouse');
+  const inputDeviceDetectedRef = useRef(false);
+
   /** 各ターンの結果ログ */
   const turnResultsRef = useRef<GroupChatGameTurn[]>([]);
   /** 現ターンが選択 or タイムアウトで確定済みか（二重確定防止） */
@@ -147,6 +180,32 @@ export function useGroupChatGame(options: {
     pendingTimeoutsRef.current.clear();
   }, []);
 
+  /** 現ターンのホバー / マウス / スクロール計測をリセット */
+  const resetTurnMetrics = useCallback(() => {
+    firstHoverAtRef.current = null;
+    hoverSequenceRef.current = [];
+    distinctHoverOrderRef.current = [];
+    lastHoverChoiceRef.current = null;
+    lastHoverEnterAtRef.current = null;
+    mouseDistanceRef.current = 0;
+    lastPointerPosRef.current = null;
+    scrollUpCountRef.current = 0;
+    typingShownForHoverRef.current = false;
+    hoverChoiceAtTypingRef.current = null;
+  }, []);
+
+  /**
+   * ターン1「入力中」表示の前後でホバー先が変わったかを判定する。
+   * - 入力中表示が出る前に確定 → null
+   * - ターン中に一度もホバーなし → null
+   * - それ以外 → 表示時点のホバー先と確定時点のホバー先が異なれば true
+   */
+  const computeTurn1HoverChanged = useCallback((): boolean | null => {
+    if (!typingShownForHoverRef.current) return null;
+    if (firstHoverAtRef.current === null) return null;
+    return lastHoverChoiceRef.current !== hoverChoiceAtTypingRef.current;
+  }, []);
+
   // onComplete の最新参照を保持（submitting effect の依存を最小化するため）
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -157,11 +216,38 @@ export function useGroupChatGame(options: {
     onboardingOpenedAtRef.current = Date.now();
   }, []);
 
+  // 入力デバイス種別を初回操作で確定する（マウス軌跡データの解釈用）
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      if (inputDeviceDetectedRef.current) return;
+      inputDeviceDetectedRef.current = true;
+      inputDeviceTypeRef.current =
+        e.pointerType === 'touch' ? 'touch' : 'mouse';
+    };
+    const onKeyDown = () => {
+      if (inputDeviceDetectedRef.current) return;
+      inputDeviceDetectedRef.current = true;
+      inputDeviceTypeRef.current = 'keyboard';
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+
   // =========================================================
   // ターン確定 → 次ターン or 送信へ
   // =========================================================
   const recordTurnAndAdvance = useCallback(
-    (selectedOptionId: number, reactionTimeMs: number, isTimeout: boolean) => {
+    (
+      selectedOptionId: number,
+      reactionTimeMs: number,
+      isTimeout: boolean,
+      finalChoiceHoverOrder: number | null,
+      decisionConfidenceMs: number | null
+    ) => {
       if (turnResolvedRef.current) return;
       const turn = TURNS[currentTurnIndex];
       if (!turn) return;
@@ -179,13 +265,15 @@ export function useGroupChatGame(options: {
         selectedOptionId,
         reactionTimeMs,
         isTimeout,
-        // --- 以下は #141 で実計測に置き換え（本 PR はデフォルト値）---
-        firstHoverElapsedMs: null,
-        finalChoiceHoverOrder: null,
-        decisionConfidenceMs: null,
-        mouseMovementDistance: 0,
-        hoverSequence: [],
-        scrolledChatHistoryCount: 0,
+        firstHoverElapsedMs:
+          firstHoverAtRef.current !== null
+            ? firstHoverAtRef.current - optionsShownAtRef.current
+            : null,
+        finalChoiceHoverOrder,
+        decisionConfidenceMs,
+        mouseMovementDistance: Math.round(mouseDistanceRef.current),
+        hoverSequence: [...hoverSequenceRef.current],
+        scrolledChatHistoryCount: scrollUpCountRef.current,
       };
       turnResultsRef.current = [...turnResultsRef.current, result];
 
@@ -203,8 +291,36 @@ export function useGroupChatGame(options: {
   );
 
   // =========================================================
-  // ユーザー操作: 選択肢クリック
+  // ユーザー操作: 選択肢ホバー / クリック / 履歴スクロール
   // =========================================================
+
+  /** 選択肢にホバーしたとき（pointerenter）。連続して同じ選択肢に入った場合は無視する */
+  const handleOptionHover = useCallback(
+    (optionId: OptionIntentId) => {
+      if (gamePhase !== 'turn-active' || turnResolvedRef.current) return;
+      if (lastHoverChoiceRef.current === optionId) return;
+
+      const now = Date.now();
+      if (firstHoverAtRef.current === null) firstHoverAtRef.current = now;
+      if (hoverSequenceRef.current.length < HOVER_SEQUENCE_CAP) {
+        hoverSequenceRef.current.push(optionId);
+      }
+      if (!distinctHoverOrderRef.current.includes(optionId)) {
+        distinctHoverOrderRef.current.push(optionId);
+      }
+      lastHoverChoiceRef.current = optionId;
+      lastHoverEnterAtRef.current = now;
+    },
+    [gamePhase]
+  );
+
+  /** チャット履歴を上方向にスクロールしたとき（1ジェスチャーにつき1回呼ばれる想定） */
+  const handleHistoryScroll = useCallback(() => {
+    if (gamePhase !== 'turn-active' || turnResolvedRef.current) return;
+    scrollUpCountRef.current += 1;
+  }, [gamePhase]);
+
+  /** 選択肢をクリックしたとき */
   const selectOption = useCallback(
     (selectedOptionId: OptionIntentId) => {
       if (gamePhase !== 'turn-active' || turnResolvedRef.current) return;
@@ -221,7 +337,18 @@ export function useGroupChatGame(options: {
           t1TypingIndicatorShownAtRef.current !== null
             ? now - t1TypingIndicatorShownAtRef.current
             : null;
+        turn1HoverChangedAfterColleagueATypingRef.current =
+          computeTurn1HoverChanged();
       }
+
+      // 最終選択が distinct ホバー順で何番目か（未ホバーは null）
+      const orderIdx = distinctHoverOrderRef.current.indexOf(selectedOptionId);
+      const finalChoiceHoverOrder = orderIdx >= 0 ? orderIdx + 1 : null;
+      // クリック直前の最後のホバー滞在時間（未ホバーは null）
+      const decisionConfidenceMs =
+        lastHoverEnterAtRef.current !== null
+          ? now - lastHoverEnterAtRef.current
+          : null;
 
       const choice = turn.choices.find(
         (c) => c.selectedOptionId === selectedOptionId
@@ -231,9 +358,20 @@ export function useGroupChatGame(options: {
         { type: 'user', text: choice?.text ?? '' },
       ]);
 
-      recordTurnAndAdvance(selectedOptionId, reactionTimeMs, false);
+      recordTurnAndAdvance(
+        selectedOptionId,
+        reactionTimeMs,
+        false,
+        finalChoiceHoverOrder,
+        decisionConfidenceMs
+      );
     },
-    [gamePhase, currentTurnIndex, recordTurnAndAdvance]
+    [
+      gamePhase,
+      currentTurnIndex,
+      recordTurnAndAdvance,
+      computeTurn1HoverChanged,
+    ]
   );
 
   // タイムアウト時の確定処理
@@ -245,14 +383,17 @@ export function useGroupChatGame(options: {
     if (turn.turnId === 1) {
       turn1AnsweredBeforeColleagueARef.current = null;
       turn1TypingIndicatorReactTimeMsRef.current = null;
+      turn1HoverChangedAfterColleagueATypingRef.current =
+        computeTurn1HoverChanged();
     }
     setChatMessages((prev) => [
       ...prev,
       { type: 'user', text: '（タイムアウト）' },
     ]);
-    // 仕様: タイムアウトは reactionTimeMs を実時間（≒制限時間）として記録
-    recordTurnAndAdvance(0, turn.timerMs, true);
-  }, [currentTurnIndex, recordTurnAndAdvance]);
+    // 仕様: タイムアウトは reactionTimeMs を実時間（≒制限時間）として記録。
+    // クリックがないため finalChoiceHoverOrder / decisionConfidenceMs は null。
+    recordTurnAndAdvance(0, turn.timerMs, true, null, null);
+  }, [currentTurnIndex, recordTurnAndAdvance, computeTurn1HoverChanged]);
 
   // =========================================================
   // カットイン演出: CUTIN_DURATION_MS 後に turn-active へ
@@ -264,7 +405,7 @@ export function useGroupChatGame(options: {
   }, [gamePhase, trackTimeout, clearAllPendingTimeouts]);
 
   // =========================================================
-  // turn-active: タイマー稼働 + メッセージ順次表示
+  // turn-active: タイマー稼働 + メッセージ順次表示 + マウス軌跡計測
   // =========================================================
   useEffect(() => {
     if (gamePhase !== 'turn-active') return;
@@ -274,10 +415,23 @@ export function useGroupChatGame(options: {
     // 初期化（ref 代入のみ。setState は下のコールバックで行う）
     turnResolvedRef.current = false;
     optionsShownAtRef.current = Date.now();
+    resetTurnMetrics();
     if (turn.turnId === 1) {
       t1PreemptShownRef.current = false;
       t1TypingIndicatorShownAtRef.current = null;
     }
+
+    // マウス総移動距離の計測（turn-active 中のみ）
+    const onPointerMove = (e: PointerEvent) => {
+      const prev = lastPointerPosRef.current;
+      if (prev) {
+        const dx = e.clientX - prev.x;
+        const dy = e.clientY - prev.y;
+        mouseDistanceRef.current += Math.sqrt(dx * dx + dy * dy);
+      }
+      lastPointerPosRef.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener('pointermove', onPointerMove);
 
     // タイマー（interval コールバック内で setState）
     const start = Date.now();
@@ -310,6 +464,9 @@ export function useGroupChatGame(options: {
       }, 0);
       trackTimeout(() => {
         t1TypingIndicatorShownAtRef.current = Date.now();
+        // 「入力中」表示時点のホバー先を記録（hover変化判定の起点）
+        typingShownForHoverRef.current = true;
+        hoverChoiceAtTypingRef.current = lastHoverChoiceRef.current;
         setTypingSpeakerId('colleague-a');
         setIsTypingIndicatorVisible(true);
       }, T1_TYPING_INDICATOR_DELAY_MS);
@@ -358,6 +515,7 @@ export function useGroupChatGame(options: {
     }
 
     return () => {
+      window.removeEventListener('pointermove', onPointerMove);
       if (timerIdRef.current) {
         clearInterval(timerIdRef.current);
         timerIdRef.current = null;
@@ -370,6 +528,7 @@ export function useGroupChatGame(options: {
     trackTimeout,
     handleTimeout,
     clearAllPendingTimeouts,
+    resetTurnMetrics,
   ]);
 
   // =========================================================
@@ -385,9 +544,9 @@ export function useGroupChatGame(options: {
       turn1AnsweredBeforeColleagueA: turn1AnsweredBeforeColleagueARef.current,
       turn1TypingIndicatorReactTimeMs:
         turn1TypingIndicatorReactTimeMsRef.current,
-      // --- 以下は #141 で実計測に置き換え（本 PR はデフォルト値）---
-      turn1HoverChangedAfterColleagueATyping: null,
-      inputDeviceType: 'mouse',
+      turn1HoverChangedAfterColleagueATyping:
+        turn1HoverChangedAfterColleagueATypingRef.current,
+      inputDeviceType: inputDeviceTypeRef.current,
     };
     // onComplete（送信）は非同期だが、完了を待たずに completed へ進める。
     // 終了オーバーレイ内で submitStatus に応じた送信中 / 成功表示を出す設計のため。
@@ -428,13 +587,15 @@ export function useGroupChatGame(options: {
     turnResolvedRef.current = false;
     turn1AnsweredBeforeColleagueARef.current = null;
     turn1TypingIndicatorReactTimeMsRef.current = null;
+    turn1HoverChangedAfterColleagueATypingRef.current = null;
     t1PreemptShownRef.current = false;
     t1TypingIndicatorShownAtRef.current = null;
+    resetTurnMetrics();
     setChatMessages([]);
     setCurrentTurnIndex(0);
     setRemainingTimeMs(TURNS[0]?.timerMs ?? 0);
     setGamePhase('turn-cutin');
-  }, [gamePhase]);
+  }, [gamePhase, resetTurnMetrics]);
 
   // =========================================================
   // 派生値
@@ -459,5 +620,7 @@ export function useGroupChatGame(options: {
     goToNextSlide,
     goToPrevSlide,
     selectOption,
+    handleOptionHover,
+    handleHistoryScroll,
   };
 }

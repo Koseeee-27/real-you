@@ -11,7 +11,14 @@ interface ChatTimelineProps {
   messages: ChatMessage[];
   /** 入力中インジケータの話者（非表示時は null） */
   typingSpeaker: Character | null;
+  /** チャット履歴を上方向にスクロールしたとき（1ジェスチャーにつき1回）。履歴遡り計測用 */
+  onHistoryScroll?: () => void;
 }
+
+/** 上方向スクロールと判定する最小移動量（px） */
+const SCROLL_UP_THRESHOLD_PX = 4;
+/** 連続スクロールを1ジェスチャーにまとめるデバウンス（ms） */
+const SCROLL_UP_DEBOUNCE_MS = 300;
 
 /** 「@あなた」を赤＋下線で強調する（T3 上司メッセージ用） */
 function renderText(text: string, hasMention?: boolean): ReactNode {
@@ -33,15 +40,36 @@ function renderText(text: string, hasMention?: boolean): ReactNode {
 export default function ChatTimeline({
   messages,
   typingSpeaker,
+  onHistoryScroll,
 }: ChatTimelineProps) {
   const endRef = useRef<HTMLDivElement>(null);
+  const prevScrollTopRef = useRef(0);
+  const lastScrollUpAtRef = useRef(0);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typingSpeaker]);
 
+  // 上方向スクロール（履歴遡り）を1ジェスチャー単位で検知する。
+  // 自動スクロール（scrollIntoView）は下方向なので誤カウントしない。
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
+    const prev = prevScrollTopRef.current;
+    prevScrollTopRef.current = scrollTop;
+    if (scrollTop < prev - SCROLL_UP_THRESHOLD_PX) {
+      const now = Date.now();
+      if (now - lastScrollUpAtRef.current > SCROLL_UP_DEBOUNCE_MS) {
+        lastScrollUpAtRef.current = now;
+        onHistoryScroll?.();
+      }
+    }
+  };
+
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto bg-[#dae5f3] px-9 py-[26px]">
+    <div
+      className="flex flex-1 flex-col gap-4 overflow-y-auto bg-[#dae5f3] px-9 py-[26px]"
+      onScroll={handleScroll}
+    >
       {messages.map((msg, i) => {
         if (msg.type === 'separator') {
           return (
