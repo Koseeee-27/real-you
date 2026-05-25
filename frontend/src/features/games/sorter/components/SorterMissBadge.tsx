@@ -1,10 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  SCORE_OUTFLOW_PENALTY,
-  SORTER_UI_COLORS,
-} from '../data/sorterConstants';
+import { SORTER_UI_COLORS } from '../data/sorterConstants';
 
 interface SorterMissBadgeProps {
   /** MISS バッジ表示用の key（流出ごとに更新される Date.now() 値）。null なら非表示 */
@@ -38,7 +35,7 @@ export default function SorterMissBadge({
             backgroundColor: SORTER_UI_COLORS.danger,
           }}
         >
-          🚨 MISS -{SCORE_OUTFLOW_PENALTY}
+          🚨 MISS
         </motion.span>
       )}
     </AnimatePresence>
