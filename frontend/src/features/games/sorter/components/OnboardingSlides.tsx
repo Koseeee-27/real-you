@@ -33,20 +33,14 @@ interface OnboardingSlidesProps {
  * 外部から参照する `ONBOARDING_SLIDE_COUNT`（sorterConstants）も同じ値に
  * 揃える必要がある（SorterGameFlow の onNext 上限制御で参照する）。
  */
-const SLIDES = [
-  SlideIntro,
-  SlideColorPairing,
-  SlideHowToPlay,
-  SlideScoring,
-] as const;
+const SLIDES = [SlideOverview, SlideControlsAndScoring] as const;
 
 /**
- * ゲーム開始時に表示する 4 スライドのオンボーディング。
+ * ゲーム開始時に表示する 2 スライドのオンボーディング。
  *
- * - スライド 1/4: ゲーム概要（流れてくる荷物を、対応する仕分け先に投入）
- * - スライド 2/4: 仕分けカテゴリーのカラーペアリング（特急=赤 / 取扱注意=青 / 重量物=茶）
- * - スライド 3/4: 操作方法（[1] 荷物クリック → [2] 振り分け先クリック の 2 ステップ）
- * - スライド 4/4: 採点ルール + スタートボタン
+ * - スライド 1/2: 概要 + カテゴリー（流れてくる荷物を同じ色の仕分け先へ。目標 150 点でクリア。
+ *                 特急=赤 / 取扱注意=青 / 重量物=茶 の色対応を横並び 3 で表示）
+ * - スライド 2/2: 操作 + 採点（D&D / クリック 2 ステップ の操作方法、+10 / -5 の採点、スタートボタン）
  *
  * スライド間は「← 戻る」「次へ →」で双方向移動可能。
  * 最終スライドの「スタート」を押すと `onStart` を呼び、親側で次の phase に遷移する。
@@ -121,9 +115,9 @@ export default function OnboardingSlides({
           中央寄せにする。これによりスライド切替時にカード全体の高さが揺れない。
           PC（lg）では横並びレイアウトで必要高さが減るため min-h を低めに、
           狭い画面では縦積みになるため min-h を高めに取り、どのスライドも見切れない
-          ようにする。最も背が高くなるのは狭い画面の SlideColorPairing / SlideScoring。
+          ようにする。最も背が高くなるのは狭い画面の SlideControlsAndScoring。
         */}
-        <div className="relative min-h-[480px] overflow-hidden sm:min-h-[440px] lg:min-h-[380px]">
+        <div className="relative min-h-[440px] overflow-hidden sm:min-h-[400px] lg:min-h-[340px]">
           <AnimatePresence mode="wait" custom={direction} initial={false}>
             <motion.div
               key={slideIndex}
@@ -185,91 +179,69 @@ export default function OnboardingSlides({
 // 各スライドの中身
 // =========================================================
 
-function SlideIntro() {
+/**
+ * スライド 1/2: 概要 + カテゴリー。
+ *
+ * 上段でゲームの目的・目標スコア・制限時間をコンパクトに伝え、
+ * 下段で 3 カテゴリーの色対応（荷物 → 仕分け先）を横並び 3 で示す。
+ * カラーペアリング（旧 SlideColorPairing）を概要に統合して 1 枚に圧縮した。
+ *
+ * 横並び 3 は狭幅でも維持する（縦積みにすると 1 枚に収まらないため）。
+ * 画像サイズと文字サイズを狭幅では控えめにして 1 枚に収める。
+ */
+function SlideOverview() {
   return (
     <div className="text-center">
-      <h2 className="text-3xl font-black tracking-widest sm:text-4xl lg:text-5xl">
+      <h2 className="text-2xl font-black tracking-widest sm:text-3xl lg:text-4xl">
         仕分けゲーム
       </h2>
-      <p className="mt-5 text-base font-bold leading-relaxed sm:mt-6 sm:text-lg lg:text-xl">
-        流れてくる荷物を、対応する仕分け先に投入！
+      <p className="mt-3 text-sm font-bold leading-relaxed sm:mt-4 sm:text-base lg:text-lg">
+        流れてくる荷物を同じ色の仕分け先へ。
         <br />
         <span style={{ color: SORTER_UI_COLORS.accent }}>
-          目標スコア {TARGET_SCORE} 点
+          目標 {TARGET_SCORE} 点
         </span>
-        に到達でクリア（制限 {TIME_CAP_SEC} 秒）
+        でクリア（制限 {TIME_CAP_SEC} 秒）
       </p>
-      <div className="mt-8 flex justify-center gap-4 sm:mt-10 sm:gap-6">
-        {PACKAGE_TYPES.map((type) => (
-          <div
-            key={type}
-            className="relative h-20 w-20 sm:h-24 sm:w-24 lg:h-28 lg:w-28"
-          >
-            <Image
-              src={PACKAGE_IMAGE_PATHS[type]}
-              alt={`${PACKAGE_LABELS[type]}の荷物`}
-              fill
-              sizes="(min-width: 1024px) 112px, (min-width: 640px) 96px, 80px"
-              className="object-contain"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-function SlideColorPairing() {
-  return (
-    <div>
-      <h2 className="text-center text-2xl font-black tracking-widest sm:text-3xl">
-        仕分けカテゴリー
-      </h2>
-      <p className="mt-2 text-center text-sm font-bold text-gray-600 sm:text-base">
-        色で見分けて、同じ色の仕分け先へ
-      </p>
       {/*
-        狭い画面: 1 カラムで縦積み、各カードは横並び（荷物 → 仕分け先）。
-        PC（lg）: 3 カラムで横並び、各カードは縦並び（荷物 ↓ 仕分け先）にして
-        横スペースを使い切る。flex-row/flex-col の切り替えで両対応する。
+        3 カテゴリーの色対応（荷物 → 仕分け先）。
+        概要スライドに統合したため横並び 3 固定で、全幅でカテゴリーを一望できるようにする。
+        各カードは「荷物画像 → 矢印 → 仕分け先画像」の縦並び（ラベルを下に添える）。
       */}
-      <div className="mt-6 grid grid-cols-1 gap-3 sm:mt-8 sm:gap-4 lg:mt-6 lg:grid-cols-3">
+      <div className="mt-5 grid grid-cols-3 gap-2 sm:mt-6 sm:gap-3 lg:gap-4">
         {PACKAGE_TYPES.map((type) => (
           <div
             key={type}
-            className="flex flex-row items-center gap-3 rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_#000] lg:flex-col lg:gap-2"
+            className="flex flex-col items-center gap-1 rounded-xl border-[3px] border-black bg-white p-2 shadow-[3px_3px_0_0_#000] sm:gap-2 sm:p-3"
           >
-            <div className="relative h-16 w-16 shrink-0 sm:h-20 sm:w-20 lg:h-16 lg:w-16">
+            <div className="relative h-12 w-12 shrink-0 sm:h-16 sm:w-16 lg:h-20 lg:w-20">
               <Image
                 src={PACKAGE_IMAGE_PATHS[type]}
                 alt={`${PACKAGE_LABELS[type]}の荷物`}
                 fill
-                sizes="(min-width: 1024px) 64px, (min-width: 640px) 80px, 64px"
+                sizes="(min-width: 1024px) 80px, (min-width: 640px) 64px, 48px"
                 className="object-contain"
               />
             </div>
-            <span
-              className="text-xl font-black tracking-widest sm:text-2xl lg:order-3 lg:text-xl"
-              style={{ color: PACKAGE_COLORS[type] }}
-            >
-              {PACKAGE_LABELS[type]}
+            <span aria-hidden className="text-lg font-black sm:text-2xl">
+              ↓
             </span>
-            <span
-              aria-hidden
-              className="ml-auto text-2xl font-black sm:text-3xl lg:ml-0 lg:order-1 lg:text-2xl"
-            >
-              <span className="lg:hidden">→</span>
-              <span className="hidden lg:inline">↓</span>
-            </span>
-            <div className="relative h-16 w-16 shrink-0 sm:h-20 sm:w-20 lg:order-2 lg:h-16 lg:w-16">
+            <div className="relative h-12 w-12 shrink-0 sm:h-16 sm:w-16 lg:h-20 lg:w-20">
               <Image
                 src={BIN_IMAGE_PATHS[type]}
                 alt={`${PACKAGE_LABELS[type]}の仕分け先`}
                 fill
-                sizes="(min-width: 1024px) 64px, (min-width: 640px) 80px, 64px"
+                sizes="(min-width: 1024px) 80px, (min-width: 640px) 64px, 48px"
                 className="object-contain"
               />
             </div>
+            <span
+              className="text-sm font-black tracking-wider sm:text-base lg:text-lg"
+              style={{ color: PACKAGE_COLORS[type] }}
+            >
+              {PACKAGE_LABELS[type]}
+            </span>
           </div>
         ))}
       </div>
@@ -277,138 +249,129 @@ function SlideColorPairing() {
   );
 }
 
-function SlideHowToPlay() {
+/**
+ * スライド 2/2: 操作 + 採点。
+ *
+ * 操作方法（D&D / クリック 2 ステップ）と採点（+10 / -5）を 1 枚にまとめる。
+ * 狭幅では縦積み、PC（lg）では操作と採点を左右 2 カラムに分けて横長カードを使い切る。
+ * 最終スライドのため、フッターには「スタート」ボタンが表示される。
+ */
+function SlideControlsAndScoring() {
   return (
     <div>
-      <h2 className="text-center text-2xl font-black tracking-widest sm:text-3xl">
-        操作方法
+      <h2 className="text-center text-xl font-black tracking-widest sm:text-2xl lg:text-3xl">
+        操作と採点
       </h2>
-      <p className="mt-2 text-center text-sm font-bold text-gray-600 sm:text-base">
-        2 つの操作方法に対応
-      </p>
 
-      {/* 方法 A: ドラッグ&ドロップ */}
-      <div className="mt-5 rounded-xl border-[3px] border-black bg-white p-4 shadow-[3px_3px_0_0_#000] sm:mt-6">
-        <div className="flex items-center gap-3">
-          <span
-            className="rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
-            style={{ backgroundColor: SORTER_UI_COLORS.success }}
-          >
-            ドラッグ&ドロップ
-          </span>
-          <span className="text-sm font-bold sm:text-base">
-            荷物をつかんで仕分け先へドロップ
-          </span>
-        </div>
-        <div className="mt-3 flex items-center justify-center gap-2 sm:gap-4">
-          <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
-            <Image
-              src={PACKAGE_IMAGE_PATHS.urgent}
-              alt="荷物の例"
-              fill
-              sizes="(min-width: 640px) 64px, 56px"
-              className="object-contain"
-            />
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:mt-5 lg:grid-cols-2 lg:gap-4">
+        {/* === 操作方法 === */}
+        <div className="flex flex-col gap-2 sm:gap-3">
+          {/* 方法 A: ドラッグ&ドロップ */}
+          <div className="rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_#000]">
+            <div className="flex items-center gap-2">
+              <span
+                className="shrink-0 rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
+                style={{ backgroundColor: SORTER_UI_COLORS.success }}
+              >
+                ドラッグ&ドロップ
+              </span>
+            </div>
+            <div className="mt-2 flex items-center justify-center gap-2 sm:gap-3">
+              <div className="relative h-11 w-11 shrink-0 sm:h-14 sm:w-14">
+                <Image
+                  src={PACKAGE_IMAGE_PATHS.urgent}
+                  alt="荷物の例"
+                  fill
+                  sizes="(min-width: 640px) 56px, 44px"
+                  className="object-contain"
+                />
+              </div>
+              <span aria-hidden className="text-xl font-black sm:text-2xl">
+                →
+              </span>
+              <div className="relative h-11 w-11 shrink-0 sm:h-14 sm:w-14">
+                <Image
+                  src={BIN_IMAGE_PATHS.urgent}
+                  alt="仕分け先の例"
+                  fill
+                  sizes="(min-width: 640px) 56px, 44px"
+                  className="object-contain"
+                />
+              </div>
+            </div>
+            <p className="mt-1 text-center text-xs font-bold text-gray-600 sm:text-sm">
+              荷物をつかんで仕分け先へ
+            </p>
           </div>
-          <span aria-hidden className="text-2xl font-black sm:text-3xl">
-            →
-          </span>
-          <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
-            <Image
-              src={BIN_IMAGE_PATHS.urgent}
-              alt="仕分け先の例"
-              fill
-              sizes="(min-width: 640px) 64px, 56px"
-              className="object-contain"
-            />
+
+          {/* 方法 B: クリック 2 ステップ */}
+          <div className="rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_#000]">
+            <div className="flex items-center gap-2">
+              <span
+                className="shrink-0 rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
+                style={{ backgroundColor: SORTER_UI_COLORS.link }}
+              >
+                クリック 2 ステップ
+              </span>
+            </div>
+            <div className="mt-2 flex flex-col gap-1 text-xs font-bold sm:text-sm">
+              <span>
+                <span
+                  className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full border-[2px] border-black text-xs"
+                  style={{ backgroundColor: SORTER_UI_COLORS.success }}
+                >
+                  1
+                </span>
+                荷物をクリックして選択
+              </span>
+              <span>
+                <span
+                  className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full border-[2px] border-black text-xs text-white"
+                  style={{ backgroundColor: SORTER_UI_COLORS.link }}
+                >
+                  2
+                </span>
+                仕分け先をクリック
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 方法 B: クリック 2 ステップ */}
-      <div className="mt-4 rounded-xl border-[3px] border-black bg-white p-4 shadow-[3px_3px_0_0_#000]">
-        <div className="flex items-center gap-3">
-          <span
-            className="rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
-            style={{ backgroundColor: SORTER_UI_COLORS.link }}
+        {/* === 採点 === */}
+        <div className="flex flex-col gap-2 sm:gap-3">
+          <div
+            className="flex flex-row items-center gap-3 rounded-xl border-[3px] border-black p-3"
+            style={{ backgroundColor: SORTER_UI_COLORS.successBgSubtle }}
           >
-            クリック 2 ステップ
-          </span>
-        </div>
-        <div className="mt-2 flex flex-col gap-1 text-sm font-bold sm:text-base">
-          <span>
             <span
-              className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full border-[2px] border-black text-xs"
-              style={{ backgroundColor: SORTER_UI_COLORS.success }}
+              className="shrink-0 text-3xl font-black sm:text-4xl"
+              style={{ color: SORTER_UI_COLORS.successText }}
             >
-              1
+              +{SCORE_CORRECT}
             </span>
-            荷物をクリックして選択
-          </span>
-          <span>
+            <span className="text-sm font-bold sm:text-base">
+              正しい仕分け先に投入
+            </span>
+          </div>
+          <div
+            className="flex flex-row items-center gap-3 rounded-xl border-[3px] border-black p-3"
+            style={{ backgroundColor: SORTER_UI_COLORS.dangerBgSubtle }}
+          >
             <span
-              className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full border-[2px] border-black text-xs text-white"
-              style={{ backgroundColor: SORTER_UI_COLORS.link }}
+              className="shrink-0 text-3xl font-black sm:text-4xl"
+              style={{ color: SORTER_UI_COLORS.dangerText }}
             >
-              2
+              -{SCORE_WRONG_PENALTY}
             </span>
-            該当する仕分け先をクリック
-          </span>
+            <span className="text-sm font-bold sm:text-base">
+              誤った仕分け先に投入
+            </span>
+          </div>
+          <p className="text-center text-xs font-bold text-gray-500">
+            ※ 仕分け先の外で離す / 再クリックで取り消し
+          </p>
         </div>
       </div>
-
-      <p className="mt-4 text-center text-xs font-bold text-gray-500 sm:text-sm">
-        ※ 仕分け先の外で離す / 選択中の荷物を再クリックで取り消し
-      </p>
-    </div>
-  );
-}
-
-function SlideScoring() {
-  return (
-    <div className="text-center">
-      <h2 className="text-2xl font-black tracking-widest sm:text-3xl">
-        採点ルール
-      </h2>
-      {/*
-        狭い画面: 1 カラムで縦積み、各行は横並び（点数 + 説明）。
-        PC（sm）: 2 カラムで横並びにして 2 つの採点ルールを左右に配置。
-        カラム内は点数 → 説明の縦並びにして横長カードを使い切る。
-        流出は失点なし（±0）のため採点カードには出さない。
-      */}
-      <div className="mt-6 grid grid-cols-1 gap-3 text-left sm:mt-8 sm:grid-cols-2 sm:gap-4">
-        <div
-          className="flex flex-row items-center gap-3 rounded-xl border-[3px] border-black p-4 sm:flex-col sm:gap-2 sm:text-center"
-          style={{ backgroundColor: SORTER_UI_COLORS.successBgSubtle }}
-        >
-          <span
-            className="text-3xl font-black sm:text-4xl"
-            style={{ color: SORTER_UI_COLORS.successText }}
-          >
-            +{SCORE_CORRECT}
-          </span>
-          <span className="text-sm font-bold sm:text-base">
-            正しい仕分け先に投入
-          </span>
-        </div>
-        <div
-          className="flex flex-row items-center gap-3 rounded-xl border-[3px] border-black p-4 sm:flex-col sm:gap-2 sm:text-center"
-          style={{ backgroundColor: SORTER_UI_COLORS.dangerBgSubtle }}
-        >
-          <span
-            className="text-3xl font-black sm:text-4xl"
-            style={{ color: SORTER_UI_COLORS.dangerText }}
-          >
-            -{SCORE_WRONG_PENALTY}
-          </span>
-          <span className="text-sm font-bold sm:text-base">
-            誤った仕分け先に投入
-          </span>
-        </div>
-      </div>
-      <p className="mt-5 text-sm font-bold text-gray-600 sm:text-base">
-        目標スコア {TARGET_SCORE} 点に到達でクリア！
-      </p>
     </div>
   );
 }

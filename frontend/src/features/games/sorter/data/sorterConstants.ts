@@ -49,8 +49,9 @@ export const TIMER_TICK_MS = 100;
  * 開始前オンボーディングのスライド枚数。
  * OnboardingSlides の進捗ドット表示と、SorterGameFlow / useSorterGame の
  * スライド index 上限制御で共有する真実の単一ソース。
+ * OnboardingSlides の SLIDES.length と必ず一致させること。
  */
-export const ONBOARDING_SLIDE_COUNT = 4;
+export const ONBOARDING_SLIDE_COUNT = 2;
 
 // ========================================
 // カウントダウン
