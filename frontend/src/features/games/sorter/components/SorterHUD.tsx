@@ -27,15 +27,24 @@ interface SorterHUDProps {
 const TIMER_WARNING_THRESHOLD_SEC = 10;
 
 /**
+ * 円形リングタイマーの SVG 寸法（px）。
+ * RADIUS は線幅を内側に収めるため (SIZE/2 - STROKE/2) で算出する。
+ */
+const RING_SIZE_PX = 56;
+const RING_STROKE_PX = 7;
+const RING_RADIUS_PX = RING_SIZE_PX / 2 - RING_STROKE_PX / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS_PX;
+
+/**
  * ゲーム画面上部の HUD（Heads-Up Display）。
  *
- * - 上段: タイトル / 現在スコア（大、目標併記）/ 残り時間タイマー（数値 + 横ゲージ）
- * - 下段: 状態バッジ列（機械停止中 / ルール変更中 / スピード 2 倍）
+ * - 上段（厚め）: タイトル / 現在スコア（大、目標併記）/ 円形リングのカウントダウンタイマー
+ * - 下段: 状態バッジ帯（機械停止中 / ルール変更中 / スピード 2 倍）を幅広・大きめに表示
  *
  * 勝敗の主軸は「目標スコア到達」だが、playtest で進捗バーより数値の方が分かりやすいと
- * 判定されたため、現在スコアを大きく数値表示し目標値を小さく併記する（進捗バーは廃止）。
- * 上限時間は「残り N 秒」を大きめに出し、横ゲージで減りも見せる。残りが
- * TIMER_WARNING_THRESHOLD_SEC 秒以下になると数値・ゲージとも danger 色になり、
+ * 判定されたため、現在スコアを大きく数値表示し目標値を小さく併記する。
+ * 上限時間は円形リングで残り割合（remainingTimeMs / TIME_CAP_MS）を見せ、中央に残り秒数を出す。
+ * 残りが TIMER_WARNING_THRESHOLD_SEC 秒以下になると数値・リングとも danger 色になり、
  * 「上限到達 = 失敗」が近いことを直感的に伝える。
  * バッジは優先度に応じて「機械停止中」表示時は他を抑制する。
  */
@@ -51,12 +60,15 @@ export default function SorterHUD({
     0,
     Math.ceil((TIME_CAP_MS - elapsedTimeMs) / 1000)
   );
-  // 残り時間の割合（0–100%）。横ゲージの幅に使う。
-  const remainingPct = Math.max(
+  // 残り時間の割合（0–1）。リングの strokeDashoffset 算出に使う。
+  // remainingTimeMs / TIME_CAP_MS をそのまま割合として扱う。
+  const remainingFraction = Math.max(
     0,
-    Math.min(100, 100 - (elapsedTimeMs / TIME_CAP_MS) * 100)
+    Math.min(1, (TIME_CAP_MS - elapsedTimeMs) / TIME_CAP_MS)
   );
-  // 残りわずか → 警告色に切替（数値・ゲージ共通）。
+  // リングの欠け量。残りが減るほど offset が増え、リングが時計回りに減っていく。
+  const ringOffset = RING_CIRCUMFERENCE * (1 - remainingFraction);
+  // 残りわずか → 警告色に切替（数値・リング共通）。
   const isTimerWarning = remainingSec <= TIMER_WARNING_THRESHOLD_SEC;
   const timerColor = isTimerWarning
     ? SORTER_UI_COLORS.danger
@@ -64,71 +76,95 @@ export default function SorterHUD({
 
   return (
     <>
-      {/* === 上段: タイトル / 現在スコア（大）/ 残り時間タイマー === */}
+      {/* === 上段（厚め）: タイトル / 現在スコア（大）/ 円形リングタイマー === */}
       <div className="z-10 px-4">
-        <div className="mx-auto flex w-full max-w-4xl items-center gap-3 rounded-xl border-[4px] border-black bg-white px-4 py-2 shadow-[4px_4px_0_0_#000]">
+        <div className="mx-auto flex w-full max-w-4xl items-center gap-3 rounded-2xl border-[5px] border-black bg-white px-5 py-3 shadow-[5px_5px_0_0_#000] sm:gap-4 sm:px-6 sm:py-4">
           <h1
-            className="hidden shrink-0 text-base font-black tracking-widest sm:block sm:text-lg"
+            className="hidden shrink-0 text-lg font-black tracking-widest sm:block sm:text-2xl"
             style={{ color: SORTER_UI_COLORS.accent }}
           >
             仕分けゲーム
           </h1>
 
           {/* 現在スコア（大）+ 目標値（小）。数値を主役にして分かりやすく見せる */}
-          <div className="flex flex-1 items-baseline justify-center gap-1">
+          <div className="flex flex-1 items-baseline justify-center gap-1.5">
             <span
-              className="text-xs font-black tracking-wider text-black/45"
+              className="text-sm font-black tracking-wider text-black/45"
               aria-hidden
             >
               SCORE
             </span>
             <span
-              className="text-3xl leading-none font-black tabular-nums sm:text-4xl"
+              className="text-5xl leading-none font-black tabular-nums sm:text-6xl"
               style={{ color: SORTER_UI_COLORS.accent }}
               aria-label={`現在スコア ${displayScore} 点。目標 ${TARGET_SCORE} 点`}
             >
               {displayScore}
             </span>
-            <span className="text-sm font-black text-black/40 tabular-nums sm:text-base">
+            <span className="text-lg font-black text-black/40 tabular-nums sm:text-xl">
               / {TARGET_SCORE}
             </span>
           </div>
 
-          {/* 残り時間タイマー（数値 + 横ゲージ）。残りわずかで danger 色に */}
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <span
-              className="text-xl leading-none font-black tabular-nums sm:text-2xl"
-              style={{ color: timerColor }}
-              aria-label={`残り時間 ${remainingSec} 秒`}
+          {/* 残り時間タイマー（円形リング + 中央に残り秒数）。残りわずかで danger 色に */}
+          <div
+            className="relative shrink-0"
+            style={{ width: RING_SIZE_PX, height: RING_SIZE_PX }}
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(TIME_CAP_MS / 1000)}
+            aria-valuenow={remainingSec}
+            aria-label={`残り時間 ${remainingSec} 秒`}
+          >
+            <svg
+              width={RING_SIZE_PX}
+              height={RING_SIZE_PX}
+              viewBox={`0 0 ${RING_SIZE_PX} ${RING_SIZE_PX}`}
+              // 12 時方向から始めて時計回りに減らすため -90deg 回転
+              className="-rotate-90"
+              aria-hidden
             >
-              {remainingSec}
-              <span className="ml-0.5 text-xs font-bold">s</span>
-            </span>
-            <div
-              className="h-2 w-20 overflow-hidden rounded-full border-[2px] border-black bg-gray-200 sm:w-28"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={Math.round(TIME_CAP_MS / 1000)}
-              aria-valuenow={remainingSec}
-              aria-label="残り時間ゲージ"
-            >
-              <motion.div
-                className="h-full origin-right"
-                style={{ backgroundColor: timerColor }}
-                animate={{ width: `${remainingPct}%` }}
+              {/* 背景トラック */}
+              <circle
+                cx={RING_SIZE_PX / 2}
+                cy={RING_SIZE_PX / 2}
+                r={RING_RADIUS_PX}
+                fill="none"
+                stroke="#e5e7eb"
+                strokeWidth={RING_STROKE_PX}
+              />
+              {/* 進捗リング（残り割合）。strokeDashoffset を 100ms tick ごとに補間して滑らかに見せる */}
+              <motion.circle
+                cx={RING_SIZE_PX / 2}
+                cy={RING_SIZE_PX / 2}
+                r={RING_RADIUS_PX}
+                fill="none"
+                stroke={timerColor}
+                strokeWidth={RING_STROKE_PX}
+                strokeLinecap="round"
+                strokeDasharray={RING_CIRCUMFERENCE}
+                animate={{ strokeDashoffset: ringOffset }}
                 transition={{ duration: 0.1, ease: 'linear' }}
               />
-            </div>
+            </svg>
+            {/* 中央の残り秒数 */}
+            <span
+              className="absolute inset-0 flex items-center justify-center text-base font-black tabular-nums sm:text-lg"
+              style={{ color: timerColor }}
+              aria-hidden
+            >
+              {remainingSec}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* === 下段: 状態バッジ列 === */}
+      {/* === 下段: 状態バッジ帯（幅広・大きめ） === */}
       <div className="z-10 mt-2 px-4">
-        <div className="mx-auto flex w-full max-w-4xl min-h-[28px] items-center gap-2">
+        <div className="mx-auto flex w-full max-w-4xl min-h-[40px] items-center justify-center gap-2 sm:gap-3">
           {isFrozen && (
             <span
-              className="inline-block rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-black"
+              className="inline-flex w-full max-w-md items-center justify-center rounded-xl border-[4px] border-black px-4 py-1.5 text-base font-black tracking-wider text-black shadow-[3px_3px_0_0_#000] sm:text-lg"
               style={{ backgroundColor: SORTER_UI_COLORS.warning }}
             >
               ✗ 機械停止中
@@ -136,7 +172,7 @@ export default function SorterHUD({
           )}
           {!isFrozen && isRuleChanged && (
             <span
-              className="inline-block rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-black"
+              className="inline-flex w-full max-w-md items-center justify-center rounded-xl border-[4px] border-black px-4 py-1.5 text-base font-black tracking-wider text-black shadow-[3px_3px_0_0_#000] sm:text-lg"
               style={{ backgroundColor: SORTER_UI_COLORS.warning }}
             >
               ルール変更中: 特急 → 重量物
@@ -144,7 +180,7 @@ export default function SorterHUD({
           )}
           {!isFrozen && isSpeedUp && (
             <span
-              className="inline-block rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white"
+              className="inline-flex w-full max-w-xs items-center justify-center rounded-xl border-[4px] border-black px-4 py-1.5 text-base font-black tracking-wider text-white shadow-[3px_3px_0_0_#000] sm:text-lg"
               style={{ backgroundColor: SORTER_UI_COLORS.accent }}
             >
               ⚡ スピード2倍
