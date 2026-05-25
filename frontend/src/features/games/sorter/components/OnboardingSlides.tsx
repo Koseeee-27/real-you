@@ -40,7 +40,8 @@ const SLIDES = [SlideOverview, SlideControlsAndScoring] as const;
  *
  * - スライド 1/2: 概要 + カテゴリー（流れてくる荷物を同じ色の仕分け先へ。目標 150 点でクリア。
  *                 特急=赤 / 取扱注意=青 / 重量物=茶 の色対応を横並び 3 で表示）
- * - スライド 2/2: 操作 + 採点（D&D / クリック 2 ステップ の操作方法、+10 / -5 の採点、スタートボタン）
+ * - スライド 2/2: 操作方法（どちらでもOK！）+ 採点（D&D / クリック 2 ステップ の 2 方式を
+ *                 「または」で対等に並べ、+10 / -5 の採点を下段に、スタートボタン）
  *
  * スライド間は「← 戻る」「次へ →」で双方向移動可能。
  * 最終スライドの「スタート」を押すと `onStart` を呼び、親側で次の phase に遷移する。
@@ -114,10 +115,11 @@ export default function OnboardingSlides({
           コンテナに min-h を持たせ、各スライドの中身は absolute + flex center で
           中央寄せにする。これによりスライド切替時にカード全体の高さが揺れない。
           min-h は「2 スライドのうち背が高い方」を基準に確保する。
-          最も背が高くなるのは、タイトル + サブ 2 行 + カテゴリーカード 3 列
-          （荷物画像 → 矢印 → 仕分け先画像 → ラベル）を縦に積む SlideOverview。
-          PC（lg）では横並びレイアウトで必要高さが減るため min-h を低めに、
-          狭い画面では縦積みになるため min-h を高めに取る。
+          狭幅では SlideOverview（タイトル + サブ 2 行 + カテゴリーカード 3 列）も
+          SlideControlsAndScoring（2 方式カードを縦積み + 採点）も縦に伸びるが、
+          いずれもこの min-h（560/520/480）内に収まる前提で値を据え置いている。
+          PC（lg）では両スライドとも横並びレイアウトで必要高さが減るため min-h を
+          低めに、狭い画面では縦積みになるため min-h を高めに取る。
           外側モーダルの max-h-[90vh] で縦に短い画面では枠が縮む。その場合は
           各スライド（absolute inset-0）を overflow-y-auto にして縦スクロールへ
           逃がす。中身は m-auto でセンタリングし、収まる時は中央寄せ・溢れる時は
@@ -260,127 +262,154 @@ function SlideOverview() {
 }
 
 /**
- * スライド 2/2: 操作 + 採点。
+ * スライド 2/2: 操作方法（どちらでもOK！）+ 採点。
  *
- * 操作方法（D&D / クリック 2 ステップ）と採点（+10 / -5）を 1 枚にまとめる。
- * 狭幅では縦積み、PC（lg）では操作と採点を左右 2 カラムに分けて横長カードを使い切る。
- * 最終スライドのため、フッターには「スタート」ボタンが表示される。
+ * 「ドラッグ&ドロップ」「クリック 2 ステップ」のどちらでも仕分けできることを
+ * 明確に伝えるため、2 方式カードを同じ大きさで左右に対等配置し、間に「または」
+ * コネクタを挟む（PC は左右の中央、狭幅は上下カードの間）。採点（+10 / -5）は
+ * 下段にコンパクトに横並びで置く。最終スライドのため、フッターには「スタート」
+ * ボタンが表示される。
+ *
+ * レイアウトは flex で、狭幅は flex-col（縦積み + 上下に「または」）、
+ * PC（lg）は flex-row（横並び + 中央に「または」）に切り替える。2 カードは
+ * flex-1 + basis-0 で等幅にし「どちらでも良い」感を出す。
+ * 「または」は装飾なので aria-hidden、見出しの「どちらでもOK！」をテキストで
+ * 読み上げに乗せて意味を担保する。
  */
 function SlideControlsAndScoring() {
   return (
     <div>
       <h2 className="text-center text-xl font-black tracking-widest sm:text-2xl lg:text-3xl">
-        操作と採点
+        操作方法（どちらでもOK！）
       </h2>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:mt-5 lg:grid-cols-2 lg:gap-4">
-        {/* === 操作方法 === */}
-        <div className="flex flex-col gap-2 sm:gap-3">
-          {/* 方法 A: ドラッグ&ドロップ */}
-          <div className="rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_#000]">
-            <div className="flex items-center gap-2">
-              <span
-                className="shrink-0 rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
-                style={{ backgroundColor: SORTER_UI_COLORS.success }}
-              >
-                ドラッグ&ドロップ
-              </span>
-            </div>
-            <div className="mt-2 flex items-center justify-center gap-2 sm:gap-3">
-              <div className="relative h-11 w-11 shrink-0 sm:h-14 sm:w-14">
-                <Image
-                  src={PACKAGE_IMAGE_PATHS.urgent}
-                  alt="荷物の例"
-                  fill
-                  sizes="(min-width: 640px) 56px, 44px"
-                  className="object-contain"
-                />
-              </div>
-              <span aria-hidden className="text-xl font-black sm:text-2xl">
-                →
-              </span>
-              <div className="relative h-11 w-11 shrink-0 sm:h-14 sm:w-14">
-                <Image
-                  src={BIN_IMAGE_PATHS.urgent}
-                  alt="仕分け先の例"
-                  fill
-                  sizes="(min-width: 640px) 56px, 44px"
-                  className="object-contain"
-                />
-              </div>
-            </div>
-            <p className="mt-1 text-center text-xs font-bold text-gray-600 sm:text-sm">
-              荷物をつかんで仕分け先へ
-            </p>
+      {/*
+        2 方式カード + 「または」コネクタ。
+        狭幅: 縦積み（カード → または → カード）。lg: 横並び（カード｜または｜カード）。
+        items-stretch で 2 カードの高さを揃え、対等に見せる。
+      */}
+      <div className="mt-4 flex flex-col items-stretch gap-3 sm:mt-5 lg:flex-row lg:items-stretch lg:gap-4">
+        {/* 方式 A: ドラッグ&ドロップ */}
+        <div className="flex flex-1 basis-0 flex-col rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_#000]">
+          <div className="flex justify-center">
+            <span
+              className="rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
+              style={{ backgroundColor: SORTER_UI_COLORS.success }}
+            >
+              🖱 ドラッグ&ドロップ
+            </span>
           </div>
-
-          {/* 方法 B: クリック 2 ステップ */}
-          <div className="rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_#000]">
-            <div className="flex items-center gap-2">
-              <span
-                className="shrink-0 rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
-                style={{ backgroundColor: SORTER_UI_COLORS.link }}
-              >
-                クリック 2 ステップ
-              </span>
+          <div className="mt-2 flex items-center justify-center gap-2 sm:gap-3">
+            <div className="relative h-12 w-12 shrink-0 sm:h-14 sm:w-14">
+              <Image
+                src={PACKAGE_IMAGE_PATHS.urgent}
+                alt="荷物の例"
+                fill
+                sizes="(min-width: 640px) 56px, 48px"
+                className="object-contain"
+              />
             </div>
-            <div className="mt-2 flex flex-col gap-1 text-xs font-bold sm:text-sm">
-              <span>
-                <span
-                  className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full border-[2px] border-black text-xs"
-                  style={{ backgroundColor: SORTER_UI_COLORS.success }}
-                >
-                  1
-                </span>
-                荷物をクリックして選択
-              </span>
-              <span>
-                <span
-                  className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full border-[2px] border-black text-xs text-white"
-                  style={{ backgroundColor: SORTER_UI_COLORS.link }}
-                >
-                  2
-                </span>
-                仕分け先をクリック
-              </span>
+            <span aria-hidden className="text-xl font-black sm:text-2xl">
+              →
+            </span>
+            <div className="relative h-12 w-12 shrink-0 sm:h-14 sm:w-14">
+              <Image
+                src={BIN_IMAGE_PATHS.urgent}
+                alt="仕分け先の例"
+                fill
+                sizes="(min-width: 640px) 56px, 48px"
+                className="object-contain"
+              />
             </div>
           </div>
+          <p className="mt-1 text-center text-xs font-bold text-gray-600 sm:text-sm">
+            荷物をつかんで仕分け先へ
+          </p>
         </div>
 
-        {/* === 採点 === */}
-        <div className="flex flex-col gap-2 sm:gap-3">
+        {/*
+          「または」コネクタ（装飾）。aria-hidden で読み上げ対象から除外する。
+          狭幅は上下カードの間（横置き）、lg は左右カードの中央に挟む。
+        */}
+        <div
+          aria-hidden
+          className="flex shrink-0 items-center justify-center self-center"
+        >
+          <span
+            className="rounded-full border-[3px] border-black px-3 py-1 text-xs font-black shadow-[2px_2px_0_0_#000] sm:text-sm"
+            style={{ backgroundColor: SORTER_UI_COLORS.warning }}
+          >
+            または
+          </span>
+        </div>
+
+        {/* 方式 B: クリック 2 ステップ */}
+        <div className="flex flex-1 basis-0 flex-col rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_#000]">
+          <div className="flex justify-center">
+            <span
+              className="rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
+              style={{ backgroundColor: SORTER_UI_COLORS.link }}
+            >
+              クリック 2 ステップ
+            </span>
+          </div>
+          <div className="mt-2 flex flex-col justify-center gap-1.5 text-xs font-bold sm:text-sm">
+            <span className="flex items-center gap-1.5">
+              <span
+                className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[2px] border-black text-xs"
+                style={{ backgroundColor: SORTER_UI_COLORS.success }}
+              >
+                1
+              </span>
+              荷物をクリックして選択
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[2px] border-black text-xs text-white"
+                style={{ backgroundColor: SORTER_UI_COLORS.link }}
+              >
+                2
+              </span>
+              仕分け先をクリック
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/*
+        採点（下段・コンパクト）。+10 / -5 を横並びにし、注意書きを小さく添える。
+        狭幅でも横並びを維持して縦の高さを抑える（枠内に収めるため）。
+      */}
+      <div className="mt-4 flex flex-col items-center gap-2 sm:mt-5">
+        <div className="flex w-full items-stretch justify-center gap-2 sm:gap-3">
           <div
-            className="flex flex-row items-center gap-3 rounded-xl border-[3px] border-black p-3"
+            className="flex flex-1 basis-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black p-2 sm:p-3"
             style={{ backgroundColor: SORTER_UI_COLORS.successBgSubtle }}
           >
             <span
-              className="shrink-0 text-3xl font-black sm:text-4xl"
+              className="shrink-0 text-2xl font-black sm:text-3xl"
               style={{ color: SORTER_UI_COLORS.successText }}
             >
               +{SCORE_CORRECT}
             </span>
-            <span className="text-sm font-bold sm:text-base">
-              正しい仕分け先に投入
-            </span>
+            <span className="text-xs font-bold sm:text-sm">正しい仕分け先</span>
           </div>
           <div
-            className="flex flex-row items-center gap-3 rounded-xl border-[3px] border-black p-3"
+            className="flex flex-1 basis-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black p-2 sm:p-3"
             style={{ backgroundColor: SORTER_UI_COLORS.dangerBgSubtle }}
           >
             <span
-              className="shrink-0 text-3xl font-black sm:text-4xl"
+              className="shrink-0 text-2xl font-black sm:text-3xl"
               style={{ color: SORTER_UI_COLORS.dangerText }}
             >
               -{SCORE_WRONG_PENALTY}
             </span>
-            <span className="text-sm font-bold sm:text-base">
-              誤った仕分け先に投入
-            </span>
+            <span className="text-xs font-bold sm:text-sm">誤った仕分け先</span>
           </div>
-          <p className="text-center text-xs font-bold text-gray-500">
-            ※ 仕分け先の外で離す / 再クリックで取り消し
-          </p>
         </div>
+        <p className="text-center text-xs font-bold text-gray-500">
+          ※ 仕分け先の外で離す / 再クリックで取り消し
+        </p>
       </div>
     </div>
   );
