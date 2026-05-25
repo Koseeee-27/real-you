@@ -30,7 +30,10 @@ function renderText(text: string, hasMention?: boolean): ReactNode {
 }
 
 /** 連続したチャットタイムライン。新規追記時に末尾へ自動スクロールする。 */
-export default function ChatTimeline({ messages, typingSpeaker }: ChatTimelineProps) {
+export default function ChatTimeline({
+  messages,
+  typingSpeaker,
+}: ChatTimelineProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,7 +83,9 @@ export default function ChatTimeline({ messages, typingSpeaker }: ChatTimelinePr
             className="flex animate-[fadeInUp_0.4s_ease-out] items-start justify-end gap-3.5"
           >
             <div className="flex max-w-[560px] flex-col items-end">
-              <span className="mb-1 mr-1 text-xs font-bold text-gray-600">あなた</span>
+              <span className="mb-1 mr-1 text-xs font-bold text-gray-600">
+                あなた
+              </span>
               <div className="rounded-[18px] rounded-tr-none border-[3px] border-black bg-[#57d071] px-4 py-3 text-[15px] font-bold leading-relaxed text-white shadow-[2px_2px_0_0_#000]">
                 {msg.text}
               </div>

@@ -154,7 +154,10 @@ export const TURNS: TurnDefinition[] = [
     initialBotMessages: [], // 冒頭の上司セリフは TURN2_BOSS_BRANCH から差し込む
     choices: [
       { selectedOptionId: 3, text: 'みんなで助け合えばいいですよ〜' }, // 独自: 無難
-      { selectedOptionId: 1, text: 'いえいえ、こちらこそありがとうございます🙏' }, // 協調: 上司にフォロー
+      {
+        selectedOptionId: 1,
+        text: 'いえいえ、こちらこそありがとうございます🙏',
+      }, // 協調: 上司にフォロー
       {
         selectedOptionId: 4,
         text: 'ちなみに不具合の原因って何だったんですか？',
@@ -217,22 +220,23 @@ export const TURN2_BOSS_BRANCH = {
  * 表示ディレイ（ターン開始からの ms）を各メッセージに同居させ、件数とディレイの
  * 対応を単一ソース化する（モック準拠: 上司=600 / 同期A=1400 / 同期B=2200）。
  */
-export const TURN2_FOLLOW_MESSAGES: { message: BotMessage; delayMs: number }[] = [
-  {
-    message: {
-      speaker: 'colleague-a',
-      text: 'いえいえ全然です！むしろ任せてもらえる方が嬉しいです✨',
+export const TURN2_FOLLOW_MESSAGES: { message: BotMessage; delayMs: number }[] =
+  [
+    {
+      message: {
+        speaker: 'colleague-a',
+        text: 'いえいえ全然です！むしろ任せてもらえる方が嬉しいです✨',
+      },
+      delayMs: 1_400,
     },
-    delayMs: 1_400,
-  },
-  {
-    message: {
-      speaker: 'colleague-b',
-      text: '同期A、ほんと頼りになりますよね…！🙏',
+    {
+      message: {
+        speaker: 'colleague-b',
+        text: '同期A、ほんと頼りになりますよね…！🙏',
+      },
+      delayMs: 2_200,
     },
-    delayMs: 2_200,
-  },
-];
+  ];
 
 /**
  * ターン2冒頭の上司セリフを取得する。

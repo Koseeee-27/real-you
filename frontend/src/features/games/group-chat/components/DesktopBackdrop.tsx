@@ -47,10 +47,7 @@ function WindowBar() {
 /** プレースホルダーの本文行 */
 function Line({ width }: { width: string }) {
   return (
-    <div
-      className="mb-3 h-[11px] rounded-md bg-[#e8e8ec]"
-      style={{ width }}
-    />
+    <div className="mb-3 h-[11px] rounded-md bg-[#e8e8ec]" style={{ width }} />
   );
 }
 
@@ -110,7 +107,10 @@ export default function DesktopBackdrop() {
         <div className="flex-1 overflow-hidden p-[18px]">
           <div className="mb-4 flex gap-2">
             {[0, 1, 2, 3].map((i) => (
-              <span key={i} className="h-[18px] w-[42px] rounded-md bg-[#e4e4ea]" />
+              <span
+                key={i}
+                className="h-[18px] w-[42px] rounded-md bg-[#e4e4ea]"
+              />
             ))}
           </div>
           <div className="rounded-lg border border-black/[0.05] bg-[#fafafb] px-7 py-[22px]">

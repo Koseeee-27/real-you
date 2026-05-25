@@ -85,7 +85,9 @@ export default function OnboardingSlides({
                   height={96}
                   className="h-24 w-24 rounded-full border-[3px] border-black bg-white object-cover shadow-[2px_2px_0_0_#000]"
                 />
-                <span className="text-lg font-black tracking-wide">{c.role}</span>
+                <span className="text-lg font-black tracking-wide">
+                  {c.role}
+                </span>
                 <p className="text-center text-[13px] font-bold leading-relaxed text-gray-600">
                   {c.personality}
                 </p>
