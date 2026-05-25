@@ -3,13 +3,15 @@
 import Image from 'next/image';
 import { motion, useAnimate } from 'framer-motion';
 import type { AnimationPlaybackControls } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { PackageType } from '@/features/games/types';
 import {
   BELT_HEIGHT_PX,
   BELT_LANE_HEIGHT_PX,
   BELT_TURN_WIDTH_PX,
   PACKAGE_IMAGE_PATHS,
   PACKAGE_LABELS,
+  PACKAGE_TYPES,
   SORTER_UI_COLORS,
 } from '../data/sorterConstants';
 import type { ActivePackage } from '../hooks/useSorterGame';
@@ -19,7 +21,14 @@ interface PackageItemProps {
   /** ベルトコンテナの実測幅（px）。U 字経路の折り返し位置算出に使用 */
   beltWidth: number;
   isSelected: boolean;
+  /** 機械停止中か。D&D を無効化し、pointerdown はクリック（panicClick 集計）に流す */
+  isFrozen: boolean;
+  /** クリック（選択 / 解除トグル）。ドラッグ未満のタップで呼ぶ */
   onClick: (id: number) => void;
+  /** D&D 掴み開始（ドラッグ閾値超え時）。hesitation 起点を記録する */
+  onGrab: (id: number) => void;
+  /** D&D ドロップ確定。binType が非 null なら仕分け、null なら取り消し */
+  onDrop: (id: number, binType: PackageType | null) => void;
   onOutflow: (id: number) => void;
 }
 
@@ -49,11 +58,6 @@ const PACKAGE_HIT_SIZE_PX = PACKAGE_IMAGE_SIZE_PX + PACKAGE_HIT_PADDING_PX * 2;
  * button（HIT サイズ）の左上を基準に置くと、画像中心は `buttonLeft + HIT/2` に来る。
  * `beltWidth - BELT_TURN_WIDTH_PX - PACKAGE_HIT_SIZE_PX` のままだと画像が折り返し
  * 領域の手前に寄りすぎるため、内側に少し寄せて画像をわずかに折り返しへ重ねる。
- * （HIT 基準での見た目調整。実際のプレイ画面で違和感がないか確認のうえ微調整可。）
- *
- * NOTE: 荷物サイズ拡大（PACKAGE_HIT_SIZE_PX の増加）に伴い画像中心の折り返し位置が
- * 内側へ移動する。この nudge 値は実機 playtest 未検証のまま据え置いている。折り返しで
- * 荷物が折り返し帯に重なりすぎる / 手前に浮くようなら、この値で微調整すること。
  */
 const PACKAGE_TURN_X_NUDGE_PX = 30;
 
@@ -67,40 +71,80 @@ const BOTTOM_LANE_Y =
   BELT_HEIGHT_PX - BELT_LANE_HEIGHT_PX / 2 - PACKAGE_HIT_SIZE_PX / 2;
 
 /**
+ * これ以上ポインタが動いたら「ドラッグ」とみなす閾値（px）。
+ * 閾値未満で離した場合はタップ = クリック（選択 / 解除）として扱い、
+ * クリック 2 ステップ操作と D&D を 1 つの pointer ジェスチャーで両立させる。
+ */
+const DRAG_THRESHOLD_PX = 6;
+
+/**
+ * pointerup 位置から仕分け先（bin）の種別を判定する。
+ * BinTray の各 bin に付与した `data-bin-type` 属性を document.elementFromPoint から辿る。
+ * bin の上でなければ null（取り消し）。属性値が PackageType でない場合も null にする。
+ */
+function resolveDropBin(clientX: number, clientY: number): PackageType | null {
+  const el = document.elementFromPoint(clientX, clientY);
+  const binEl = el?.closest<HTMLElement>('[data-bin-type]');
+  const value = binEl?.dataset.binType;
+  return value != null && (PACKAGE_TYPES as readonly string[]).includes(value)
+    ? (value as PackageType)
+    : null;
+}
+
+/**
  * 画面に流れている荷物 1 個。
  *
- * 画像内に「特急 / 取扱注意 / 重量物」のラベル + 識別シンボルが焼き込まれている前提で、
- * CSS による枠・テキスト重ねは持たない（画像主体のシンプル構成）。
+ * framer-motion の `useAnimate` で U 字経路を 1 周アニメーション制御し（流出 = 完了）、
+ * 選択演出（緑グロー）と D&D の追従は内側 wrapper（motion.div）の transform で行う。
+ * 親 button の位置アニメ（x/y）と内側 wrapper の演出 / 追従 transform を分離することで、
+ * 両者の transform 衝突を避ける。
  *
- * framer-motion の `useAnimate` で U 字経路をアニメーション制御:
- *   - 0%   : 左端外、上 lane
- *   - 45%  : 折り返し位置、上 lane
- *   - 55%  : 折り返し位置、下 lane
- *   - 100% : 左端外、下 lane → 流出
+ * 操作（クリック 2 ステップ / D&D 両対応、タッチは pointer events）:
+ *   - pointerdown: ドラッグ候補開始。起点座標を記録し pointer capture する
+ *   - pointermove: 移動が DRAG_THRESHOLD_PX を超えたら「掴む」（onGrab + フローアニメ pause）。
+ *                  以降は内側 wrapper をポインタに追従させる（moving target を掴んでも破綻しない）
+ *   - pointerup:
+ *       - ドラッグした場合: ドロップ位置の bin を判定し onDrop(id, binType | null)。
+ *         取り消し（bin 外）なら追従オフセットを戻してフローアニメを再開（play）
+ *       - ドラッグ未満（タップ）の場合: onClick(id)（選択 / 解除トグル）
+ *   - 機械停止中（isFrozen）は D&D を無効化し、pointerdown を onClick に流す（panicClick 集計）
  *
  * 速度切替の設計:
  *   - 起動時の `duration` は **spawn 時の flowDurationMs** を直接使う
  *   - 進行中アニメの中途切替は `controls.speed` で行う。起動時 duration を基準に
  *     `speed = spawnFlowDurationMs / pkg.flowDurationMs` で補正する
- *   - 通常時 spawn の荷物が rule-changed-2 突入で 2 倍速化される場合: speed = 20000/10000 = 2
- *   - rule-changed-2 中に新規 spawn される荷物: 起動時 duration = 10000、speed = 1
- *
- * 流出は animate 完了時に通知。仕分け確定で unmount された場合は呼ばれないので
- * 二重カウントは原則起きないが、保険として `firedRef` で 1 回限定。
- *
- * 選択中は緑のグロー演出を内側の motion.div（scale + filter）で表現。
- * 親 motion.button の transform（位置アニメ）と衝突しないよう、演出は内側 div に閉じる。
  */
 export default function PackageItem({
   pkg,
   beltWidth,
   isSelected,
+  isFrozen,
   onClick,
+  onGrab,
+  onDrop,
   onOutflow,
 }: PackageItemProps) {
   const [scope, animate] = useAnimate<HTMLButtonElement>();
   const controlsRef = useRef<AnimationPlaybackControls | null>(null);
   const firedRef = useRef(false);
+
+  /** D&D 中のポインタ追従オフセット（内側 wrapper の translate に乗せる） */
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(
+    null
+  );
+
+  /**
+   * pointer ジェスチャーの状態。
+   * - pointerId: capture 中の pointerId（複数 pointer 混在防止）
+   * - startX/startY: pointerdown 時のクライアント座標（ドラッグ判定の基準）
+   * - dragging: 閾値を超えて「掴んだ」状態か
+   */
+  const gestureRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    dragging: boolean;
+  } | null>(null);
 
   /**
    * spawn 時点の flowDurationMs を ref で固定保持。
@@ -111,8 +155,7 @@ export default function PackageItem({
 
   /**
    * `onOutflow` を ref に逃がす。アニメ完了は 1 度だけ起動する effect の中で
-   * Promise like に hook するため、依存配列に `onOutflow` を含めずに済ませたい。
-   * 親の関数 identity 変化に再起動を引っ張られないようにする目的。
+   * Promise like に hook するため、依存配列に `onOutflow` を含めずに済ませる。
    */
   const onOutflowRef = useRef(onOutflow);
   useEffect(() => {
@@ -123,9 +166,6 @@ export default function PackageItem({
   useEffect(() => {
     if (!scope.current || beltWidth === 0) return;
 
-    // 折り返し位置 (button = HIT サイズの左上基準)。ベルト右端から折り返し領域
-    // (BELT_TURN_WIDTH_PX) と button 自身のサイズを差し引き、さらに視覚的調整値
-    // (PACKAGE_TURN_X_NUDGE_PX) で内側に寄せて画像をわずかに折り返しへ重ねる。
     const turnX = Math.max(
       0,
       beltWidth -
@@ -159,46 +199,139 @@ export default function PackageItem({
     };
   }, [beltWidth, pkg.id, scope, animate]);
 
-  // pkg.flowDurationMs の変更を進行中アニメに反映（速度 2 倍切替）
+  // pkg.flowDurationMs の変更を進行中アニメに反映（速度上昇切替）
   useEffect(() => {
     if (!controlsRef.current) return;
-    // 起動時 duration を base に倍率を計算。
-    // 例: spawn=20000, flow=10000 → speed=2.0（通常時 spawn の荷物が後で 2 倍速化）
-    //     spawn=10000, flow=10000 → speed=1.0（rule-changed-2 中の spawn、変化なし）
     controlsRef.current.speed =
       spawnFlowDurationMsRef.current / pkg.flowDurationMs;
   }, [pkg.flowDurationMs]);
+
+  // =========================================================
+  // pointer ハンドラ（クリック 2 ステップ / D&D の両対応）
+  // =========================================================
+
+  function handlePointerDown(e: React.PointerEvent<HTMLButtonElement>): void {
+    // 機械停止中は D&D 無効。クリック（panicClick 集計）に流す。
+    if (isFrozen) {
+      onClick(pkg.id);
+      return;
+    }
+    // 主ボタン以外（右クリック等）は無視
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+    gestureRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      dragging: false,
+    };
+    // 以降の move/up を確実にこの要素で受け取る
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLButtonElement>): void {
+    const g = gestureRef.current;
+    if (!g || g.pointerId !== e.pointerId) return;
+
+    const dx = e.clientX - g.startX;
+    const dy = e.clientY - g.startY;
+
+    if (!g.dragging) {
+      // 機械停止中は新規の掴みを開始しない（操作無効）
+      if (isFrozen) return;
+      // 閾値を超えたら「掴む」へ遷移
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+      g.dragging = true;
+      onGrab(pkg.id); // hesitation 起点を記録（選択と同じ起点）
+      controlsRef.current?.pause(); // フローアニメを一時停止してポインタ追従に切替
+    }
+    // 追従オフセットを内側 wrapper に反映
+    setDragOffset({ x: dx, y: dy });
+  }
+
+  function handlePointerUp(e: React.PointerEvent<HTMLButtonElement>): void {
+    const g = gestureRef.current;
+    if (!g || g.pointerId !== e.pointerId) return;
+    gestureRef.current = null;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+
+    if (!g.dragging) {
+      // ドラッグ未満 = タップ → クリック扱い（選択 / 解除トグル）
+      onClick(pkg.id);
+      return;
+    }
+
+    // ドラッグ確定 → ドロップ先の bin を判定。
+    // ただしドラッグ中に機械停止に入った場合は仕分けさせず、追従を戻してフローを再開する
+    // （フック側でも frozen 中の操作は panicClick 集計のみで仕分けしないため、
+    //  ここで復帰しないと荷物がドラッグ位置に取り残される）。
+    const binType = isFrozen ? null : resolveDropBin(e.clientX, e.clientY);
+    if (binType == null) {
+      // 取り消し: 追従オフセットを戻し、フローアニメを再開（元の経路を継続）
+      setDragOffset(null);
+      controlsRef.current?.play();
+    }
+    // binType 非 null（仕分け確定）の場合、親で荷物が除去され unmount されるため
+    // オフセット復帰は不要。
+    onDrop(pkg.id, binType);
+  }
+
+  function handlePointerCancel(e: React.PointerEvent<HTMLButtonElement>): void {
+    const g = gestureRef.current;
+    if (!g || g.pointerId !== e.pointerId) return;
+    gestureRef.current = null;
+    // ドラッグ中の中断は取り消し扱い（フロー再開）
+    if (g.dragging) {
+      setDragOffset(null);
+      controlsRef.current?.play();
+      onDrop(pkg.id, null);
+    }
+  }
+
+  const isDragging = dragOffset != null;
 
   return (
     <button
       ref={scope}
       type="button"
-      onClick={() => onClick(pkg.id)}
-      className="absolute flex cursor-pointer items-center justify-center border-none bg-transparent p-0 select-none"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      className="absolute flex items-center justify-center border-none bg-transparent p-0 select-none"
       style={{
         // button = 当たり判定サイズ（画像 + 透明パディング）。押しやすさのため画像より大きい。
         width: `${PACKAGE_HIT_SIZE_PX}px`,
         height: `${PACKAGE_HIT_SIZE_PX}px`,
         top: 0,
         left: 0,
-        zIndex: isSelected ? 20 : 10,
+        // ドラッグ中は掴んでいる感を出すためカーソルを grabbing に
+        cursor: isDragging ? 'grabbing' : 'grab',
+        // ドラッグ中 / 選択中は最前面に持ち上げる
+        zIndex: isDragging || isSelected ? 30 : 10,
+        // タッチでのスクロール / 既定ジェスチャーを抑止し、D&D を安定させる
+        touchAction: 'none',
       }}
       aria-label={`荷物（${PACKAGE_LABELS[pkg.type]}）${isSelected ? '・選択中' : ''}`}
     >
       {/*
-        選択演出用の内側 wrapper（motion.div）= 見た目の画像サイズ。
-        button（HIT サイズ）の中央に配置されるため、当たり判定だけ広げて見た目は変えない。
-        親 button は useAnimate で位置アニメ（x/y）を担当するので、
-        scale/glow のパルスはここで独立して制御する（transform の衝突回避）。
+        選択演出 + D&D 追従用の内側 wrapper（motion.div）= 見た目の画像サイズ。
+        button（HIT サイズ）の中央に配置。親 button は useAnimate で位置アニメ（x/y）を担当し、
+        この wrapper では scale/glow のパルスと D&D の追従オフセット（translate）を制御する。
       */}
       <motion.div
         className="relative"
         style={{
           width: `${PACKAGE_IMAGE_SIZE_PX}px`,
           height: `${PACKAGE_IMAGE_SIZE_PX}px`,
+          // D&D 追従オフセット（ドラッグ中のみ）。framer-motion の animate と競合しないよう
+          // 直接 translate を style で当てる（位置アニメは親 button が担当）。
+          transform: dragOffset
+            ? `translate(${dragOffset.x}px, ${dragOffset.y}px)`
+            : undefined,
         }}
         animate={
-          isSelected
+          isSelected || isDragging
             ? {
                 scale: [1, 1.15],
                 filter: [
@@ -209,7 +342,7 @@ export default function PackageItem({
             : { scale: 1, filter: 'none' }
         }
         transition={
-          isSelected
+          isSelected || isDragging
             ? {
                 duration: 0.5,
                 repeat: Infinity,
@@ -226,9 +359,10 @@ export default function PackageItem({
           sizes={`${PACKAGE_IMAGE_SIZE_PX}px`}
           className="object-contain"
           priority={false}
+          draggable={false}
         />
         {/* 選択中インジケーター: 緑のチェックマークバッジを右上に重ねる */}
-        {isSelected && (
+        {(isSelected || isDragging) && (
           <span
             aria-hidden
             className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-black text-sm font-black text-white shadow-[2px_2px_0_0_#000]"

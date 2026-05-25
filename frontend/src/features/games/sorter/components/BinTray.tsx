@@ -50,6 +50,9 @@ export default function BinTray({
             <button
               type="button"
               onClick={() => onBinClick(binType)}
+              // D&D のドロップ先判定用。PackageItem が pointerup 位置の
+              // document.elementFromPoint から `data-bin-type` を辿って仕分け先を特定する。
+              data-bin-type={binType}
               className="relative w-full max-h-52 transition-transform hover:scale-105 active:scale-95"
               style={{ aspectRatio: '4 / 5' }}
               aria-label={`${PACKAGE_LABELS[binType]}の仕分け先`}
