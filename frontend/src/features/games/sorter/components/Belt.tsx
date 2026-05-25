@@ -38,7 +38,7 @@ const BELT_STRIPES_VERTICAL =
   'repeating-linear-gradient(180deg, #c08552 0, #c08552 32px, #8a5a32 32px, #8a5a32 64px)';
 
 interface BeltProps {
-  /** 速度 2 倍状態か。rule-changed-2 phase で true、ベルトのシマシマも高速化 */
+  /** 速度上昇状態か。速度上昇イベント発火後に true、ベルトのシマシマも高速化 */
   isSpeedUp?: boolean;
 }
 

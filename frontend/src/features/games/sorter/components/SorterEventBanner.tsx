@@ -1,35 +1,26 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  RULE_CHANGED_2_DURATION_MS,
-  SORTER_UI_COLORS,
-} from '../data/sorterConstants';
-import type { GamePhase } from '../hooks/useSorterGame';
-
-/**
- * 速度 2 倍予告バナーで「残り N 秒」を表示する際の秒数。
- * rule-changed-2 phase の長さから派生させて、定数変更時にコピーが自動追従する。
- * 将来 duration が 1000ms 単位以外（例: 10_500ms）になっても整数秒で表示するよう
- * Math.ceil で切り上げる（「最低でも N 秒残ってる」感を出すため）。
- */
-const SPEED_UP_REMAINING_SEC = Math.ceil(RULE_CHANGED_2_DURATION_MS / 1000);
+import { SORTER_UI_COLORS } from '../data/sorterConstants';
+import type { FreezeStage } from '../hooks/useSorterGame';
 
 interface SorterEventBannerProps {
-  /** 現在の phase。バナー表示の切り替えに使う */
-  phase: GamePhase;
-  /** 速度 2 倍突入の予告バナー表示フラグ */
+  /** 機械停止のサブシーケンス段階。warning / frozen で危機感オーバーレイ、recovery で復旧バナー */
+  freezeStage: FreezeStage;
+  /** ルール変更通知バナーの表示フラグ */
+  showRuleChangeNotice: boolean;
+  /** 速度上昇の予告バナー表示フラグ */
   showSpeedUpBanner: boolean;
 }
 
 /**
  * 盤面（ベルト + 仕分け先）全体に重ねる割り込みイベント表示群。
  *
- *  - 危機感オーバーレイ（frozen-warning / frozen phase の赤フラッシュ + 暗転ビネット）
- *  - ルール変更通知バナー（rule-change-notice phase）
- *  - 凍結予告バナー（frozen-warning phase、シェイク演出）
- *  - 復旧バナー（recovery phase）
- *  - 速度 2 倍予告バナー（rule-changed-2 突入直後 3 秒）
+ *  - 危機感オーバーレイ（freezeStage = warning / frozen の赤フラッシュ + 暗転ビネット）
+ *  - ルール変更通知バナー（showRuleChangeNotice）
+ *  - 凍結予告バナー（freezeStage = warning、シェイク演出）
+ *  - 復旧バナー（freezeStage = recovery）
+ *  - 速度上昇予告バナー（showSpeedUpBanner）
  *
  * 配置の前提:
  *   `SorterGameFlow` の **盤面ラッパー（ベルトコンテナ + BinTray を包む relative）** 直下に
@@ -46,19 +37,18 @@ interface SorterEventBannerProps {
  * ベルトコンテナ内に配置する。
  */
 export default function SorterEventBanner({
-  phase,
+  freezeStage,
+  showRuleChangeNotice,
   showSpeedUpBanner,
 }: SorterEventBannerProps) {
-  // 凍結予告（frozen-warning）と停止中（frozen）で盤面に重ねる危機感オーバーレイ。
+  // 凍結予告（warning）と停止中（frozen）で盤面に重ねる危機感オーバーレイ。
   // 予告中は弱め・点滅速め、停止中は強め・点滅ゆっくりにして段階感を出す。
-  // 被覆範囲がベルトのみから盤面全体（ベルト + bin）に広がったため、覆う面積が増えても
-  // 暗転が強すぎないよう peak をやや下げて調整（予告 0.18→0.15 / 停止 0.32→0.26）。
-  const isDangerOverlay = phase === 'frozen-warning' || phase === 'frozen';
-  const dangerFlashPeak = phase === 'frozen' ? 0.26 : 0.15;
-  const dangerFlashDuration = phase === 'frozen' ? 0.9 : 0.55;
+  const isDangerOverlay = freezeStage === 'warning' || freezeStage === 'frozen';
+  const dangerFlashPeak = freezeStage === 'frozen' ? 0.26 : 0.15;
+  const dangerFlashDuration = freezeStage === 'frozen' ? 0.9 : 0.55;
 
   return (
-    // 盤面ラッパー全体を覆う割り込みイベント層。frozen-warning フェーズは操作可能なため
+    // 盤面ラッパー全体を覆う割り込みイベント層。予告（warning）フェーズは操作可能なため
     // クリックを透過させる（pointer-events-none）。BinTray(z-10) より前面に置く。
     // この層は装飾用 danger-overlay と読ませたいバナーの混在コンテナなので層自体は
     // aria-hidden にせず、装飾の danger-overlay 側に個別に aria-hidden を付与する。
@@ -105,7 +95,7 @@ export default function SorterEventBanner({
 
       {/* イベントバナー（危機感オーバーレイより前面で読ませる） */}
       <AnimatePresence>
-        {phase === 'rule-change-notice' && (
+        {showRuleChangeNotice && (
           <motion.div
             key="rule-change-notice"
             initial={{ y: -50, opacity: 0 }}
@@ -123,7 +113,7 @@ export default function SorterEventBanner({
             </p>
           </motion.div>
         )}
-        {phase === 'frozen-warning' && (
+        {freezeStage === 'warning' && (
           <motion.div
             key="frozen-warning"
             initial={{ opacity: 0 }}
@@ -159,7 +149,7 @@ export default function SorterEventBanner({
             </p>
           </motion.div>
         )}
-        {phase === 'recovery' && (
+        {freezeStage === 'recovery' && (
           <motion.div
             key="recovery"
             initial={{ scale: 0.5, opacity: 0 }}
@@ -184,7 +174,7 @@ export default function SorterEventBanner({
             style={{ backgroundColor: SORTER_UI_COLORS.warning }}
           >
             <p className="text-base font-black tracking-widest text-black sm:text-lg">
-              ⚡ 残り {SPEED_UP_REMAINING_SEC} 秒！スピード 2 倍突入！
+              ⚡ スピード 2 倍突入！
             </p>
           </motion.div>
         )}

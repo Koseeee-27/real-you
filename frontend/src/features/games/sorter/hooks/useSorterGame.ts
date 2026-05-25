@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   PackageType,
   SortEvent,
@@ -9,23 +9,27 @@ import type {
 } from '@/features/games/types';
 import {
   COUNTDOWN_DURATION_MS,
+  FREEZE_SCORE,
+  FREEZE_TIME_MS,
   FROZEN_DURATION_MS,
   FROZEN_WARNING_DURATION_MS,
-  GAME_DURATION_MS,
-  NORMAL_DURATION_MS,
   ONBOARDING_SLIDE_COUNT,
   PACKAGE_FLOW_DURATION_MS,
   PACKAGE_FLOW_DURATION_SPEED_UP_MS,
   PACKAGE_TYPES,
   RECOVERY_DURATION_MS,
   RULE_CHANGE_NOTICE_DURATION_MS,
-  RULE_CHANGED_1_DURATION_MS,
-  RULE_CHANGED_2_DURATION_MS,
+  RULE_CHANGE_SCORE,
+  RULE_CHANGE_TIME_MS,
   RULE_CHANGED_CORRECT_BIN,
   SCORE_CORRECT,
-  SCORE_OUTFLOW_PENALTY,
   SCORE_WRONG_PENALTY,
   SPAWN_INTERVAL_MS,
+  SPEED_UP_BANNER_DURATION_MS,
+  SPEED_UP_SCORE,
+  SPEED_UP_TIME_MS,
+  TARGET_SCORE,
+  TIME_CAP_MS,
   TIMER_TICK_MS,
 } from '../data/sorterConstants';
 
@@ -40,8 +44,8 @@ export interface ActivePackage {
   spawnedAt: number;
   /**
    * 荷物が U 字経路を 1 周するのにかかる時間（ms）。
-   * spawn 時の速度フェーズに応じて値が決まる（通常時 / 速度 2 倍時で異なる）。
-   * rule-changed-2 突入時に既存荷物の値もまとめて書き換える（PackageItem 側で
+   * spawn 時の速度状態に応じて値が決まる（通常時 / 速度上昇後で異なる）。
+   * 速度上昇イベント発火時に既存荷物の値もまとめて書き換える（PackageItem 側で
    * `controls.speed` 経由でアニメに反映される）。
    */
   flowDurationMs: number;
@@ -66,58 +70,28 @@ export interface SorterFeedback {
 }
 
 /**
- * ゲームの進行状態。
+ * ゲームの進行状態（大枠）。
+ * 割り込みイベント（ルール変更 / 機械停止 / 速度上昇）の有無は phase とは独立した
+ * ラッチ + サブ状態で管理する（後述の useSorterGame 内コメント参照）。
  *
- *   onboarding         → 4 スライドのチュートリアル（ユーザー操作で進む）
- *   countdown          → 3 → 2 → 1 → START のオーバーレイ（3.5s）
- *   normal             → 通常ルール（11s）
- *   rule-change-notice → ルール変更通知バナー表示中、通常ルール継続（3s）
- *   rule-changed-1     → ルール変更後、urgent → heavy が正解（14s）
- *   frozen-warning     → 機械停止予告（2s、まだ操作可）
- *   frozen             → 機械停止（5s、クリック無効化 + panicClick 計測）
- *   recovery           → 復旧（5s、通常速度で立て直す猶予）
- *   rule-changed-2     → ルール変更ルール継続 + 速度 2 倍（10s）
- *   ended              → 終了、submit 待ち
+ *   onboarding → 4 スライドのチュートリアル（ユーザー操作で進む）
+ *   countdown  → 3 → 2 → 1 → START のオーバーレイ（COUNTDOWN_DURATION_MS）
+ *   playing    → ゲーム本編。スコア到達 / 上限時間で ended へ
+ *   ended      → 終了、submit 待ち
  */
-export type GamePhase =
-  | 'onboarding'
-  | 'countdown'
-  | 'normal'
-  | 'rule-change-notice'
-  | 'rule-changed-1'
-  | 'frozen-warning'
-  | 'frozen'
-  | 'recovery'
-  | 'rule-changed-2'
-  | 'ended';
+export type GamePhase = 'onboarding' | 'countdown' | 'playing' | 'ended';
+
+/** 勝敗結果。playing 中は null、ended 突入時に確定する */
+export type GameOutcome = 'success' | 'failure' | null;
 
 /**
- * ルール変更後の正解 bin かどうかを判定する phase 群。
- * 一度ルール変更が起きたら最後まで継続するため、間に挟まれる
- * frozen-warning / frozen / recovery も含める（含めないと中断中に通常ルール判定に戻ってしまう）。
+ * 機械停止（freeze）のサブシーケンス。
+ *   none     → 機械停止イベント未発火 or 完了
+ *   warning  → 予告（赤バナー shake、まだ操作可）
+ *   frozen   → 停止（クリック無効化 + panicClick 計測、ベルト・荷物は流れ続ける）
+ *   recovery → 復旧（✓ 復旧バナー表示、操作可に戻る）
  */
-const RULE_CHANGED_PHASES: ReadonlySet<GamePhase> = new Set<GamePhase>([
-  'rule-changed-1',
-  'frozen-warning',
-  'frozen',
-  'recovery',
-  'rule-changed-2',
-]);
-
-/**
- * ゲーム本編の phase 群。spawn ロジックが走る対象。
- * `frozen` は **クリックは無効** だが、spawn と panicClickCount 計測のために含める。
- * クリック処理側で `phase === 'frozen'` の場合は panicClick 計測に分岐する。
- */
-const IN_GAME_PHASES: ReadonlySet<GamePhase> = new Set<GamePhase>([
-  'normal',
-  'rule-change-notice',
-  'rule-changed-1',
-  'frozen-warning',
-  'frozen',
-  'recovery',
-  'rule-changed-2',
-]);
+export type FreezeStage = 'none' | 'warning' | 'frozen' | 'recovery';
 
 /**
  * `wrongPatterns` の初期値を生成する。
@@ -132,39 +106,54 @@ function createEmptyWrongPatterns(): WrongPatterns {
 }
 
 /**
- * 次の phase と duration の対応表。
- * onboarding / countdown / ended は別管理（ユーザー操作 or 専用 effect）。
+ * 割り込みイベントの識別子。順序固定（配列 EVENT_ANCHORS の並び）で 1 回ずつ発火する。
  */
-const NEXT_PHASE_TABLE: Partial<
-  Record<GamePhase, { next: GamePhase; duration: number }>
-> = {
-  normal: { next: 'rule-change-notice', duration: NORMAL_DURATION_MS },
-  'rule-change-notice': {
-    next: 'rule-changed-1',
-    duration: RULE_CHANGE_NOTICE_DURATION_MS,
+type SorterEventKey = 'rule-change' | 'freeze' | 'speed-up';
+
+/**
+ * 割り込みイベントのアンカー定義（真実の単一ソース）。
+ *
+ * 発火は「スコア閾値（主）」または「経過時間（保険）」の **早い方** で、配列の並び順に
+ * 1 回ずつ（ラッチ）。アンカーは TARGET_SCORE / TIME_CAP_MS より手前かつ昇順に並べてあり、
+ * 配列順に発火を進めることで rule-change → freeze → speed-up の順序を担保する。
+ *
+ * スコア判定（commitSort のスコア更新後）と時間判定（tick）の両経路から
+ * 同じ `maybeFireEvents` を呼ぶことで、二系統 × ラッチ × 順序のロジックを 1 本化する。
+ */
+const EVENT_ANCHORS: ReadonlyArray<{
+  key: SorterEventKey;
+  scoreAnchor: number;
+  timeAnchor: number;
+}> = [
+  {
+    key: 'rule-change',
+    scoreAnchor: RULE_CHANGE_SCORE,
+    timeAnchor: RULE_CHANGE_TIME_MS,
   },
-  'rule-changed-1': {
-    next: 'frozen-warning',
-    duration: RULE_CHANGED_1_DURATION_MS,
+  { key: 'freeze', scoreAnchor: FREEZE_SCORE, timeAnchor: FREEZE_TIME_MS },
+  {
+    key: 'speed-up',
+    scoreAnchor: SPEED_UP_SCORE,
+    timeAnchor: SPEED_UP_TIME_MS,
   },
-  'frozen-warning': { next: 'frozen', duration: FROZEN_WARNING_DURATION_MS },
-  frozen: { next: 'recovery', duration: FROZEN_DURATION_MS },
-  recovery: { next: 'rule-changed-2', duration: RECOVERY_DURATION_MS },
-  'rule-changed-2': { next: 'ended', duration: RULE_CHANGED_2_DURATION_MS },
-};
+];
 
 /**
  * 荷物仕分けゲーム（sorter_game / game_type=4）全体のステート管理フック。
  *
- * フェーズ遷移は `setTimeout` チェーン、計測データは ref で蓄積。
- * 完了時に `SorterGameData` を組み立てて `onComplete(data)` を呼び出す。
+ * 進行モデル（meta: #121 改修後）:
+ *   - 終了条件は「目標スコア TARGET_SCORE 到達で成功 / 上限 TIME_CAP_MS で未達なら失敗」。
+ *     固定時間チェーンは廃止し、スコア到達（handleBinClick）/ 時間切れ（tick）の 2 系統で終了する。
+ *   - 割り込みイベントはスコア閾値（主）+ 経過時間（保険）の早い方で 1 回ずつ・順序固定で発火（ラッチ）。
+ *     発火ロジックは `maybeFireEvents` に一本化し、スコア経路・時間経路の両方から呼ぶ（DRY）。
+ *   - 計測データは ref で蓄積。完了時に `SorterGameData` を組み立てて `onComplete(data)` を呼ぶ。
  *
  * 設計メモ:
- *   - phase 遷移の副作用（packages 書き換え / submit / selected リセット）は
- *     **遷移用 setTimeout のコールバック内で同期実行** する。effect 本体での
- *     同期 setState は `react-hooks/set-state-in-effect` 違反になるため避ける
- *   - spawn interval は一度起動したら `ended` まで止めない（phase 切替でリセットしない）
- *   - 親から渡される `onComplete` は ref 経由で保持し、effect の依存配列を増やさない
+ *   - イベント発火の副作用（packages 書き換え / バナー表示 / freeze サブシーケンス進行）は
+ *     **タイマーコールバック内や、イベントハンドラ・tick コールバック内で同期実行** する。
+ *     effect 本体での同期 setState は `react-hooks/set-state-in-effect` 違反になるため避ける。
+ *   - spawn interval / tick interval は countdown 終了時に 1 回起動し、`ended` まで止めない。
+ *   - 親から渡される `onComplete` は ref 経由で保持し、effect の依存配列を増やさない。
  */
 export function useSorterGame(options: {
   onComplete: (data: SorterGameData) => void;
@@ -175,6 +164,8 @@ export function useSorterGame(options: {
   // UI に直接反映するステート
   // =========================================================
   const [phase, setPhase] = useState<GamePhase>('onboarding');
+  /** 勝敗結果。ended 突入時に確定（結果画面の成功 / 失敗表示に使う。スキーマには含めない） */
+  const [outcome, setOutcome] = useState<GameOutcome>(null);
   const [onboardingSlideIndex, setOnboardingSlideIndex] = useState(0);
   /** 0 は「START」表示用。3 → 2 → 1 → 0(START) → ゲーム本編開始 */
   const [countdownValue, setCountdownValue] = useState<3 | 2 | 1 | 0>(3);
@@ -182,7 +173,8 @@ export function useSorterGame(options: {
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(
     null
   );
-  const [remainingTimeMs, setRemainingTimeMs] = useState(GAME_DURATION_MS);
+  /** 経過時間（ms）。上限タイマー表示用。tick で更新 */
+  const [elapsedTimeMs, setElapsedTimeMs] = useState(0);
   const [displayScore, setDisplayScore] = useState(0);
   /**
    * 直近の流出イベントのタイムスタンプ（Date.now() の値）。
@@ -195,17 +187,23 @@ export function useSorterGame(options: {
    * クリックされた bin の上に「+10 OK」「-5 NG」ポップアップを 0.7s フラッシュ表示するために使う。
    */
   const [lastFeedback, setLastFeedback] = useState<SorterFeedback | null>(null);
-  /**
-   * 速度 2 倍予告バナーの表示フラグ。
-   * rule-changed-2 phase 突入時に 3 秒間中央に表示する。
-   * phase 遷移の setTimeout コールバック内で on/off を制御する。
-   */
+
+  // --- 割り込みイベントの表示状態（phase から独立して管理） ---
+  /** ルール変更が一度でも発火したか（発火後は最後まで true、bin 正解判定に使う） */
+  const [isRuleChanged, setIsRuleChanged] = useState(false);
+  /** ルール変更通知バナーの表示フラグ（発火直後 RULE_CHANGE_NOTICE_DURATION_MS 表示） */
+  const [showRuleChangeNotice, setShowRuleChangeNotice] = useState(false);
+  /** 機械停止のサブシーケンス段階 */
+  const [freezeStage, setFreezeStage] = useState<FreezeStage>('none');
+  /** 速度上昇が発火したか（発火後は最後まで true、荷物 flow を ×SPEED_UP_MULTIPLIER に） */
+  const [isSpeedUp, setIsSpeedUp] = useState(false);
+  /** 速度上昇予告バナーの表示フラグ（発火直後 SPEED_UP_BANNER_DURATION_MS 表示） */
   const [showSpeedUpBanner, setShowSpeedUpBanner] = useState(false);
 
   // =========================================================
   // 計測データ（再 render 不要なので ref で管理）
   // =========================================================
-  /** カウントダウン終了の Date.now()。SortEvent.timestamp の起点 */
+  /** カウントダウン終了の Date.now()。SortEvent.timestamp / 経過時間の起点 */
   const gameStartAtRef = useRef<number | null>(null);
   /** 荷物を選択した瞬間の Date.now()。hesitation 算出用 */
   const selectedAtRef = useRef<number | null>(null);
@@ -222,7 +220,7 @@ export function useSorterGame(options: {
   const hesitationSumRef = useRef(0);
   const hesitationSamplesRef = useRef(0);
 
-  /** rule-changed-1 突入時の Date.now()。ruleChangeAdaptMs 起点 */
+  /** ルール変更発火時の Date.now()。ruleChangeAdaptMs 起点 */
   const ruleChangedAtRef = useRef<number | null>(null);
   /** ルール変更後の初正解までの ms（未適応なら null のまま） */
   const ruleChangeAdaptMsRef = useRef<number | null>(null);
@@ -232,14 +230,30 @@ export function useSorterGame(options: {
   /** displayScore の最新値を ref で保持（ハンドラ内で setState 前の累計に加算する用） */
   const displayScoreRef = useRef(0);
 
+  /**
+   * イベント発火のラッチ。各イベントが既に発火したかを保持する。
+   * `maybeFireEvents` がスコア経路・時間経路の両方から呼ばれても、1 回限定・順序固定を担保する。
+   */
+  const firedEventsRef = useRef<Record<SorterEventKey, boolean>>({
+    'rule-change': false,
+    freeze: false,
+    'speed-up': false,
+  });
+
+  /** 機械停止のサブシーケンス進行中フラグ（同期判定用。クリック無効化は freezeStage で判定） */
+  const freezeStageRef = useRef<FreezeStage>('none');
+  /** 速度上昇が発火済みか（spawn 時の flow 速度決定に同期参照する） */
+  const isSpeedUpRef = useRef(false);
+
   /** spawn / tick interval ハンドル */
   const spawnIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /**
-   * フェーズ遷移用 effect の外で起動された一時的な setTimeout の id を集約する。
-   * フィードバックポップアップの自動消去・MISS バッジの自動消去・速度 2 倍バナーの
-   * 自動消去など、副作用として走るものを unmount cleanup で一括 clear するため。
+   * 一時的な setTimeout の id を集約する。
+   * フィードバックポップアップの自動消去・MISS バッジの自動消去・各イベントの
+   * サブシーケンス進行・バナーの自動消去など、副作用として走るものを unmount cleanup で
+   * 一括 clear するため。
    *
    * Set で管理し、各 setTimeout は完了時に自身を Set から `delete` する
    * （`trackTimeout` 内で wrap）。プレイ中に多数発火しても配列が肥大化しない。
@@ -252,17 +266,7 @@ export function useSorterGame(options: {
   const submittedRef = useRef(false);
 
   /**
-   * phase の最新値を ref に同期保持する。
-   * spawn の setInterval コールバックや、親 effect で closure に新しい phase を
-   * 参照させるために必要。
-   */
-  const phaseRef = useRef(phase);
-  useEffect(() => {
-    phaseRef.current = phase;
-  }, [phase]);
-
-  /**
-   * `onComplete` を ref に逃がす。phase 遷移の setTimeout コールバックから呼ぶ際、
+   * `onComplete` を ref に逃がす。タイマー / ハンドラ内から呼ぶ際、
    * 親から渡される関数の identity 変化で effect が再走しないようにする。
    */
   const onCompleteRef = useRef(onComplete);
@@ -289,28 +293,40 @@ export function useSorterGame(options: {
    * 内部で `setTimeout` を起動し、id を `pendingTimeoutsRef` の Set に追加する。
    * 実行完了時には Set から自身の id を `delete` するため、長時間プレイでも
    * Set が肥大化しない。unmount cleanup では Set 全体をまとめて clear する。
-   *
-   * フェーズ遷移 effect 内の setTimeout は effect 自体の return で cleanup できるので
-   * このヘルパーを介さず直接 setTimeout を使う。
    */
-  function trackTimeout(callback: () => void, ms: number): void {
+  const trackTimeout = useCallback((callback: () => void, ms: number): void => {
     const id = setTimeout(() => {
       pendingTimeoutsRef.current.delete(id);
       callback();
     }, ms);
     pendingTimeoutsRef.current.add(id);
-  }
+  }, []);
 
   /**
    * ゲーム終了時の `SorterGameData` 組み立て + `onComplete` 呼び出し。
-   * phase 遷移の setTimeout コールバック内から同期的に呼ばれる。
+   * スコア到達 / 時間切れの経路から同期的に呼ばれる。
+   *
+   * setState / ref / onCompleteRef のみ参照するため `useCallback([])` で identity 安定化し、
+   * tick effect の依存に含めても effect が毎レンダー再走しないようにする。
+   *
+   * @param result 勝敗結果。outcome state に反映する（結果画面の成功 / 失敗表示用）
    */
-  function buildAndSubmit(): void {
+  const endGame = useCallback((result: 'success' | 'failure'): void => {
     if (submittedRef.current) return;
     submittedRef.current = true;
 
+    // spawn / tick を停止
+    if (spawnIntervalRef.current) {
+      clearInterval(spawnIntervalRef.current);
+      spawnIntervalRef.current = null;
+    }
+    if (tickIntervalRef.current) {
+      clearInterval(tickIntervalRef.current);
+      tickIntervalRef.current = null;
+    }
+
     const startAt = gameStartAtRef.current ?? Date.now();
-    const totalTimeMs = Math.min(GAME_DURATION_MS, Date.now() - startAt);
+    const totalTimeMs = Math.min(TIME_CAP_MS, Date.now() - startAt);
     const averageHesitationMs =
       hesitationSamplesRef.current > 0
         ? hesitationSumRef.current / hesitationSamplesRef.current
@@ -331,8 +347,110 @@ export function useSorterGame(options: {
       events: [...eventsRef.current],
     };
 
+    setOutcome(result);
+    setPhase('ended');
     onCompleteRef.current(data);
-  }
+  }, []);
+
+  // =========================================================
+  // 割り込みイベントの発火（スコア経路・時間経路から共通で呼ぶ）
+  //
+  // 各発火関数 / maybeFireEvents は setState / ref / trackTimeout（安定）/ 定数のみ参照する。
+  // tick effect の依存に maybeFireEvents を含めても effect が毎レンダー再走しないよう、
+  // useCallback([]) で identity を安定化する。
+  // =========================================================
+
+  /** ルール変更を発火する（ラッチ済みなら何もしない） */
+  const fireRuleChange = useCallback((): void => {
+    ruleChangedAtRef.current = Date.now();
+    setIsRuleChanged(true);
+    setShowRuleChangeNotice(true);
+    trackTimeout(
+      () => setShowRuleChangeNotice(false),
+      RULE_CHANGE_NOTICE_DURATION_MS
+    );
+  }, [trackTimeout]);
+
+  /**
+   * 機械停止を発火する。予告 → 停止 → 復旧 のサブシーケンスを短いタイマーで進める。
+   * 停止突入時に選択をリセットし（凍結明けに古い選択が残らないようにする）、
+   * 復旧完了で freezeStage を none に戻す。ベルト・荷物のアニメは止めない。
+   */
+  const fireFreeze = useCallback((): void => {
+    // 予告
+    freezeStageRef.current = 'warning';
+    setFreezeStage('warning');
+
+    trackTimeout(() => {
+      // 停止
+      freezeStageRef.current = 'frozen';
+      setFreezeStage('frozen');
+      setSelectedPackageId(null);
+      selectedAtRef.current = null;
+
+      trackTimeout(() => {
+        // 復旧
+        freezeStageRef.current = 'recovery';
+        setFreezeStage('recovery');
+
+        trackTimeout(() => {
+          freezeStageRef.current = 'none';
+          setFreezeStage('none');
+        }, RECOVERY_DURATION_MS);
+      }, FROZEN_DURATION_MS);
+    }, FROZEN_WARNING_DURATION_MS);
+  }, [trackTimeout]);
+
+  /**
+   * 速度上昇を発火する。発火以降ゲーム終了まで荷物 flow を ×SPEED_UP_MULTIPLIER に。
+   * 画面上の全荷物の flowDurationMs を切り替え（PackageItem 側で controls.speed に反映）、
+   * 予告バナーを SPEED_UP_BANNER_DURATION_MS 表示する。
+   */
+  const fireSpeedUp = useCallback((): void => {
+    isSpeedUpRef.current = true;
+    setIsSpeedUp(true);
+    setPackages((prev) =>
+      prev.map((pkg) =>
+        pkg.flowDurationMs === PACKAGE_FLOW_DURATION_SPEED_UP_MS
+          ? pkg
+          : { ...pkg, flowDurationMs: PACKAGE_FLOW_DURATION_SPEED_UP_MS }
+      )
+    );
+    setShowSpeedUpBanner(true);
+    trackTimeout(
+      () => setShowSpeedUpBanner(false),
+      SPEED_UP_BANNER_DURATION_MS
+    );
+  }, [trackTimeout]);
+
+  /**
+   * スコア / 経過時間を受け取り、未発火のイベントを順序固定で発火する。
+   *
+   * EVENT_ANCHORS を先頭から走査し、未発火イベントについて
+   * 「score >= scoreAnchor または elapsed >= timeAnchor」を満たせば発火（ラッチ）。
+   * 配列順に処理し、未発火イベントが条件を満たさなければそこで打ち切る
+   * （後段イベントが先に発火しないよう順序を担保）。
+   *
+   * スコア更新後（commitSort）と tick の両経路から呼ぶことで二系統を 1 本化する。
+   */
+  const maybeFireEvents = useCallback(
+    (score: number, elapsed: number): void => {
+      const fireFns: Record<SorterEventKey, () => void> = {
+        'rule-change': fireRuleChange,
+        freeze: fireFreeze,
+        'speed-up': fireSpeedUp,
+      };
+      for (const anchor of EVENT_ANCHORS) {
+        if (firedEventsRef.current[anchor.key]) continue;
+        const shouldFire =
+          score >= anchor.scoreAnchor || elapsed >= anchor.timeAnchor;
+        if (!shouldFire) break; // 順序固定: 未発火の手前イベントが条件未達なら後段も発火させない
+        firedEventsRef.current[anchor.key] = true;
+        fireFns[anchor.key]();
+      }
+    },
+    [fireRuleChange, fireFreeze, fireSpeedUp]
+  );
 
   // =========================================================
   // unmount 時の全 timer cleanup
@@ -357,7 +475,7 @@ export function useSorterGame(options: {
   useEffect(() => {
     if (phase !== 'countdown') return;
 
-    // 3 → 2 → 1 → 0(START) → normal
+    // 3 → 2 → 1 → 0(START) → playing
     const stepMs = COUNTDOWN_DURATION_MS / 4;
     const id1 = setTimeout(() => setCountdownValue(2), stepMs);
     const id2 = setTimeout(() => setCountdownValue(1), stepMs * 2);
@@ -365,7 +483,7 @@ export function useSorterGame(options: {
     const id4 = setTimeout(() => {
       // カウントダウン終了 → ゲーム本編開始
       gameStartAtRef.current = Date.now();
-      setPhase('normal');
+      setPhase('playing');
     }, COUNTDOWN_DURATION_MS);
 
     return () => {
@@ -377,112 +495,62 @@ export function useSorterGame(options: {
   }, [phase]);
 
   // =========================================================
-  // Phase 遷移: 本編 phase（normal → ... → rule-changed-2 → ended）
+  // ゲーム本編の経過時間タイマー + 時間系トリガー（イベント発火フォールバック / 失敗判定）
   //
-  // 各 phase の effect 内で次 phase への setTimeout を 1 個仕掛ける。
-  // setTimeout コールバック内で副作用（packages 書き換え / submit / selected リセット）を
-  // **同期実行**することで、`react-hooks/set-state-in-effect` ルール違反を避ける。
+  // playing に入ったら起動し、`ended` まで動かす。
+  // tick ごとに:
+  //   - 経過時間 state を更新（HUD の上限タイマー表示用）
+  //   - maybeFireEvents(score, elapsed) でイベントの時間フォールバックを判定
+  //   - elapsed >= TIME_CAP_MS かつ TARGET_SCORE 未達なら失敗で終了
   // =========================================================
   useEffect(() => {
-    const transition = NEXT_PHASE_TABLE[phase];
-    if (!transition) return;
+    if (phase !== 'playing') return;
+    if (tickIntervalRef.current) return; // 既に起動済み
 
-    const id = setTimeout(() => {
-      const next = transition.next;
-
-      // rule-changed-1 突入時刻を記録（ruleChangeAdaptMs の起点）
-      if (next === 'rule-changed-1') {
-        ruleChangedAtRef.current = Date.now();
-      }
-
-      // frozen 突入時に選択をリセット（凍結明けに古い選択が残らないようにする）
-      if (next === 'frozen') {
-        setSelectedPackageId(null);
-        selectedAtRef.current = null;
-      }
-
-      // rule-changed-2 突入時に画面上の全荷物の flowDurationMs を半減する。
-      // PackageItem 側で `controls.speed` を介してアニメに反映される（既存アニメ非リセット）。
-      // 同時に「⚡ 速度 2 倍」予告バナーを 3 秒間表示する。
-      if (next === 'rule-changed-2') {
-        setPackages((prev) =>
-          prev.map((pkg) =>
-            pkg.flowDurationMs === PACKAGE_FLOW_DURATION_SPEED_UP_MS
-              ? pkg
-              : { ...pkg, flowDurationMs: PACKAGE_FLOW_DURATION_SPEED_UP_MS }
-          )
-        );
-        setShowSpeedUpBanner(true);
-        trackTimeout(() => setShowSpeedUpBanner(false), 3000);
-      }
-
-      // ended 突入時に submit + spawn 停止
-      if (next === 'ended') {
-        if (spawnIntervalRef.current) {
-          clearInterval(spawnIntervalRef.current);
-          spawnIntervalRef.current = null;
-        }
-        buildAndSubmit();
-      }
-
-      setPhase(next);
-    }, transition.duration);
-
-    return () => clearTimeout(id);
-  }, [phase]);
-
-  // =========================================================
-  // ゲーム本編の経過時間タイマー（残り時間表示）
-  //
-  // マウント時に 1 回だけ起動し、unmount で停止する。
-  // ゲーム本編に入る前（countdown 中）は `gameStartAtRef.current == null` なので
-  // コールバック内で early return する。
-  // =========================================================
-  useEffect(() => {
     const intervalId = setInterval(() => {
       const startAt = gameStartAtRef.current;
       if (startAt == null) return;
+      if (submittedRef.current) return;
+
       const elapsed = Date.now() - startAt;
-      const remaining = Math.max(0, GAME_DURATION_MS - elapsed);
-      setRemainingTimeMs(remaining);
-      if (remaining <= 0) {
-        clearInterval(intervalId);
-        tickIntervalRef.current = null;
+      setElapsedTimeMs(Math.min(TIME_CAP_MS, elapsed));
+
+      // イベントの時間フォールバック（スコア経路と共通の発火関数）
+      maybeFireEvents(displayScoreRef.current, elapsed);
+
+      // 上限時間到達 → 未達なら失敗で終了
+      if (elapsed >= TIME_CAP_MS && displayScoreRef.current < TARGET_SCORE) {
+        endGame('failure');
       }
     }, TIMER_TICK_MS);
     tickIntervalRef.current = intervalId;
-
-    return () => {
-      clearInterval(intervalId);
-      tickIntervalRef.current = null;
-    };
-  }, []);
+    // cleanup は unmount effect / endGame 側で実施（phase 切替では止めない）
+  }, [phase, maybeFireEvents, endGame]);
 
   // =========================================================
   // 荷物のスポーン
   //
-  // 一度起動したら `ended` まで止めない設計。phase 切替で
+  // playing に入ったら起動し、`ended` まで止めない設計。phase 切替で
   // clearInterval → 再起動するとスポーン間隔がリセットされてしまうため、
   // 「既に起動済みなら何もしない」ガードで in-game 期間は同じ interval を維持する。
   // =========================================================
   useEffect(() => {
-    if (phase === 'ended') return; // 停止は phase 遷移 effect 側で実施済み
-    if (!IN_GAME_PHASES.has(phase)) return;
+    if (phase !== 'playing') return;
     if (spawnIntervalRef.current) return; // 既に起動済み
 
     spawnIntervalRef.current = setInterval(() => {
       const startAt = gameStartAtRef.current;
       if (startAt == null) return;
+      if (submittedRef.current) return;
       const nextId = packageIdSeqRef.current + 1;
       packageIdSeqRef.current = nextId;
       const type =
         PACKAGE_TYPES[Math.floor(Math.random() * PACKAGE_TYPES.length)] ??
         'urgent';
-      // spawn 時の phase で速度を固定する（phaseRef 経由で常に最新を参照）
-      const flowDurationMs =
-        phaseRef.current === 'rule-changed-2'
-          ? PACKAGE_FLOW_DURATION_SPEED_UP_MS
-          : PACKAGE_FLOW_DURATION_MS;
+      // spawn 時の速度状態で flow を固定する（速度上昇発火後は半減）
+      const flowDurationMs = isSpeedUpRef.current
+        ? PACKAGE_FLOW_DURATION_SPEED_UP_MS
+        : PACKAGE_FLOW_DURATION_MS;
       const newPkg: ActivePackage = {
         id: nextId,
         type,
@@ -495,54 +563,21 @@ export function useSorterGame(options: {
   }, [phase]);
 
   // =========================================================
-  // ハンドラ: 荷物クリック（選択 / 取り消し）
+  // 仕分け確定の共通処理（クリック方式 / D&D 方式の両方から呼ぶ）
+  //
+  // packageId と binType を受け取り、正誤判定・スコア更新・計測・イベント発火を行う。
+  // hesitation の起点（選択 / 掴んだ瞬間）は selectedAtRef に統一して扱う。
   // =========================================================
-  function handlePackageClick(id: number): void {
-    if (!IN_GAME_PHASES.has(phase)) return;
-    if (phase === 'frozen') {
-      // 凍結中のクリックは panicClickCount に集計するのみ（events には積まない）
+  function commitSort(packageId: number, binType: PackageType): void {
+    if (phase !== 'playing') return;
+    if (freezeStageRef.current === 'frozen') {
       panicClickCountRef.current += 1;
       return;
     }
 
-    if (selectedPackageId === id) {
-      // 選択解除
-      const pkg = packages.find((p) => p.id === id);
-      if (!pkg) return; // 既に消えている荷物なら無視（集計データの汚染を防ぐ）
-      cancelCountRef.current += 1;
-      pushEvent({
-        eventType: 'cancel',
-        packageType: pkg.type,
-        binChosen: null,
-        hesitationMs: null,
-        correct: false,
-        duringRuleChange: RULE_CHANGED_PHASES.has(phase),
-        duringFreeze: false,
-      });
-      setSelectedPackageId(null);
-      selectedAtRef.current = null;
-    } else {
-      // 選択
-      selectedAtRef.current = Date.now();
-      setSelectedPackageId(id);
-    }
-  }
-
-  // =========================================================
-  // ハンドラ: 仕分け先クリック（仕分け実行）
-  // =========================================================
-  function handleBinClick(binType: PackageType): void {
-    if (!IN_GAME_PHASES.has(phase)) return;
-    if (phase === 'frozen') {
-      panicClickCountRef.current += 1;
-      return;
-    }
-    if (selectedPackageId == null) return;
-
-    const pkg = packages.find((p) => p.id === selectedPackageId);
+    const pkg = packages.find((p) => p.id === packageId);
     if (!pkg) return;
 
-    const isRuleChanged = RULE_CHANGED_PHASES.has(phase);
     const correctBin = isRuleChanged
       ? RULE_CHANGED_CORRECT_BIN[pkg.type]
       : pkg.type;
@@ -557,15 +592,8 @@ export function useSorterGame(options: {
     setDisplayScore(nextScore);
 
     // フィードバックポップアップ（0.7s 後に消す）。
-    // 連続仕分け時に古い setTimeout が新しい値をクリアしないよう関数型更新で照合する。
-    // unmount リーク防止のため `trackTimeout` 経由で id を ref に登録する。
     const feedbackAt = Date.now();
-    setLastFeedback({
-      binType,
-      correct,
-      scoreChange,
-      at: feedbackAt,
-    });
+    setLastFeedback({ binType, correct, scoreChange, at: feedbackAt });
     trackTimeout(
       () => setLastFeedback((cur) => (cur?.at === feedbackAt ? null : cur)),
       700
@@ -605,6 +633,107 @@ export function useSorterGame(options: {
     setPackages((prev) => prev.filter((p) => p.id !== pkg.id));
     setSelectedPackageId(null);
     selectedAtRef.current = null;
+
+    // スコア経路のイベント発火判定 + 勝敗判定（スコア更新直後）
+    const elapsed =
+      gameStartAtRef.current != null ? Date.now() - gameStartAtRef.current : 0;
+    maybeFireEvents(nextScore, elapsed);
+    if (nextScore >= TARGET_SCORE) {
+      endGame('success');
+    }
+  }
+
+  /**
+   * 選択 / 掴みの起点を記録する共通処理（クリック選択 / D&D 掴みの両方から呼ぶ）。
+   * hesitation の起点 selectedAtRef をセットし、選択中の荷物 id を state に反映する。
+   */
+  function beginSelection(id: number): void {
+    selectedAtRef.current = Date.now();
+    setSelectedPackageId(id);
+  }
+
+  /**
+   * 選択 / 掴みの取り消し共通処理（クリック再クリック解除 / D&D 振り分け先外ドロップ）。
+   * cancelCount を加算し cancel イベントを積み、選択状態をクリアする。
+   * 既に消えている荷物（流出済みなど）は集計しない。
+   */
+  function cancelSelection(id: number): void {
+    const pkg = packages.find((p) => p.id === id);
+    if (!pkg) return;
+    cancelCountRef.current += 1;
+    pushEvent({
+      eventType: 'cancel',
+      packageType: pkg.type,
+      binChosen: null,
+      hesitationMs: null,
+      correct: false,
+      duringRuleChange: isRuleChanged,
+      duringFreeze: false,
+    });
+    setSelectedPackageId(null);
+    selectedAtRef.current = null;
+  }
+
+  // =========================================================
+  // ハンドラ: 荷物クリック（選択 / 取り消し）
+  // =========================================================
+  function handlePackageClick(id: number): void {
+    if (phase !== 'playing') return;
+    if (freezeStageRef.current === 'frozen') {
+      // 凍結中のクリックは panicClickCount に集計するのみ（events には積まない）
+      panicClickCountRef.current += 1;
+      return;
+    }
+
+    if (selectedPackageId === id) {
+      cancelSelection(id);
+    } else {
+      beginSelection(id);
+    }
+  }
+
+  // =========================================================
+  // ハンドラ: 仕分け先クリック（クリック 2 ステップの仕分け実行）
+  // =========================================================
+  function handleBinClick(binType: PackageType): void {
+    if (phase !== 'playing') return;
+    if (freezeStageRef.current === 'frozen') {
+      panicClickCountRef.current += 1;
+      return;
+    }
+    if (selectedPackageId == null) return;
+    commitSort(selectedPackageId, binType);
+  }
+
+  // =========================================================
+  // ハンドラ: D&D（pointer events 経由）
+  // =========================================================
+
+  /** 荷物を掴んだ（pointerdown）。選択の起点を記録する */
+  function handlePackageGrab(id: number): void {
+    if (phase !== 'playing') return;
+    if (freezeStageRef.current === 'frozen') {
+      panicClickCountRef.current += 1;
+      return;
+    }
+    beginSelection(id);
+  }
+
+  /**
+   * D&D のドロップ確定（pointerup）。
+   * binType が非 null（振り分け先の上で離した）なら仕分け、null（振り分け先外で離した）なら取り消し。
+   */
+  function handlePackageDrop(id: number, binType: PackageType | null): void {
+    if (phase !== 'playing') return;
+    if (freezeStageRef.current === 'frozen') {
+      panicClickCountRef.current += 1;
+      return;
+    }
+    if (binType == null) {
+      cancelSelection(id);
+    } else {
+      commitSort(id, binType);
+    }
   }
 
   // =========================================================
@@ -623,21 +752,13 @@ export function useSorterGame(options: {
       binChosen: null,
       hesitationMs: null,
       correct: false,
-      duringRuleChange: RULE_CHANGED_PHASES.has(phase),
-      duringFreeze: phase === 'frozen',
+      duringRuleChange: isRuleChanged,
+      duringFreeze: freezeStageRef.current === 'frozen',
     });
 
-    // 流出ペナルティ（表示用スコアのみ、下限 0）
-    const nextScore = Math.max(
-      0,
-      displayScoreRef.current - SCORE_OUTFLOW_PENALTY
-    );
-    displayScoreRef.current = nextScore;
-    setDisplayScore(nextScore);
+    // 流出は失点なし（±0）。スコアは変更しない。
 
     // MISS バッジ用に流出時刻を更新し、600ms 後に自動で null へ戻す。
-    // 連続流出時に古い setTimeout が新しい値をクリアしないよう関数型更新で照合する。
-    // unmount リーク防止のため `trackTimeout` 経由で id を ref に登録する。
     const outflowAt = Date.now();
     setLastOutflowAt(outflowAt);
     trackTimeout(() => {
@@ -669,39 +790,38 @@ export function useSorterGame(options: {
   // =========================================================
   // 派生値
   // =========================================================
-  const isRuleChanged = RULE_CHANGED_PHASES.has(phase);
-  const isFrozen = phase === 'frozen';
-  /**
-   * 速度 2 倍状態か（rule-changed-2 phase のみ）。
-   * 凍結関連 phase が完了した後で発動するため、操作不能と速度 2 倍が重ならない。
-   */
-  const isSpeedUp = phase === 'rule-changed-2';
-  /**
-   * ゲーム本編プレイ中か（onboarding / countdown / ended 以外）。
-   * タイマーゲージや HUD の表示制御に使う。
-   */
-  const isInGame = IN_GAME_PHASES.has(phase);
+  /** 機械停止中（操作無効）か。BinTray / 荷物のクリック無効化判定に使う */
+  const isFrozen = freezeStage === 'frozen';
+  /** ゲーム本編プレイ中か（HUD の表示制御に使う） */
+  const isInGame = phase === 'playing';
 
   return {
     // ステート
     phase,
+    outcome,
     onboardingSlideIndex,
     countdownValue,
     packages,
     selectedPackageId,
-    remainingTimeMs,
+    elapsedTimeMs,
     displayScore,
     lastOutflowAt,
     lastFeedback,
+    showRuleChangeNotice,
     showSpeedUpBanner,
+    freezeStage,
     // 派生値
     isRuleChanged,
     isFrozen,
     isSpeedUp,
     isInGame,
-    // ハンドラ
+    // ハンドラ（クリック方式）
     handlePackageClick,
     handleBinClick,
+    // ハンドラ（D&D 方式）
+    handlePackageGrab,
+    handlePackageDrop,
+    // ハンドラ（共通）
     handlePackageOutflow,
     handleOnboardingNext,
     handleOnboardingPrev,

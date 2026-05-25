@@ -11,9 +11,9 @@ import {
   isRestartCode,
 } from '@/lib/api/error';
 import {
-  GAME_DURATION_MS,
   SORTER_AUDIO_PATHS,
   SORTER_UI_COLORS,
+  TIME_CAP_MS,
 } from '../data/sorterConstants';
 import { useSorterGame } from '../hooks/useSorterGame';
 import Belt from './Belt';
@@ -194,21 +194,26 @@ export default function SorterGameFlow() {
   // ゲームロジック本体
   const {
     phase,
+    outcome,
     onboardingSlideIndex,
     countdownValue,
     packages,
     selectedPackageId,
-    remainingTimeMs,
+    elapsedTimeMs,
     displayScore,
     lastOutflowAt,
     lastFeedback,
+    showRuleChangeNotice,
     showSpeedUpBanner,
+    freezeStage,
     isRuleChanged,
     isFrozen,
     isSpeedUp,
     isInGame,
     handlePackageClick,
     handleBinClick,
+    handlePackageGrab,
+    handlePackageDrop,
     handlePackageOutflow,
     handleOnboardingNext,
     handleOnboardingPrev,
@@ -248,6 +253,23 @@ export default function SorterGameFlow() {
     handleBinClick(binType);
   };
 
+  // SE を鳴らすラッパー（D&D 操作）。
+  // 掴んだとき（新規選択）に SE。凍結中・既に同じ荷物を掴んでいる場合は鳴らさない。
+  const onPackageGrab = (id: number) => {
+    if (!isFrozen && selectedPackageId !== id) {
+      playSE(SORTER_AUDIO_PATHS.generalSE);
+    }
+    handlePackageGrab(id);
+  };
+  // ドロップ確定。振り分け先に入れたとき（仕分け実行）だけ SE。
+  // 取り消し（binType=null）・凍結中は鳴らさない。
+  const onPackageDrop = (id: number, binType: PackageType | null) => {
+    if (!isFrozen && binType != null) {
+      playSE(SORTER_AUDIO_PATHS.generalSE);
+    }
+    handlePackageDrop(id, binType);
+  };
+
   return (
     <div
       className="fixed inset-0 flex flex-col overflow-hidden py-4"
@@ -258,10 +280,10 @@ export default function SorterGameFlow() {
         backgroundSize: '20px 20px',
       }}
     >
-      {/* === 上部 HUD: タイトル / 残り時間 / SCORE + 状態バッジ === */}
+      {/* === 上部 HUD: タイトル / 目標スコア進捗バー / 上限タイマー（控えめ） + 状態バッジ === */}
       <SorterHUD
-        remainingTimeMs={remainingTimeMs}
         displayScore={displayScore}
+        elapsedTimeMs={elapsedTimeMs}
         isFrozen={isFrozen}
         isRuleChanged={isRuleChanged}
         isSpeedUp={isSpeedUp}
@@ -290,7 +312,10 @@ export default function SorterGameFlow() {
                     pkg={pkg}
                     beltWidth={beltWidth}
                     isSelected={selectedPackageId === pkg.id}
+                    isFrozen={isFrozen}
                     onClick={onPackageClick}
+                    onGrab={onPackageGrab}
+                    onDrop={onPackageDrop}
                     onOutflow={handlePackageOutflow}
                   />
                 ))}
@@ -323,7 +348,8 @@ export default function SorterGameFlow() {
           この z 比較が成立する。内部で danger-overlay < バナーの重なりを保つ。
         */}
         <SorterEventBanner
-          phase={phase}
+          freezeStage={freezeStage}
+          showRuleChangeNotice={showRuleChangeNotice}
           showSpeedUpBanner={showSpeedUpBanner}
         />
       </div>
@@ -347,8 +373,7 @@ export default function SorterGameFlow() {
       {phase === 'ended' && submitStatus !== 'error' && (
         <SorterResultOverlay
           submitStatus={submitStatus}
-          finalScore={displayScore}
-          pendingData={pendingData}
+          outcome={outcome}
           onProceedToNext={handleProceedToNext}
         />
       )}
@@ -362,13 +387,17 @@ export default function SorterGameFlow() {
           <ErrorScreen variant="retry" onRetry={handleRetry} />
         ))}
 
-      {/* === タイマーゲージ（底辺の細いバー、ゲーム本編中のみ表示） === */}
+      {/*
+        === 上限タイマーゲージ（底辺の細いバー、控えめ表示） ===
+        勝敗の主軸は目標スコア進捗（HUD）なので、上限 60 秒は底辺の細いバーで
+        「残り時間」を控えめに示すに留める（playtest で見せ方は調整）。
+      */}
       {isInGame && (
         <div
           aria-hidden
-          className="fixed bottom-0 left-0 z-0 h-2 transition-all duration-100"
+          className="fixed bottom-0 left-0 z-0 h-1 transition-all duration-100"
           style={{
-            width: `${(remainingTimeMs / GAME_DURATION_MS) * 100}%`,
+            width: `${Math.max(0, 100 - (elapsedTimeMs / TIME_CAP_MS) * 100)}%`,
             backgroundColor: SORTER_UI_COLORS.danger,
           }}
         />
