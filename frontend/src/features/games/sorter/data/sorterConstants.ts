@@ -23,7 +23,7 @@ import type { PackageType } from '@/features/games/types';
 export const TARGET_SCORE = 150;
 
 /** 上限時間（ms）。到達時に TARGET_SCORE 未達なら失敗。 */
-export const TIME_CAP_MS = 75_000;
+export const TIME_CAP_MS = 60_000;
 
 /**
  * 上限時間（秒）。
@@ -70,7 +70,7 @@ export const COUNTDOWN_DURATION_MS = 3_500;
 //
 // 割合は TARGET_SCORE / TIME_CAP_MS 未満かつ順序を保つよう昇順に並べる:
 //   rule-change(40% / 33%) < freeze(70% / 53%) < speed-up(85% / 67%) < 100%
-//   → 150 / 75s で算出すると 60 点 / 25s, 105 点 / 40s, 128 点 / 50s（目安）
+//   → 150 / 60s で算出すると 60 点 / 20s, 105 点 / 31.8s, 128 点 / 40s（目安）
 // これにより成功 / 失敗の前に必ずルール変更・機械停止を体験し、
 // ruleChangeAdaptMs / panicClickCount の計測値が得られる（性格診断の信頼性確保）。
 // 割合はすべて playtest 前提のたたき台。
@@ -124,7 +124,7 @@ export const EVENT_ANCHORS: ReadonlyArray<{
 // （予告 FROZEN_WARNING_DURATION_MS + 停止 FROZEN_DURATION_MS + 復旧 RECOVERY_DURATION_MS）が
 // 走るため、以下を満たすこと:
 //   TIME_CAP_MS × 0.53 + (FROZEN_WARNING + FROZEN + RECOVERY) < TIME_CAP_MS
-//   現状: 75s × 0.53 ≒ 40s + (2 + 5 + 2)s = 49s < 75s で OK。
+//   現状: 60s × 0.53 ≒ 31.8s + (2 + 5 + 2)s = 40.8s < 60s で OK。
 // freeze を遅らせる / TIME_CAP_MS を縮める / サブシーケンスを延ばす調整時はこの不変条件を要確認
 // （満たさないと機械停止の途中で時間切れ失敗し、復旧演出やパニッククリック計測が中断される）。
 
@@ -150,7 +150,7 @@ export const PACKAGE_FLOW_DURATION_MS = 20_000;
 
 /**
  * 速度上昇時の倍率。
- * 速度上昇イベント発火後、ゲーム終了まで適用する。アンカー（SPEED_UP_SCORE=85 / 50s）が
+ * 速度上昇イベント発火後、ゲーム終了まで適用する。アンカー（speed-up = 128 点 / 40s）が
  * freeze より後なので、機械停止の操作不能と速度上昇の高難度が重ならない順序を保つ。
  */
 export const SPEED_UP_MULTIPLIER = 2;
