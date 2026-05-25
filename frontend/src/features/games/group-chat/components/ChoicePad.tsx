@@ -10,7 +10,11 @@ interface ChoicePadProps {
 }
 
 /** 下部のタイマーバー（赤/緑）+ 2×2 選択肢グリッド。 */
-export default function ChoicePad({ turn, remainingTimeMs, onSelect }: ChoicePadProps) {
+export default function ChoicePad({
+  turn,
+  remainingTimeMs,
+  onSelect,
+}: ChoicePadProps) {
   const ratio = Math.max(0, Math.min(1, remainingTimeMs / turn.timerMs));
 
   return (

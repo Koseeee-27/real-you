@@ -60,7 +60,12 @@ export type ChatMessage =
 
 /** data 層の BotMessage を ChatMessage（bot）へ変換する */
 function toChatBotMessage(m: BotMessage): ChatMessage {
-  return { type: 'bot', speaker: m.speaker, text: m.text, hasMention: m.hasMention };
+  return {
+    type: 'bot',
+    speaker: m.speaker,
+    text: m.text,
+    hasMention: m.hasMention,
+  };
 }
 
 /**
@@ -241,7 +246,10 @@ export function useGroupChatGame(options: {
       turn1AnsweredBeforeColleagueARef.current = null;
       turn1TypingIndicatorReactTimeMsRef.current = null;
     }
-    setChatMessages((prev) => [...prev, { type: 'user', text: '（タイムアウト）' }]);
+    setChatMessages((prev) => [
+      ...prev,
+      { type: 'user', text: '（タイムアウト）' },
+    ]);
     // 仕様: タイムアウトは reactionTimeMs を実時間（≒制限時間）として記録
     recordTurnAndAdvance(0, turn.timerMs, true);
   }, [currentTurnIndex, recordTurnAndAdvance]);
@@ -308,7 +316,10 @@ export function useGroupChatGame(options: {
       trackTimeout(() => {
         t1PreemptShownRef.current = true;
         setIsTypingIndicatorVisible(false);
-        setChatMessages((prev) => [...prev, toChatBotMessage(T1_PREEMPT_MESSAGE)]);
+        setChatMessages((prev) => [
+          ...prev,
+          toChatBotMessage(T1_PREEMPT_MESSAGE),
+        ]);
       }, T1_TYPING_INDICATOR_DELAY_MS + T1_PREEMPT_REVEAL_DELAY_MS);
     } else if (turn.turnId === 2) {
       // ターン1選択に応じた上司の冒頭セリフ → 同期A → 同期B を段階表示
@@ -321,7 +332,11 @@ export function useGroupChatGame(options: {
           : null;
       const followSteps: { msg: ChatMessage; at: number }[] = [
         {
-          msg: { type: 'bot', speaker: 'boss', text: getTurn2BossLine(t1OptionId) },
+          msg: {
+            type: 'bot',
+            speaker: 'boss',
+            text: getTurn2BossLine(t1OptionId),
+          },
           at: TURN2_BOSS_LINE_DELAY_MS,
         },
         ...TURN2_FOLLOW_MESSAGES.map((f) => ({
@@ -368,7 +383,8 @@ export function useGroupChatGame(options: {
       tutorialViewTime: tutorialViewTimeRef.current,
       turns: [...turnResultsRef.current],
       turn1AnsweredBeforeColleagueA: turn1AnsweredBeforeColleagueARef.current,
-      turn1TypingIndicatorReactTimeMs: turn1TypingIndicatorReactTimeMsRef.current,
+      turn1TypingIndicatorReactTimeMs:
+        turn1TypingIndicatorReactTimeMsRef.current,
       // --- 以下は #141 で実計測に置き換え（本 PR はデフォルト値）---
       turn1HoverChangedAfterColleagueATyping: null,
       inputDeviceType: 'mouse',
