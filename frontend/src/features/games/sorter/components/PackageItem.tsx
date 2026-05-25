@@ -315,63 +315,74 @@ export default function PackageItem({
       aria-label={`荷物（${PACKAGE_LABELS[pkg.type]}）${isSelected ? '・選択中' : ''}`}
     >
       {/*
-        選択演出 + D&D 追従用の内側 wrapper（motion.div）= 見た目の画像サイズ。
-        button（HIT サイズ）の中央に配置。親 button は useAnimate で位置アニメ（x/y）を担当し、
-        この wrapper では scale/glow のパルスと D&D の追従オフセット（translate）を制御する。
+        D&D 追従専用の素の div（transform は React の style で直接制御）。
+        親 button は useAnimate（framer-motion）で U 字経路の位置アニメ（x/y）を、
+        子の motion.div は scale/glow のパルスを framer-motion の transform で管理する。
+        framer-motion が管理する要素に `style.transform` を当てても motion 側の
+        transform 構築と競合して効かない（追従が表示されない原因）ため、追従の
+        translate は framer-motion 管理外のこの素の div に分離して当てる。
       */}
-      <motion.div
-        className="relative"
+      <div
         style={{
           width: `${PACKAGE_IMAGE_SIZE_PX}px`,
           height: `${PACKAGE_IMAGE_SIZE_PX}px`,
-          // D&D 追従オフセット（ドラッグ中のみ）。framer-motion の animate と競合しないよう
-          // 直接 translate を style で当てる（位置アニメは親 button が担当）。
+          // ドラッグ中はポインタ移動量（クライアント座標の差分）をそのまま translate に乗せる。
+          // 親 button のフローアニメは掴んだ瞬間に pause 済みなので、この translate が
+          // 「掴んだ位置からの相対移動」= ポインタ追従になる。
           transform: dragOffset
             ? `translate(${dragOffset.x}px, ${dragOffset.y}px)`
             : undefined,
         }}
-        animate={
-          isSelected || isDragging
-            ? {
-                scale: [1, 1.15],
-                filter: [
-                  'drop-shadow(0 0 8px rgba(87,208,113,1))',
-                  'drop-shadow(0 0 20px rgba(87,208,113,1))',
-                ],
-              }
-            : { scale: 1, filter: 'none' }
-        }
-        transition={
-          isSelected || isDragging
-            ? {
-                duration: 0.5,
-                repeat: Infinity,
-                repeatType: 'reverse',
-                ease: 'easeInOut',
-              }
-            : { duration: 0.2 }
-        }
       >
-        <Image
-          src={PACKAGE_IMAGE_PATHS[pkg.type]}
-          alt=""
-          fill
-          sizes={`${PACKAGE_IMAGE_SIZE_PX}px`}
-          className="object-contain"
-          priority={false}
-          draggable={false}
-        />
-        {/* 選択中インジケーター: 緑のチェックマークバッジを右上に重ねる */}
-        {(isSelected || isDragging) && (
-          <span
-            aria-hidden
-            className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-black text-sm font-black text-white shadow-[2px_2px_0_0_#000]"
-            style={{ backgroundColor: SORTER_UI_COLORS.success }}
-          >
-            ✓
-          </span>
-        )}
-      </motion.div>
+        {/*
+          選択演出（scale/glow パルス）用の motion.div = 見た目の画像サイズ。
+          transform（scale）は framer-motion が管理するため、追従 translate は付けない。
+        */}
+        <motion.div
+          className="relative h-full w-full"
+          animate={
+            isSelected || isDragging
+              ? {
+                  scale: [1, 1.15],
+                  filter: [
+                    'drop-shadow(0 0 8px rgba(87,208,113,1))',
+                    'drop-shadow(0 0 20px rgba(87,208,113,1))',
+                  ],
+                }
+              : { scale: 1, filter: 'none' }
+          }
+          transition={
+            isSelected || isDragging
+              ? {
+                  duration: 0.5,
+                  repeat: Infinity,
+                  repeatType: 'reverse',
+                  ease: 'easeInOut',
+                }
+              : { duration: 0.2 }
+          }
+        >
+          <Image
+            src={PACKAGE_IMAGE_PATHS[pkg.type]}
+            alt=""
+            fill
+            sizes={`${PACKAGE_IMAGE_SIZE_PX}px`}
+            className="object-contain"
+            priority={false}
+            draggable={false}
+          />
+          {/* 選択中インジケーター: 緑のチェックマークバッジを右上に重ねる */}
+          {(isSelected || isDragging) && (
+            <span
+              aria-hidden
+              className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-black text-sm font-black text-white shadow-[2px_2px_0_0_#000]"
+              style={{ backgroundColor: SORTER_UI_COLORS.success }}
+            >
+              ✓
+            </span>
+          )}
+        </motion.div>
+      </div>
     </button>
   );
 }
