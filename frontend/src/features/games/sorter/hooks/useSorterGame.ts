@@ -288,6 +288,12 @@ export function useSorterGame(options: {
       tickIntervalRef.current = null;
     }
 
+    // 保留中の setTimeout（freeze サブシーケンス進行 / バナー・MISS バッジ・フィードバックの
+    // 自動消去）を一括 clear する。終了後にこれらのコールバックが走り、ended 突入後の不要な
+    // setState（凍結演出の継続・バナー消去など）が発火するのを防ぐ。
+    pendingTimeoutsRef.current.forEach((id) => clearTimeout(id));
+    pendingTimeoutsRef.current.clear();
+
     const startAt = gameStartAtRef.current ?? Date.now();
     const totalTimeMs = Math.min(TIME_CAP_MS, Date.now() - startAt);
     const averageHesitationMs =
@@ -706,6 +712,8 @@ export function useSorterGame(options: {
     // submit 完了後（ended 後）に PackageItem の `controls.then` が遅延発火する
     // ケースに備え、二重実行ガードと同じ submittedRef で集計を弾く。
     if (submittedRef.current) return;
+    // pkg が見つからない = この荷物は既に仕分け / 取り消し済みで packages から除去されている。
+    // その場合は流出ではないため集計せずスキップするのが正（流出は「未操作のまま流れ切った」時のみ）。
     const pkg = packages.find((p) => p.id === id);
     if (!pkg) return;
     outflowMissCountRef.current += 1;
