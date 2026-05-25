@@ -92,10 +92,10 @@ export default function OnboardingSlides({
       aria-modal="true"
       aria-label="仕分けゲームのチュートリアル"
     >
-      <div className="relative w-full max-w-md overflow-hidden rounded-[24px] border-[6px] border-black bg-white shadow-[8px_8px_0_0_#000] sm:max-w-2xl lg:max-w-4xl">
+      <div className="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-[24px] border-[6px] border-black bg-white shadow-[8px_8px_0_0_#000] sm:max-w-2xl lg:max-w-5xl">
         {/* スライド進捗インジケーター */}
         <div
-          className="flex justify-center gap-2 border-b-[3px] border-black py-3 sm:gap-3 sm:py-4"
+          className="flex shrink-0 justify-center gap-2 border-b-[3px] border-black py-3 sm:gap-3 sm:py-4"
           style={{ backgroundColor: SORTER_UI_COLORS.warning }}
         >
           {SLIDES.map((_, i) => (
@@ -113,11 +113,19 @@ export default function OnboardingSlides({
           スライドコンテンツ（双方向アニメーション）。
           コンテナに min-h を持たせ、各スライドの中身は absolute + flex center で
           中央寄せにする。これによりスライド切替時にカード全体の高さが揺れない。
+          min-h は「2 スライドのうち背が高い方」を基準に確保する。
+          最も背が高くなるのは、タイトル + サブ 2 行 + カテゴリーカード 3 列
+          （荷物画像 → 矢印 → 仕分け先画像 → ラベル）を縦に積む SlideOverview。
           PC（lg）では横並びレイアウトで必要高さが減るため min-h を低めに、
-          狭い画面では縦積みになるため min-h を高めに取り、どのスライドも見切れない
-          ようにする。最も背が高くなるのは狭い画面の SlideControlsAndScoring。
+          狭い画面では縦積みになるため min-h を高めに取る。
+          外側モーダルの max-h-[90vh] で縦に短い画面では枠が縮む。その場合は
+          各スライド（absolute inset-0）を overflow-y-auto にして縦スクロールへ
+          逃がす。中身は m-auto でセンタリングし、収まる時は中央寄せ・溢れる時は
+          上端から全体をスクロール表示する（flex の justify-center だと溢れた際に
+          上端がクリップされスクロールできないため m-auto を使う）。
+          親は横方向 swipe のクリップ用に overflow-hidden のままにする。
         */}
-        <div className="relative min-h-[440px] overflow-hidden sm:min-h-[400px] lg:min-h-[340px]">
+        <div className="relative min-h-[560px] flex-1 overflow-hidden sm:min-h-[520px] lg:min-h-[480px]">
           <AnimatePresence mode="wait" custom={direction} initial={false}>
             <motion.div
               key={slideIndex}
@@ -127,19 +135,21 @@ export default function OnboardingSlides({
               animate="center"
               exit="exit"
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="absolute inset-0 flex flex-col justify-center px-6 py-6 sm:px-10 lg:px-12"
+              className="absolute inset-0 flex overflow-y-auto px-6 py-6 sm:px-10 lg:px-12"
             >
-              {(() => {
-                const Slide = SLIDES[slideIndex];
-                return Slide ? <Slide /> : null;
-              })()}
+              <div className="m-auto w-full">
+                {(() => {
+                  const Slide = SLIDES[slideIndex];
+                  return Slide ? <Slide /> : null;
+                })()}
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>
 
         {/* フッターボタン */}
         <div
-          className="flex justify-between border-t-[3px] border-black p-4 sm:p-5"
+          className="flex shrink-0 justify-between border-t-[3px] border-black p-4 sm:p-5"
           style={{ backgroundColor: SORTER_UI_COLORS.warning }}
         >
           <button
