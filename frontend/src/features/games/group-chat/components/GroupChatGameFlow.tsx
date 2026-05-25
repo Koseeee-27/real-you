@@ -74,9 +74,15 @@ export default function GroupChatGameFlow() {
     bgm.volume = 0.3;
     bgmRef.current = bgm;
 
+    // 自動再生がブロックされた場合に備え、再生に成功したときだけ
+    // click リスナーを解除する（失敗時は次のクリックで再試行できるよう残す）。
     const playBGM = () => {
-      bgm.play().catch(() => {});
-      window.removeEventListener('click', playBGM);
+      bgm
+        .play()
+        .then(() => {
+          window.removeEventListener('click', playBGM);
+        })
+        .catch(() => {});
     };
     window.addEventListener('click', playBGM);
     // 前の画面から継続している場合は即再生
