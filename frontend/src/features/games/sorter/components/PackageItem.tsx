@@ -406,7 +406,11 @@ export default function PackageItem({
           D&D 掴み時も onGrab → beginSelection で必ず selectedPackageId がセットされ isSelected=true に
           なるため、ローカルの isDragging（dragOffset 由来）をグロー判定に混ぜる必要はない
           （混ぜると、選択解除後もポインタ追従値が残った荷物にグローが残留する原因になる）。
-          非選択時は scale:1 / filter:none の中立値へ戻すアニメで、パルスの残像を確実に消す。
+
+          非選択時の filter は `'none'` ではなく「ブラー 0・アルファ 0 の透明な drop-shadow」へ戻す。
+          framer-motion は filter を `drop-shadow(...)` ↔ `'none'`（キーワード値）間で数値補間できず、
+          最後の drop-shadow 値が残留してグローが消えない（well-known な挙動）。同種値（drop-shadow 同士）
+          で補間させると確実にフェードアウトするため、不可視の drop-shadow を中立値として使う。
         */}
         <motion.div
           className="relative h-full w-full"
@@ -419,7 +423,7 @@ export default function PackageItem({
                     'drop-shadow(0 0 20px rgba(87,208,113,1))',
                   ],
                 }
-              : { scale: 1, filter: 'none' }
+              : { scale: 1, filter: 'drop-shadow(0 0 0px rgba(87,208,113,0))' }
           }
           transition={
             isSelected
