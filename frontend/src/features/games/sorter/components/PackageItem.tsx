@@ -400,11 +400,18 @@ export default function PackageItem({
         {/*
           選択演出（scale/glow パルス）用の motion.div = 見た目の画像サイズ。
           transform（scale）は framer-motion が管理するため、追従 translate は付けない。
+
+          グロー / ✓ バッジの表示判定は中央 state の `isSelected`（selectedPackageId === pkg.id）
+          一本に統一する。選択は単一値なので「複数同時グロー」は構造的に発生し得ない。
+          D&D 掴み時も onGrab → beginSelection で必ず selectedPackageId がセットされ isSelected=true に
+          なるため、ローカルの isDragging（dragOffset 由来）をグロー判定に混ぜる必要はない
+          （混ぜると、選択解除後もポインタ追従値が残った荷物にグローが残留する原因になる）。
+          非選択時は scale:1 / filter:none の中立値へ戻すアニメで、パルスの残像を確実に消す。
         */}
         <motion.div
           className="relative h-full w-full"
           animate={
-            isSelected || isDragging
+            isSelected
               ? {
                   scale: [1, 1.15],
                   filter: [
@@ -415,7 +422,7 @@ export default function PackageItem({
               : { scale: 1, filter: 'none' }
           }
           transition={
-            isSelected || isDragging
+            isSelected
               ? {
                   duration: 0.5,
                   repeat: Infinity,
@@ -435,7 +442,7 @@ export default function PackageItem({
             draggable={false}
           />
           {/* 選択中インジケーター: 緑のチェックマークバッジを右上に重ねる */}
-          {(isSelected || isDragging) && (
+          {isSelected && (
             <span
               aria-hidden
               className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-black text-sm font-black text-white shadow-[2px_2px_0_0_#000]"
