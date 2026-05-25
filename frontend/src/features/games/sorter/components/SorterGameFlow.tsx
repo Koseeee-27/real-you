@@ -68,6 +68,32 @@ export default function SorterGameFlow() {
   const beltContainerRef = useRef<HTMLDivElement | null>(null);
   const [beltWidth, setBeltWidth] = useState(0);
 
+  /**
+   * 現在ドラッグ中の荷物 ID 集合。
+   * belt レイヤーと BinTray は別 stacking context（belt: z-0 / BinTray: z-10）に分かれており、
+   * 荷物側でいくら z を上げても belt コンテナ（z-0）が BinTray（z-10）の背面に沈むため、
+   * 荷物を bin まで運ぶと bin の背面に隠れてしまう。これを防ぐため、ドラッグ中だけ
+   * belt レイヤー自体を BinTray より前面（z-30）に引き上げる。
+   * 単一ポインタ前提だが、取り残し防止のため Set で出入りを管理し、空になったら通常 z に戻す。
+   */
+  const [draggingPackageIds, setDraggingPackageIds] = useState<Set<number>>(
+    () => new Set()
+  );
+
+  const handlePackageDragStateChange = (id: number, dragging: boolean) => {
+    setDraggingPackageIds((prev) => {
+      // 状態が変わらないなら同じ参照を返して不要な再 render を避ける
+      if (dragging === prev.has(id)) return prev;
+      const next = new Set(prev);
+      if (dragging) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
   function playSE(path: string) {
     const audio = new Audio(path);
     audio.volume = 0.5;
@@ -215,6 +241,14 @@ export default function SorterGameFlow() {
     handleOnboardingStart,
   } = useSorterGame({ onComplete: handleComplete });
 
+  /**
+   * belt レイヤーを前面化（z-30）すべきか。
+   * ドラッグ中の荷物が 1 つでもあり、かつ機械停止中でないとき。
+   * 機械停止突入時は D&D 無効化のため前面化を解除する（指を押したまま frozen に入った
+   * ケースでも belt を通常 z に戻し、凍結演出より荷物が前に出ないようにする）。
+   */
+  const shouldLiftBelt = draggingPackageIds.size > 0 && !isFrozen;
+
   // SE を鳴らすラッパー（オンボーディング操作）
   const onPrev = () => {
     playSE(SORTER_AUDIO_PATHS.generalSE);
@@ -293,8 +327,19 @@ export default function SorterGameFlow() {
         z-0 で stacking context を確立し、内部の z-20（EventBanner）が HUD など外側に漏れないよう閉じ込める。
       */}
       <div className="relative z-0 mt-4 flex flex-1 flex-col">
-        {/* === ベルトと荷物（画面端まで広げる）=== */}
-        <div ref={beltContainerRef} className="relative z-0 w-full flex-1">
+        {/*
+          === ベルトと荷物（画面端まで広げる）===
+          通常は z-0。ドラッグ中だけ z-30 に引き上げ、運んでいる荷物が BinTray（z-10）の
+          前面に出るようにする（belt と BinTray は別 stacking context のため、荷物単体の
+          z 引き上げでは bin を越えられない）。ドロップ / 取り消し / 中断 / 凍結突入で
+          ドラッグ集合が空になれば z-0 に戻る。
+        */}
+        <div
+          ref={beltContainerRef}
+          className={`relative w-full flex-1 ${
+            shouldLiftBelt ? 'z-30' : 'z-0'
+          }`}
+        >
           <Belt isSpeedUp={isSpeedUp} />
 
           {/* 荷物群（beltWidth が確定してからレンダリング） */}
@@ -312,6 +357,7 @@ export default function SorterGameFlow() {
                     onGrab={onPackageGrab}
                     onDrop={onPackageDrop}
                     onOutflow={handlePackageOutflow}
+                    onDragStateChange={handlePackageDragStateChange}
                   />
                 ))}
               </div>

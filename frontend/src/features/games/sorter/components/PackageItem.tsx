@@ -30,6 +30,12 @@ interface PackageItemProps {
   /** D&D ドロップ確定。binType が非 null なら仕分け、null なら取り消し */
   onDrop: (id: number, binType: PackageType | null) => void;
   onOutflow: (id: number) => void;
+  /**
+   * ドラッグ状態の変化を親に通知する（掴み開始で true、ドロップ / 取り消し / 中断で false）。
+   * 親（SorterGameFlow）はこれを集計して belt レイヤーの z-index を BinTray より前面に
+   * 引き上げ、ドラッグ中の荷物が bin の背面に隠れないようにする（stacking context 対策）。
+   */
+  onDragStateChange: (id: number, dragging: boolean) => void;
 }
 
 /**
@@ -123,6 +129,7 @@ export default function PackageItem({
   onGrab,
   onDrop,
   onOutflow,
+  onDragStateChange,
 }: PackageItemProps) {
   const [scope, animate] = useAnimate<HTMLButtonElement>();
   const controlsRef = useRef<AnimationPlaybackControls | null>(null);
@@ -161,6 +168,32 @@ export default function PackageItem({
   useEffect(() => {
     onOutflowRef.current = onOutflow;
   }, [onOutflow]);
+
+  /**
+   * `onDragStateChange` を ref に逃がす。unmount cleanup で「ドラッグ中のまま消えた荷物」の
+   * 前面化フラグを確実に解除するため、依存配列を増やさずに最新の関数を呼べるようにする。
+   */
+  const onDragStateChangeRef = useRef(onDragStateChange);
+  useEffect(() => {
+    onDragStateChangeRef.current = onDragStateChange;
+  }, [onDragStateChange]);
+
+  /**
+   * 現在ドラッグ中（掴み済み）かを ref で追う。pointerup / cancel で false に戻す。
+   * 通常はそれらのハンドラ内で親へ false 通知するが、万一 pointer イベントを経由せず
+   * unmount された場合の保険として、cleanup でこのフラグを見て前面化を確実に解除する
+   * （belt z が前面のまま取り残されるのを防ぐ）。
+   */
+  const isDraggingRef = useRef(false);
+
+  // ドラッグ中のまま unmount された荷物の前面化フラグを確実に解除する保険
+  useEffect(() => {
+    return () => {
+      if (isDraggingRef.current) {
+        onDragStateChangeRef.current(pkg.id, false);
+      }
+    };
+  }, [pkg.id]);
 
   // animation の起動（beltWidth が確定したら 1 回だけ）
   useEffect(() => {
@@ -242,7 +275,9 @@ export default function PackageItem({
       // 閾値を超えたら「掴む」へ遷移
       if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
       g.dragging = true;
+      isDraggingRef.current = true; // unmount cleanup での前面化解除判定に使う
       onGrab(pkg.id); // hesitation 起点を記録（選択と同じ起点）
+      onDragStateChange(pkg.id, true); // belt レイヤーを前面化（bin の背面に隠れない）
       controlsRef.current?.pause(); // フローアニメを一時停止してポインタ追従に切替
     }
     // 追従オフセットを内側 wrapper に反映
@@ -260,6 +295,10 @@ export default function PackageItem({
       onClick(pkg.id);
       return;
     }
+
+    // ドラッグ終了 → belt レイヤーの前面化を解除（仕分け確定 / 取り消し共通）
+    isDraggingRef.current = false;
+    onDragStateChange(pkg.id, false);
 
     // ドラッグ確定 → ドロップ先の bin を判定。
     // ただしドラッグ中に機械停止に入った場合は仕分けさせず、追従を戻してフローを再開する
@@ -282,6 +321,8 @@ export default function PackageItem({
     gestureRef.current = null;
     // ドラッグ中の中断は取り消し扱い（フロー再開）
     if (g.dragging) {
+      isDraggingRef.current = false;
+      onDragStateChange(pkg.id, false); // belt レイヤーの前面化を解除
       setDragOffset(null);
       controlsRef.current?.play();
       onDrop(pkg.id, null);
