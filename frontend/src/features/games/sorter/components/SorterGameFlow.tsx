@@ -21,6 +21,7 @@ import SorterEventBanner from './SorterEventBanner';
 import SorterHUD from './SorterHUD';
 import SorterMissBadge from './SorterMissBadge';
 import SorterResultOverlay from './SorterResultOverlay';
+import SorterRuleLegend from './SorterRuleLegend';
 
 type SubmitStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -41,12 +42,13 @@ type ErrorVariant = 'retry' | 'restart';
  *   - 成功時は結果画面 + 「次のゲームへ ▶」ボタン → 押下で `/games/group-chat` へ遷移
  *
  * UI 構成は以下のサブコンポーネントに分割:
- *   - `SorterHUD`              … タイトル / 残り時間 / SCORE + 状態バッジ列
+ *   - `SorterHUD`              … タイトル / SCORE（大）/ 円形リングタイマー + 状態バッジ帯
  *   - `Belt` + `PackageItem`   … U 字経路ベルトと荷物
+ *   - `SorterRuleLegend`       … 現在の仕分けルール凡例（ベルトと bin の間に常時表示）
  *   - `BinTray`                … 3 つの仕分け先
  *   - `SorterEventBanner`      … 危機感オーバーレイ / ルール変更 / 凍結予告 / 復旧 / 速度 2 倍
  *   - `SorterMissBadge`        … 流出時の MISS バッジ（流出口基準）
- *   - `OnboardingSlides`       … 開始前 4 スライド
+ *   - `OnboardingSlides`       … 開始前 2 スライド
  *   - `SorterCountdownOverlay` … 3-2-1-START
  *   - `SorterResultOverlay`    … 結果画面
  */
@@ -335,24 +337,34 @@ export default function SorterGameFlow() {
       />
 
       {/*
-        === 盤面ラッパー（ベルト + 仕分け先を包む relative コンテナ）===
+        === 盤面ラッパー（ベルト + ルール凡例 + 仕分け先を包む relative コンテナ）===
         危機感オーバーレイ（SorterEventBanner 内）をこのラッパー直下に absolute inset-0 で
         重ねることで、上段のベルトだけでなく下段の bin エリアまで「やばい感」を覆える。
         HUD は外に置いたままにして、タイマー / スコアの可読性を最優先する。
         flex-1 でこのラッパーが HUD と下部余白の間を縦いっぱいに占める。
         z-0 で stacking context を確立し、内部の z-20（EventBanner）が HUD など外側に漏れないよう閉じ込める。
+
+        縦配分（上から詰める）:
+          ベルト（内容高 = BELT_HEIGHT_PX、shrink-0）
+            → ルール凡例（shrink-0）
+            → 伸縮スペーサー（flex-1）で余白を bin の手前に集約
+            → BinTray（shrink-0、下寄せ余白は mb で最小限）
+        従来はベルトコンテナを flex-1 にしていたため belt 下に大きな緑余白が残っていた。
+        ベルトコンテナを内容高にし、凡例を間に挟み、余りは spacer に逃がして
+        「ベルト → 凡例 → bin」を上半分に詰める。
       */}
-      <div className="relative z-0 mt-4 flex flex-1 flex-col">
+      <div className="relative z-0 mt-3 flex flex-1 flex-col">
         {/*
           === ベルトと荷物（画面端まで広げる）===
           通常は z-0。ドラッグ中だけ z-30 に引き上げ、運んでいる荷物が BinTray（z-10）の
           前面に出るようにする（belt と BinTray は別 stacking context のため、荷物単体の
           z 引き上げでは bin を越えられない）。ドロップ / 取り消し / 中断 / 凍結突入で
           ドラッグ集合が空になれば z-0 に戻る。
+          shrink-0 で内容高（BELT_HEIGHT_PX）を保ち、余白は下の spacer に逃がす。
         */}
         <div
           ref={beltContainerRef}
-          className={`relative w-full flex-1 ${
+          className={`relative w-full shrink-0 ${
             shouldLiftBelt ? 'z-30' : 'z-0'
           }`}
         >
@@ -386,12 +398,29 @@ export default function SorterGameFlow() {
         </div>
 
         {/*
-          仕分け先。mb-6 で画面下端と bin の補助ラベル（「特急」「取扱注意」「重量物」）が
-          詰まりすぎない余白を確保する。
+          === 現在の仕分けルール凡例 ===
+          ベルトと BinTray の間に常時表示し、中央の隙間を埋める。
+          純粋な表示で D&D を妨げない（凡例内部は pointer-events-none、data-bin-type 無し）。
+          z 指定なしで盤面ラッパー内のフロー順に積まれる（BinTray の relative z-10 より背面でも
+          凡例はクリックを受けないため干渉しない）。
+        */}
+        <div className="mt-3 shrink-0 px-4">
+          <SorterRuleLegend isRuleChanged={isRuleChanged} />
+        </div>
+
+        {/*
+          伸縮スペーサー。ベルト・凡例・bin を上半分に詰め、残り余白をここに集約する。
+          これによりベルト直下に出ていた大きな緑余白が解消され、要素間の隙間が締まる。
+        */}
+        <div className="min-h-0 flex-1" aria-hidden />
+
+        {/*
+          仕分け先。mb-4 で画面下端と bin の補助ラベル（「特急」「取扱注意」「重量物」）が
+          詰まりすぎない余白を確保しつつ、bin をやや上寄せにする。
           relative を付けて positioned 要素にすることで z-10 を有効化し、bin の
           重なり順を明示的に制御する（static のままだと z-10 は効かない）。
         */}
-        <div className="relative z-10 mt-4 mb-6 px-4">
+        <div className="relative z-10 mb-4 shrink-0 px-4">
           <BinTray
             isFrozen={isFrozen}
             onBinClick={onBinClick}
