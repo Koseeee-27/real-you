@@ -20,10 +20,10 @@ import type { PackageType } from '@/features/games/types';
 // ========================================
 
 /** 目標スコア。到達で成功（クリア）。 */
-export const TARGET_SCORE = 100;
+export const TARGET_SCORE = 150;
 
 /** 上限時間（ms）。到達時に TARGET_SCORE 未達なら失敗。 */
-export const TIME_CAP_MS = 60_000;
+export const TIME_CAP_MS = 75_000;
 
 /**
  * 上限時間（秒）。
@@ -63,33 +63,70 @@ export const COUNTDOWN_DURATION_MS = 3_500;
 // 割り込みイベントのアンカー（スコア主トリガー + 時間フォールバック）
 // ========================================
 // 「スコア閾値」を主トリガー、「経過時間」を保険とし、**早い方で 1 回だけ発火（ラッチ）・順序固定**。
-// アンカーは TARGET_SCORE（100）未満かつ順序を保つよう並べる:
-//   rule-change(40) < freeze(70) < speed-up(85) < TARGET_SCORE(100)
-//   rule-change(25s) < freeze(40s) < speed-up(50s) < TIME_CAP_MS(60s)
+//
+// 真実の単一ソースは下の EVENT_ANCHOR_RATIOS（各イベントの「目標スコア比」「上限時間比」）。
+// 実値（点 / ms）はそこから TARGET_SCORE / TIME_CAP_MS を掛けて round で算出する。
+// これにより TARGET_SCORE / TIME_CAP_MS を変えても全アンカーが自動追従する（DRY）。
+//
+// 割合は TARGET_SCORE / TIME_CAP_MS 未満かつ順序を保つよう昇順に並べる:
+//   rule-change(40% / 33%) < freeze(70% / 53%) < speed-up(85% / 67%) < 100%
+//   → 150 / 75s で算出すると 60 点 / 25s, 105 点 / 40s, 128 点 / 50s（目安）
 // これにより成功 / 失敗の前に必ずルール変更・機械停止を体験し、
 // ruleChangeAdaptMs / panicClickCount の計測値が得られる（性格診断の信頼性確保）。
-// 数値はすべて playtest 前提のたたき台。
+// 割合はすべて playtest 前提のたたき台。
 
-/** ルール変更の発火スコア閾値 */
-export const RULE_CHANGE_SCORE = 40;
-/** ルール変更の時間フォールバック（ms） */
-export const RULE_CHANGE_TIME_MS = 25_000;
+/** 割り込みイベントの識別子。EVENT_ANCHOR_RATIOS の並び順 = 発火順序（rule-change → freeze → speed-up）。 */
+export type SorterEventKey = 'rule-change' | 'freeze' | 'speed-up';
 
-/** 機械停止（freeze）の発火スコア閾値 */
-export const FREEZE_SCORE = 70;
-/** 機械停止の時間フォールバック（ms） */
-export const FREEZE_TIME_MS = 40_000;
+/**
+ * 割り込みイベントのアンカー割合（真実の単一ソース）。
+ *
+ * 各イベントの発火閾値を「目標スコア（TARGET_SCORE）に対する比」「上限時間（TIME_CAP_MS）に対する比」
+ * で定義する。実値（点 / ms）はこの比から算出する（EVENT_ANCHORS）。
+ * 配列の並び順がそのまま発火順序（ラッチ・順序固定）になるため、scoreRatio / timeRatio とも
+ * 昇順かつ 1.0 未満で並べること。
+ */
+const EVENT_ANCHOR_RATIOS: ReadonlyArray<{
+  key: SorterEventKey;
+  /** 目標スコア（TARGET_SCORE）に対する発火閾値の比（0–1） */
+  scoreRatio: number;
+  /** 上限時間（TIME_CAP_MS）に対する時間フォールバックの比（0–1） */
+  timeRatio: number;
+}> = [
+  { key: 'rule-change', scoreRatio: 0.4, timeRatio: 1 / 3 },
+  { key: 'freeze', scoreRatio: 0.7, timeRatio: 0.53 },
+  { key: 'speed-up', scoreRatio: 0.85, timeRatio: 2 / 3 },
+];
 
-/** 速度上昇の発火スコア閾値 */
-export const SPEED_UP_SCORE = 85;
-/** 速度上昇の時間フォールバック（ms） */
-export const SPEED_UP_TIME_MS = 50_000;
+/**
+ * アンカー割合から算出した実値（スコア閾値 / 時間フォールバック ms）。真実の単一ソースは
+ * EVENT_ANCHOR_RATIOS で、TARGET_SCORE / TIME_CAP_MS を変えればここも自動追従する。
+ * useSorterGame の発火ロジック（maybeFireEvents）が配列順にラッチ・順序固定で参照する。
+ */
+export const EVENT_ANCHORS: ReadonlyArray<{
+  key: SorterEventKey;
+  scoreAnchor: number;
+  timeAnchor: number;
+}> = EVENT_ANCHOR_RATIOS.map(({ key, scoreRatio, timeRatio }) => ({
+  key,
+  scoreAnchor: Math.round(TARGET_SCORE * scoreRatio),
+  timeAnchor: Math.round(TIME_CAP_MS * timeRatio),
+}));
 
 // ========================================
 // ルール変更通知 / 機械停止（freeze）のサブシーケンス
 // ========================================
 // これらは「発火」後に独立した短いタイマーで進める演出シーケンス。ループ本体（スコア / 時間）
 // とは別系統。秒数はすべて playtest 前提のたたき台。
+//
+// 【不変条件】freeze は「スコア 70% / 時間 53%」の早い方で発火するが、最遅でも時間フォールバック
+// （freeze の timeAnchor = TIME_CAP_MS × 0.53）で発火する。その後にサブシーケンス
+// （予告 FROZEN_WARNING_DURATION_MS + 停止 FROZEN_DURATION_MS + 復旧 RECOVERY_DURATION_MS）が
+// 走るため、以下を満たすこと:
+//   TIME_CAP_MS × 0.53 + (FROZEN_WARNING + FROZEN + RECOVERY) < TIME_CAP_MS
+//   現状: 75s × 0.53 ≒ 40s + (2 + 5 + 2)s = 49s < 75s で OK。
+// freeze を遅らせる / TIME_CAP_MS を縮める / サブシーケンスを延ばす調整時はこの不変条件を要確認
+// （満たさないと機械停止の途中で時間切れ失敗し、復旧演出やパニッククリック計測が中断される）。
 
 /** ルール変更通知バナーの表示時間（ms）。表示後に自動で消える（プレイは阻害しない） */
 export const RULE_CHANGE_NOTICE_DURATION_MS = 3_000;

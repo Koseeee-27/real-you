@@ -9,8 +9,7 @@ import type {
 } from '@/features/games/types';
 import {
   COUNTDOWN_DURATION_MS,
-  FREEZE_SCORE,
-  FREEZE_TIME_MS,
+  EVENT_ANCHORS,
   FROZEN_DURATION_MS,
   FROZEN_WARNING_DURATION_MS,
   ONBOARDING_SLIDE_COUNT,
@@ -19,19 +18,16 @@ import {
   PACKAGE_TYPES,
   RECOVERY_DURATION_MS,
   RULE_CHANGE_NOTICE_DURATION_MS,
-  RULE_CHANGE_SCORE,
-  RULE_CHANGE_TIME_MS,
   RULE_CHANGED_CORRECT_BIN,
   SCORE_CORRECT,
   SCORE_WRONG_PENALTY,
   SPAWN_INTERVAL_MS,
   SPEED_UP_BANNER_DURATION_MS,
-  SPEED_UP_SCORE,
-  SPEED_UP_TIME_MS,
   TARGET_SCORE,
   TIME_CAP_MS,
   TIMER_TICK_MS,
 } from '../data/sorterConstants';
+import type { SorterEventKey } from '../data/sorterConstants';
 
 /**
  * 画面上で生存している荷物 1 つ分の状態。
@@ -104,39 +100,6 @@ function createEmptyWrongPatterns(): WrongPatterns {
     heavy: {},
   };
 }
-
-/**
- * 割り込みイベントの識別子。順序固定（配列 EVENT_ANCHORS の並び）で 1 回ずつ発火する。
- */
-type SorterEventKey = 'rule-change' | 'freeze' | 'speed-up';
-
-/**
- * 割り込みイベントのアンカー定義（真実の単一ソース）。
- *
- * 発火は「スコア閾値（主）」または「経過時間（保険）」の **早い方** で、配列の並び順に
- * 1 回ずつ（ラッチ）。アンカーは TARGET_SCORE / TIME_CAP_MS より手前かつ昇順に並べてあり、
- * 配列順に発火を進めることで rule-change → freeze → speed-up の順序を担保する。
- *
- * スコア判定（commitSort のスコア更新後）と時間判定（tick）の両経路から
- * 同じ `maybeFireEvents` を呼ぶことで、二系統 × ラッチ × 順序のロジックを 1 本化する。
- */
-const EVENT_ANCHORS: ReadonlyArray<{
-  key: SorterEventKey;
-  scoreAnchor: number;
-  timeAnchor: number;
-}> = [
-  {
-    key: 'rule-change',
-    scoreAnchor: RULE_CHANGE_SCORE,
-    timeAnchor: RULE_CHANGE_TIME_MS,
-  },
-  { key: 'freeze', scoreAnchor: FREEZE_SCORE, timeAnchor: FREEZE_TIME_MS },
-  {
-    key: 'speed-up',
-    scoreAnchor: SPEED_UP_SCORE,
-    timeAnchor: SPEED_UP_TIME_MS,
-  },
-];
 
 /**
  * 荷物仕分けゲーム（sorter_game / game_type=4）全体のステート管理フック。
