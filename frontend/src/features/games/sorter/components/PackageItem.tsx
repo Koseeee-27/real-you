@@ -395,6 +395,14 @@ export default function PackageItem({
           transform: dragOffset
             ? `translate(${dragOffset.x}px, ${dragOffset.y}px)`
             : undefined,
+          // ドラッグ中はこの追従 div（と配下の画像）をヒットテスト透過にする。
+          // 追従中の荷物は z-30 でカーソル直下に最前面で重なるため、透過しないと
+          // resolveDropBin の document.elementFromPoint が bin ではなく荷物自身を拾い、
+          // ドロップが取り消しになる / bin ハイライトが断続的になる（本不具合の核心）。
+          // pointermove / up は button が setPointerCapture で捕捉済みのためイベント配送には
+          // 影響せず、elementFromPoint のヒットテストにのみ効く。ドラッグ終了で dragOffset が
+          // null に戻れば pointer-events も自動で元に戻る。
+          pointerEvents: isDragging ? 'none' : undefined,
         }}
       >
         {/*

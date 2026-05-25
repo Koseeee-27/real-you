@@ -55,25 +55,53 @@ export default function BinTray({
         const isDropTarget = hoveredBinType === binType;
         return (
           <div key={binType} className="relative flex flex-col items-center">
-            <button
+            <motion.button
               type="button"
               onClick={() => onBinClick(binType)}
               // D&D のドロップ先判定用。PackageItem が pointerup 位置の
               // document.elementFromPoint から `data-bin-type` を辿って仕分け先を特定する。
               data-bin-type={binType}
-              className={`relative w-full max-h-52 transition-[transform,filter] duration-150 active:scale-95 ${
-                // ドロップ可能ハイライト時は通常 hover より一段大きく拡大して「狙えてる」を強調。
-                // hover:scale-105 と競合しないよう、ハイライト中は scale を明示指定する。
-                isDropTarget ? 'scale-110' : 'hover:scale-105'
-              }`}
-              style={{
-                aspectRatio: '4 / 5',
-                // ドロップ可能時は緑のグロー枠（neo-brutalism トーン: 黒影 + 緑グロー）。
-                // bin 画像は透過 PNG のため drop-shadow で輪郭に沿ったグローを掛ける。
-                filter: isDropTarget
-                  ? `drop-shadow(0 0 12px ${SORTER_UI_COLORS.success}) drop-shadow(0 0 4px ${SORTER_UI_COLORS.success})`
-                  : undefined,
-              }}
+              className={`relative w-full max-h-52 ${
+                // ホバー（ドロップ可能）中はグロー / scale を framer-motion で継続パルスさせるため
+                // CSS の transition / hover scale は付けない（競合と二重補間を避ける）。
+                isDropTarget
+                  ? ''
+                  : 'transition-transform duration-150 hover:scale-105'
+              } active:scale-95`}
+              style={{ aspectRatio: '4 / 5' }}
+              // ドロップ可能時は「ここで離せる」を継続的に示すため、scale を緩くパルスさせつつ
+              // 緑グロー（drop-shadow）を明滅させる（repeat: Infinity）。bin 画像は透過 PNG のため
+              // drop-shadow で輪郭に沿ったグローが掛かる。非ハイライト時は中立値（透明な
+              // drop-shadow・scale 1）へ補間し、framer-motion がグローを確実にフェードアウトさせる
+              // （drop-shadow ↔ 'none' は数値補間できず残留するため、同種値で補間する）。
+              animate={
+                isDropTarget
+                  ? {
+                      scale: [1.06, 1.12],
+                      filter: [
+                        `drop-shadow(0 0 6px ${SORTER_UI_COLORS.success}) drop-shadow(0 0 2px ${SORTER_UI_COLORS.success})`,
+                        `drop-shadow(0 0 18px ${SORTER_UI_COLORS.success}) drop-shadow(0 0 6px ${SORTER_UI_COLORS.success})`,
+                      ],
+                    }
+                  : {
+                      scale: 1,
+                      // 中立値はハイライト時と同じ drop-shadow を 2 つ、ブラー 0・アルファ 0 で。
+                      // drop-shadow ↔ 'none'（キーワード値）は数値補間できずグローが残留するため、
+                      // 同種値（drop-shadow 同士・同数）で補間して確実にフェードアウトさせる。
+                      filter:
+                        'drop-shadow(0 0 0px rgba(87,208,113,0)) drop-shadow(0 0 0px rgba(87,208,113,0))',
+                    }
+              }
+              transition={
+                isDropTarget
+                  ? {
+                      duration: 0.6,
+                      repeat: Infinity,
+                      repeatType: 'reverse',
+                      ease: 'easeInOut',
+                    }
+                  : { duration: 0.2 }
+              }
               aria-label={`${PACKAGE_LABELS[binType]}の仕分け先${
                 isDropTarget ? '・ここにドロップ' : ''
               }`}
@@ -112,7 +140,7 @@ export default function BinTray({
                   </span>
                 </>
               )}
-            </button>
+            </motion.button>
 
             {/* bin 下の種類名ラベル（CSS テキストで補助、画像テキストが読みにくいケースの保険） */}
             <span
