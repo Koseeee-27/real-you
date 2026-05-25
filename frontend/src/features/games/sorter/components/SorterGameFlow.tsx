@@ -94,6 +94,20 @@ export default function SorterGameFlow() {
     });
   };
 
+  /**
+   * ドラッグ中、ポインタ直下の仕分け先（bin）種別。bin 外なら null。
+   * PackageItem の pointermove から通知され、BinTray に渡して該当 bin をハイライトする。
+   * 「ここでドロップできる」を視覚的に示すための一時状態。
+   */
+  const [hoveredBinType, setHoveredBinType] = useState<PackageType | null>(
+    null
+  );
+
+  const handleHoverBinChange = (binType: PackageType | null) => {
+    // 同じ種別なら再 render を避ける
+    setHoveredBinType((prev) => (prev === binType ? prev : binType));
+  };
+
   function playSE(path: string) {
     const audio = new Audio(path);
     audio.volume = 0.5;
@@ -358,6 +372,7 @@ export default function SorterGameFlow() {
                     onDrop={onPackageDrop}
                     onOutflow={handlePackageOutflow}
                     onDragStateChange={handlePackageDragStateChange}
+                    onHoverBinChange={handleHoverBinChange}
                   />
                 ))}
               </div>
@@ -379,6 +394,8 @@ export default function SorterGameFlow() {
             isFrozen={isFrozen}
             onBinClick={onBinClick}
             lastFeedback={lastFeedback}
+            // 機械停止中はドロップ操作が無効なのでハイライトも出さない
+            hoveredBinType={isFrozen ? null : hoveredBinType}
           />
         </div>
 

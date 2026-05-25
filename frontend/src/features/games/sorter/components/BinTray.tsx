@@ -21,6 +21,11 @@ interface BinTrayProps {
    * 0.7s 後に親で null にリセットされる（フェードアウト）。
    */
   lastFeedback: SorterFeedback | null;
+  /**
+   * D&D 中、ポインタが上に重なっている仕分け先（bin）種別。bin 外 / 非ドラッグ時は null。
+   * 一致する bin を拡大 + グロー枠でハイライトし「ここでドロップできる」を視覚的に示す。
+   */
+  hoveredBinType: PackageType | null;
 }
 
 /**
@@ -40,11 +45,14 @@ export default function BinTray({
   isFrozen,
   onBinClick,
   lastFeedback,
+  hoveredBinType,
 }: BinTrayProps) {
   return (
     <div className="mx-auto grid w-full max-w-2xl grid-cols-3 gap-4">
       {PACKAGE_TYPES.map((binType) => {
         const showFeedback = lastFeedback?.binType === binType;
+        // D&D 中、ポインタがこの bin の上に重なっているか（ドロップ可能の合図）
+        const isDropTarget = hoveredBinType === binType;
         return (
           <div key={binType} className="relative flex flex-col items-center">
             <button
@@ -53,9 +61,22 @@ export default function BinTray({
               // D&D のドロップ先判定用。PackageItem が pointerup 位置の
               // document.elementFromPoint から `data-bin-type` を辿って仕分け先を特定する。
               data-bin-type={binType}
-              className="relative w-full max-h-52 transition-transform hover:scale-105 active:scale-95"
-              style={{ aspectRatio: '4 / 5' }}
-              aria-label={`${PACKAGE_LABELS[binType]}の仕分け先`}
+              className={`relative w-full max-h-52 transition-[transform,filter] duration-150 active:scale-95 ${
+                // ドロップ可能ハイライト時は通常 hover より一段大きく拡大して「狙えてる」を強調。
+                // hover:scale-105 と競合しないよう、ハイライト中は scale を明示指定する。
+                isDropTarget ? 'scale-110' : 'hover:scale-105'
+              }`}
+              style={{
+                aspectRatio: '4 / 5',
+                // ドロップ可能時は緑のグロー枠（neo-brutalism トーン: 黒影 + 緑グロー）。
+                // bin 画像は透過 PNG のため drop-shadow で輪郭に沿ったグローを掛ける。
+                filter: isDropTarget
+                  ? `drop-shadow(0 0 12px ${SORTER_UI_COLORS.success}) drop-shadow(0 0 4px ${SORTER_UI_COLORS.success})`
+                  : undefined,
+              }}
+              aria-label={`${PACKAGE_LABELS[binType]}の仕分け先${
+                isDropTarget ? '・ここにドロップ' : ''
+              }`}
             >
               {/* bin 画像（文字・シンボル焼き込み済み）。下部に並ぶ大きな画像で LCP 候補に近いため priority 付き */}
               <Image

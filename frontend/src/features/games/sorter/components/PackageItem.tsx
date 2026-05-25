@@ -36,6 +36,12 @@ interface PackageItemProps {
    * 引き上げ、ドラッグ中の荷物が bin の背面に隠れないようにする（stacking context 対策）。
    */
   onDragStateChange: (id: number, dragging: boolean) => void;
+  /**
+   * ドラッグ中、ポインタ直下の仕分け先（bin）種別の変化を親に通知する。
+   * bin の上なら該当種別、bin 外なら null。親は受け取った種別の bin をハイライトし
+   * 「ここでドロップできる」を視覚的に示す。ドラッグ終了 / 凍結突入で null を通知してクリアする。
+   */
+  onHoverBinChange: (binType: PackageType | null) => void;
 }
 
 /**
@@ -130,6 +136,7 @@ export default function PackageItem({
   onDrop,
   onOutflow,
   onDragStateChange,
+  onHoverBinChange,
 }: PackageItemProps) {
   const [scope, animate] = useAnimate<HTMLButtonElement>();
   const controlsRef = useRef<AnimationPlaybackControls | null>(null);
@@ -179,6 +186,15 @@ export default function PackageItem({
   }, [onDragStateChange]);
 
   /**
+   * `onHoverBinChange` を ref に逃がす。unmount cleanup で「ドラッグ中のまま消えた荷物」の
+   * ホバーハイライトを確実に解除するため、依存配列を増やさずに最新の関数を呼べるようにする。
+   */
+  const onHoverBinChangeRef = useRef(onHoverBinChange);
+  useEffect(() => {
+    onHoverBinChangeRef.current = onHoverBinChange;
+  }, [onHoverBinChange]);
+
+  /**
    * 現在ドラッグ中（掴み済み）かを ref で追う。pointerup / cancel で false に戻す。
    * 通常はそれらのハンドラ内で親へ false 通知するが、万一 pointer イベントを経由せず
    * unmount された場合の保険として、cleanup でこのフラグを見て前面化を確実に解除する
@@ -186,11 +202,12 @@ export default function PackageItem({
    */
   const isDraggingRef = useRef(false);
 
-  // ドラッグ中のまま unmount された荷物の前面化フラグを確実に解除する保険
+  // ドラッグ中のまま unmount された荷物の前面化フラグ・ホバーハイライトを確実に解除する保険
   useEffect(() => {
     return () => {
       if (isDraggingRef.current) {
         onDragStateChangeRef.current(pkg.id, false);
+        onHoverBinChangeRef.current(null);
       }
     };
   }, [pkg.id]);
@@ -282,6 +299,9 @@ export default function PackageItem({
     }
     // 追従オフセットを内側 wrapper に反映
     setDragOffset({ x: dx, y: dy });
+    // ポインタ直下の bin をハイライト対象として親へ通知（bin 外なら null）。
+    // ドロップ判定（pointerup）と同じ resolveDropBin を使い、ホバー中も同じ基準で示す。
+    onHoverBinChange(resolveDropBin(e.clientX, e.clientY));
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLButtonElement>): void {
@@ -296,9 +316,10 @@ export default function PackageItem({
       return;
     }
 
-    // ドラッグ終了 → belt レイヤーの前面化を解除（仕分け確定 / 取り消し共通）
+    // ドラッグ終了 → belt レイヤーの前面化・bin ハイライトを解除（仕分け確定 / 取り消し共通）
     isDraggingRef.current = false;
     onDragStateChange(pkg.id, false);
+    onHoverBinChange(null);
 
     // ドラッグ確定 → ドロップ先の bin を判定。
     // ただしドラッグ中に機械停止に入った場合は仕分けさせず、追従を戻してフローを再開する
@@ -323,6 +344,7 @@ export default function PackageItem({
     if (g.dragging) {
       isDraggingRef.current = false;
       onDragStateChange(pkg.id, false); // belt レイヤーの前面化を解除
+      onHoverBinChange(null); // bin ハイライトを解除
       setDragOffset(null);
       controlsRef.current?.play();
       onDrop(pkg.id, null);
