@@ -536,16 +536,26 @@ export function useSorterGame(options: {
   //
   // packageId と binType を受け取り、正誤判定・スコア更新・計測・イベント発火を行う。
   // hesitation の起点（選択 / 掴んだ瞬間）は selectedAtRef に統一して扱う。
+  //
+  // 返り値は「荷物を packages から除去したか（= 仕分けが成立し unmount されるか）」。
+  // - true:  仕分け成立。荷物を除去した（呼び出し側 = PackageItem は何もしなくてよい）
+  // - false: phase / frozen / 未検出 のいずれかで早期 return し、荷物を除去していない。
+  //          この場合、D&D の追従オフセットが残ったままだと荷物がドロップ位置に取り残される
+  //          ため、呼び出し側で流れに戻す必要がある。
+  //
+  // freezeStageRef（同期 ref）と PackageItem 側の isFrozen（prop = 非同期 state）の窓ズレで、
+  // PackageItem が「有効な仕分け」と判断したのにここで frozen 早期 return する競合があり得る。
+  // 返り値で「除去できなかった」を確実に伝え、PackageItem 側で必ず流れに戻すことで取り残しを防ぐ。
   // =========================================================
-  function commitSort(packageId: number, binType: PackageType): void {
-    if (phase !== 'playing') return;
+  function commitSort(packageId: number, binType: PackageType): boolean {
+    if (phase !== 'playing') return false;
     if (freezeStageRef.current === 'frozen') {
       panicClickCountRef.current += 1;
-      return;
+      return false;
     }
 
     const pkg = packages.find((p) => p.id === packageId);
-    if (!pkg) return;
+    if (!pkg) return false;
 
     const correctBin = isRuleChanged
       ? RULE_CHANGED_CORRECT_BIN[pkg.type]
@@ -610,6 +620,9 @@ export function useSorterGame(options: {
     if (nextScore >= TARGET_SCORE) {
       endGame('success');
     }
+
+    // 荷物を除去した（仕分け成立）。呼び出し側は追従を戻す処理を行わない。
+    return true;
   }
 
   /**
@@ -691,18 +704,28 @@ export function useSorterGame(options: {
   /**
    * D&D のドロップ確定（pointerup）。
    * binType が非 null（振り分け先の上で離した）なら仕分け、null（振り分け先外で離した）なら取り消し。
+   *
+   * 返り値は「荷物を packages から除去したか（= unmount されるか）」。
+   * - 仕分け成立（commitSort が除去した）→ true
+   * - 取り消し（cancelSelection。荷物は流れに残す）→ false
+   * - phase / frozen の早期 return → false
+   *
+   * false のときは PackageItem 側で追従オフセットを戻しフローを再開する（取り残し防止）。
+   * commitSort の返り値をそのまま返すことで、frozen 競合・未検出など「除去されなかった」全経路で
+   * 確実に false を伝える。
    */
-  function handlePackageDrop(id: number, binType: PackageType | null): void {
-    if (phase !== 'playing') return;
+  function handlePackageDrop(id: number, binType: PackageType | null): boolean {
+    if (phase !== 'playing') return false;
     if (freezeStageRef.current === 'frozen') {
       panicClickCountRef.current += 1;
-      return;
+      return false;
     }
     if (binType == null) {
+      // 取り消し: 荷物は除去せず流れに戻す対象 → false
       cancelSelection(id);
-    } else {
-      commitSort(id, binType);
+      return false;
     }
+    return commitSort(id, binType);
   }
 
   // =========================================================

@@ -306,11 +306,13 @@ export default function SorterGameFlow() {
   };
   // ドロップ確定。振り分け先に入れたとき（仕分け実行）だけ SE。
   // 取り消し（binType=null）・凍結中は鳴らさない。
-  const onPackageDrop = (id: number, binType: PackageType | null) => {
+  // フック側の返り値（荷物が除去されたか）をそのまま PackageItem に返す。
+  // 握り潰すと PackageItem 側で「未除去なら流れに戻す」判定ができず取り残しが起きるため、必ず return する。
+  const onPackageDrop = (id: number, binType: PackageType | null): boolean => {
     if (!isFrozen && binType != null) {
       playSE(SORTER_AUDIO_PATHS.generalSE);
     }
-    handlePackageDrop(id, binType);
+    return handlePackageDrop(id, binType);
   };
 
   return (

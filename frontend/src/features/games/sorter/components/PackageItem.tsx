@@ -27,8 +27,13 @@ interface PackageItemProps {
   onClick: (id: number) => void;
   /** D&D 掴み開始（ドラッグ閾値超え時）。hesitation 起点を記録する */
   onGrab: (id: number) => void;
-  /** D&D ドロップ確定。binType が非 null なら仕分け、null なら取り消し */
-  onDrop: (id: number, binType: PackageType | null) => void;
+  /**
+   * D&D ドロップ確定。binType が非 null なら仕分け、null なら取り消し。
+   * 返り値は「荷物が除去されたか（true = 仕分け成立で親が unmount する / false = 未除去）」。
+   * false のとき（取り消し・凍結競合・phase 終了・未検出など）は、この荷物がドロップ位置に
+   * 取り残されないよう追従オフセットを戻してフローを再開する。
+   */
+  onDrop: (id: number, binType: PackageType | null) => boolean;
   onOutflow: (id: number) => void;
   /**
    * ドラッグ状態の変化を親に通知する（掴み開始で true、ドロップ / 取り消し / 中断で false）。
@@ -322,18 +327,23 @@ export default function PackageItem({
     onHoverBinChange(null);
 
     // ドラッグ確定 → ドロップ先の bin を判定。
-    // ただしドラッグ中に機械停止に入った場合は仕分けさせず、追従を戻してフローを再開する
-    // （フック側でも frozen 中の操作は panicClick 集計のみで仕分けしないため、
-    //  ここで復帰しないと荷物がドラッグ位置に取り残される）。
+    // isFrozen（prop = 非同期 state）が true ならここで null にして取り消し扱いにする
+    // 一次ゲート。ただし isFrozen prop と freezeStageRef（同期 ref）の窓ズレで、
+    // ここを通過しても フック側で frozen 早期 return されるケースがあるため、最終的な
+    // 取り残し防止は「onDrop の返り値（除去できたか）」で担保する。
     const binType = isFrozen ? null : resolveDropBin(e.clientX, e.clientY);
-    if (binType == null) {
-      // 取り消し: 追従オフセットを戻し、フローアニメを再開（元の経路を継続）
+
+    // ドロップを親へ確定通知。返り値 = 荷物が除去されたか。
+    const removed = onDrop(pkg.id, binType);
+
+    // 除去されなかった（取り消し / 凍結競合 / phase 終了 / 未検出 など）場合は、binType の
+    // 値に関わらず追従オフセットを戻しフローアニメを再開する。これにより荷物がドロップ位置に
+    // 取り残されることがなくなる（仕分けされるか、流れに戻るかのどちらかに収束）。
+    // 除去された（removed === true）場合は親が unmount するため何もしない（フリッカー回避）。
+    if (!removed) {
       setDragOffset(null);
       controlsRef.current?.play();
     }
-    // binType 非 null（仕分け確定）の場合、親で荷物が除去され unmount されるため
-    // オフセット復帰は不要。
-    onDrop(pkg.id, binType);
   }
 
   function handlePointerCancel(e: React.PointerEvent<HTMLButtonElement>): void {
