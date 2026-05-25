@@ -1,37 +1,44 @@
 /**
  * 荷物仕分けゲーム（sorter_game / game_type=4）の定数定義。
  *
- * 最低限プレイ可能な範囲で以下を簡略化している:
- *   - 仕様の「コンベア速度: 開始 ×1.0 → 残り 25 秒未満から 4 秒ごとに +0.25、上限 ×3.0」を
- *     「最後の 10 秒で ×2.0」の 2 段階に簡略化（後追いブラッシュアップで戻す想定）
- *   - 凍結（機械停止）の動的タイミング調整を省略（固定タイミングで発動）
- *   - 採点ロジックを動的減点式 `max(5, 20 - floor(hesitation_ms / 400))` から
- *     固定値 +10/-5/-3 に簡略化（仕様書側も実装に合わせて更新済み）
+ * 進行モデル（meta: #121 改修後）:
+ *   - 終了条件は「目標スコア TARGET_SCORE 到達で成功 / 上限 TIME_CAP_MS で未達なら失敗」。
+ *     固定時間チェーンではなく、スコア到達 / 時間切れの 2 系統で進行・終了する。
+ *   - 割り込みイベント（ルール変更 / 機械停止 / 速度上昇）は「スコア閾値」を主トリガー、
+ *     「経過時間」を保険として、**早い方で 1 回だけ発火（ラッチ）・順序固定**。
+ *     アンカー（スコア / 時間）はいずれも `*_SCORE` / `*_TIME_MS` 定数で一元管理する。
+ *   - 採点は固定値 +SCORE_CORRECT / -SCORE_WRONG_PENALTY、流出は ±0（失点なし）、下限 0。
  *
- * 主要なタイミング: 残り 39s でルール変更通知、残り 22〜15s で凍結（予告→停止）。
- * （仕様書では「残り 35s でルール変更 / 残り 18〜12s で凍結」と定義しているが、
- *  仕様書側で「FE 実装段階で微調整可」と明記されているため、プレイ感を優先して調整済み。）
+ * 数値はすべて playtest 前提のたたき台（仕様書も「FE 実装段階で微調整可」と明記）。
+ * freeze のサブシーケンス（予告 → 停止 → 復旧）の各秒数はループとは独立した短いタイマーで進める。
  */
 
 import type { PackageType } from '@/features/games/types';
 
 // ========================================
-// ゲーム全体のタイミング
+// 勝敗条件
 // ========================================
 
-/** ゲーム本編の制限時間（ms）。カウントダウン終了後から計測 */
-export const GAME_DURATION_MS = 50_000;
+/** 目標スコア。到達で成功（クリア）。 */
+export const TARGET_SCORE = 100;
+
+/** 上限時間（ms）。到達時に TARGET_SCORE 未達なら失敗。 */
+export const TIME_CAP_MS = 60_000;
 
 /**
- * ゲーム本編の制限時間（秒）。
- * オンボーディングなど UI のコピー表示で参照する。GAME_DURATION_MS から派生。
+ * 上限時間（秒）。
+ * オンボーディングなど UI のコピー表示で参照する。TIME_CAP_MS から派生。
  */
-export const GAME_DURATION_SEC = GAME_DURATION_MS / 1000;
+export const TIME_CAP_SEC = TIME_CAP_MS / 1000;
+
+// ========================================
+// ゲーム全体のタイミング
+// ========================================
 
 /** 荷物のスポーン間隔（ms） */
 export const SPAWN_INTERVAL_MS = 2_000;
 
-/** タイマー残り時間の表示更新間隔（ms） */
+/** 経過時間タイマーの更新間隔（ms）。HUD の上限タイマー表示とイベントの時間フォールバック判定に使う */
 export const TIMER_TICK_MS = 100;
 
 // ========================================
@@ -46,31 +53,56 @@ export const TIMER_TICK_MS = 100;
 export const ONBOARDING_SLIDE_COUNT = 4;
 
 // ========================================
-// Phase 別 duration（ゲーム本編 50s 内で setTimeout チェーン進行）
+// カウントダウン
 // ========================================
-// onboarding phase はユーザー操作で進むため duration を持たない
-//
-// 累積時間（カウントダウン除く）。プレイ感優先で調整済み（仕様書は微調整可と明記）:
-//   0s   - 11s : normal
-//   11s  - 14s : rule-change-notice    （= 残り 39s でルール変更通知）
-//   14s  - 28s : rule-changed-1
-//   28s  - 30s : frozen-warning        （= 残り 22s 前後で凍結予告）
-//   30s  - 35s : frozen                 （5s 停止、操作不可）
-//   35s  - 40s : recovery               （5s、通常速度で立て直す猶予）
-//   40s  - 50s : rule-changed-2         （速度 2 倍、停止明けに通常速度を挟んでから発動）
-//   50s  -     : ended
-//
-// 狙い: frozen（操作不可）→ recovery（通常速度 5s）→ rule-changed-2（×2）と段階を踏み、
-//       停止明けに通常速度で立て直す猶予を作ってから 2 倍速の高難度に入る。
 
+/** カウントダウン（3 → 2 → 1 → START）の総時間（ms） */
 export const COUNTDOWN_DURATION_MS = 3_500;
-export const NORMAL_DURATION_MS = 11_000;
+
+// ========================================
+// 割り込みイベントのアンカー（スコア主トリガー + 時間フォールバック）
+// ========================================
+// 「スコア閾値」を主トリガー、「経過時間」を保険とし、**早い方で 1 回だけ発火（ラッチ）・順序固定**。
+// アンカーは TARGET_SCORE（100）未満かつ順序を保つよう並べる:
+//   rule-change(40) < freeze(70) < speed-up(85) < TARGET_SCORE(100)
+//   rule-change(25s) < freeze(40s) < speed-up(50s) < TIME_CAP_MS(60s)
+// これにより成功 / 失敗の前に必ずルール変更・機械停止を体験し、
+// ruleChangeAdaptMs / panicClickCount の計測値が得られる（性格診断の信頼性確保）。
+// 数値はすべて playtest 前提のたたき台。
+
+/** ルール変更の発火スコア閾値 */
+export const RULE_CHANGE_SCORE = 40;
+/** ルール変更の時間フォールバック（ms） */
+export const RULE_CHANGE_TIME_MS = 25_000;
+
+/** 機械停止（freeze）の発火スコア閾値 */
+export const FREEZE_SCORE = 70;
+/** 機械停止の時間フォールバック（ms） */
+export const FREEZE_TIME_MS = 40_000;
+
+/** 速度上昇の発火スコア閾値 */
+export const SPEED_UP_SCORE = 85;
+/** 速度上昇の時間フォールバック（ms） */
+export const SPEED_UP_TIME_MS = 50_000;
+
+// ========================================
+// ルール変更通知 / 機械停止（freeze）のサブシーケンス
+// ========================================
+// これらは「発火」後に独立した短いタイマーで進める演出シーケンス。ループ本体（スコア / 時間）
+// とは別系統。秒数はすべて playtest 前提のたたき台。
+
+/** ルール変更通知バナーの表示時間（ms）。表示後に自動で消える（プレイは阻害しない） */
 export const RULE_CHANGE_NOTICE_DURATION_MS = 3_000;
-export const RULE_CHANGED_1_DURATION_MS = 14_000;
+
+/** 機械停止: 予告（赤バナー shake、まだ操作可）の時間（ms） */
 export const FROZEN_WARNING_DURATION_MS = 2_000;
+/** 機械停止: 停止（クリック無効化 + panicClick 計測、ベルト・荷物は流れ続ける）の時間（ms） */
 export const FROZEN_DURATION_MS = 5_000;
-export const RECOVERY_DURATION_MS = 5_000;
-export const RULE_CHANGED_2_DURATION_MS = 10_000;
+/** 機械停止: 復旧（✓ 復旧バナー表示）の時間（ms） */
+export const RECOVERY_DURATION_MS = 2_000;
+
+/** 速度上昇予告バナーの表示時間（ms） */
+export const SPEED_UP_BANNER_DURATION_MS = 3_000;
 
 // ========================================
 // 荷物のアニメーション duration（U 字経路 1 周）
@@ -80,9 +112,9 @@ export const RULE_CHANGED_2_DURATION_MS = 10_000;
 export const PACKAGE_FLOW_DURATION_MS = 20_000;
 
 /**
- * 速度 2 倍時の倍率。
- * rule-changed-2 phase（凍結関連が完了した後の残り 10s）で適用する。
- * 凍結中の操作不能と 2 倍速の高難度を重ねないよう、必ず recovery 後に発動する。
+ * 速度上昇時の倍率。
+ * 速度上昇イベント発火後、ゲーム終了まで適用する。アンカー（SPEED_UP_SCORE=85 / 50s）が
+ * freeze より後なので、機械停止の操作不能と速度上昇の高難度が重ならない順序を保つ。
  */
 export const SPEED_UP_MULTIPLIER = 2;
 
@@ -115,9 +147,10 @@ export const BELT_TURN_WIDTH_PX = 80;
 export const BELT_FLOW_DURATION_SEC = 1.2;
 
 // ========================================
-// スコア計算（プレイ画面の表示用、5 軸スコアには使わない）
+// スコア計算（勝敗判定 + プレイ画面の表示用、5 軸スコアには使わない）
 // ========================================
-// 仕様書（game-design.md）に合わせて固定値 +10 / -5 / -3 に簡略化。
+// 仕様書（game-design.md）に合わせて固定値 +10 / -5、流出は ±0（失点なし）。
+// このスコアが勝敗の判定値（TARGET_SCORE 到達で成功 / TIME_CAP_MS で未達なら失敗）。
 // 5 軸スコアは backend 側で `events` / `wrongPatterns` / `averageHesitationMs` 等から
 // 別途算出するため、表示用の挙動を変えても問題ない。
 
@@ -126,9 +159,6 @@ export const SCORE_CORRECT = 10;
 
 /** 誤仕分け時のペナルティ（固定） */
 export const SCORE_WRONG_PENALTY = 5;
-
-/** 流出（画面外に流れた）時のペナルティ（固定） */
-export const SCORE_OUTFLOW_PENALTY = 3;
 
 // ========================================
 // 荷物・仕分け先の表示属性
@@ -200,7 +230,7 @@ export const BIN_IMAGE_PATHS = {
 } as const satisfies Record<PackageType, string>;
 
 // ========================================
-// ルール変更（残り 35s で発動、固定）
+// ルール変更（RULE_CHANGE_SCORE / RULE_CHANGE_TIME_MS の早い方で発火、固定）
 // ========================================
 
 /**
