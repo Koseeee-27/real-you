@@ -501,6 +501,62 @@ export interface components {
             /** @description マウス余剰移動距離（px） */
             mouseJitter: number;
         };
+        /**
+         * @description エラー発火時のログデータ
+         * @example {
+         *       "timestamp": 8500,
+         *       "reason": "missing_read_confirm",
+         *       "scrollPositionAtError": 1200
+         *     }
+         */
+        TermsErrorEvent: {
+            /** @description ゲーム開始からエラーが発生した時点までの時間（ms） */
+            timestamp: number;
+            /** @description エラーの発生理由 */
+            reason: string;
+            /** @description エラー発生時のスクロール位置（px） */
+            scrollPositionAtError: number;
+        };
+        /**
+         * @description エラー表示中に行われたクリックのログ
+         * @example {
+         *       "timestamp": 9000,
+         *       "type": "agree"
+         *     }
+         */
+        TermsPostErrorClick: {
+            /** @description ゲーム開始からクリックイベントが発生した時点までの時間（ms） */
+            timestamp: number;
+            /**
+             * @description クリック対象の種類
+             * @enum {string}
+             */
+            type: "agree" | "errorDialog" | "checkbox" | "other";
+        };
+        /**
+         * @description チェックボックスの状態が変更されたときのログ
+         * @example {
+         *       "timestamp": 3000,
+         *       "target": "mailMagazine",
+         *       "newState": {
+         *         "checked": false,
+         *         "changed": true
+         *       },
+         *       "afterError": false
+         *     }
+         */
+        TermsCheckboxEvent: {
+            /** @description ゲーム開始からチェックボックスの状態が変更された時点までの時間（ms） */
+            timestamp: number;
+            /**
+             * @description 変更されたチェックボックスの種類
+             * @enum {string}
+             */
+            target: "readConfirm" | "mailMagazine" | "thirdPartyShare";
+            newState: components["schemas"]["CheckboxState"] & unknown;
+            /** @description この状態変更がエラー発生後かどうか */
+            afterError: boolean;
+        };
         /** @description 利用規約ゲームの行動データ。仕様書「データ構造 → TermsGameData」準拠 */
         TermsGameData: {
             /** @description 滞在時間（秒） */
@@ -525,6 +581,12 @@ export interface components {
             popupStats?: components["schemas"]["PopupStats"];
             /** @description 同意ボタンホバー → クリックの迷い時間（ms） */
             agreeButtonHoverTimeMs: number;
+            /** @description エラー発火イベントのログ */
+            errorEvents?: components["schemas"]["TermsErrorEvent"][];
+            /** @description エラー表示中のクリックイベントのログ */
+            postErrorClicks?: components["schemas"]["TermsPostErrorClick"][];
+            /** @description チェックボックス変更イベントのログ */
+            checkboxEvents?: components["schemas"]["TermsCheckboxEvent"][];
         };
         /**
          * @description AI カスタマーサポートの入力方式（voice: 音声 / text: テキスト）
