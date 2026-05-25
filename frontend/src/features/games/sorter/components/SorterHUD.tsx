@@ -10,7 +10,7 @@ import {
 interface SorterHUDProps {
   /** 現在の表示スコア（= 目標スコア進捗の現在値） */
   displayScore: number;
-  /** 経過時間（ms）。上限 TIME_CAP_MS に対する控えめタイマー表示に使う */
+  /** 経過時間（ms）。上限 TIME_CAP_MS に対するタイマー表示に使う */
   elapsedTimeMs: number;
   /** 機械停止中か（最優先で「機械停止中」バッジを表示） */
   isFrozen: boolean;
@@ -21,13 +21,22 @@ interface SorterHUDProps {
 }
 
 /**
+ * 残り時間がこの秒数以下になったら警告色（danger）に切り替える閾値（秒）。
+ * 「上限に近づく = 失敗が近い」ことを色で直感的に伝えるための HUD 固有の見せ方の値。
+ */
+const TIMER_WARNING_THRESHOLD_SEC = 10;
+
+/**
  * ゲーム画面上部の HUD（Heads-Up Display）。
  *
- * - 上段: タイトル / 目標スコア進捗バー（0 → TARGET_SCORE）/ SCORE 値 + 上限タイマー（控えめ）
+ * - 上段: タイトル / 現在スコア（大、目標併記）/ 残り時間タイマー（数値 + 横ゲージ）
  * - 下段: 状態バッジ列（機械停止中 / ルール変更中 / スピード 2 倍）
  *
- * 勝敗の主軸は「目標スコア到達」なので、HUD の主役は進捗バー。上限 60 秒タイマーは
- * 右端に控えめな秒数表示として添えるに留める（playtest で見せ方を調整）。
+ * 勝敗の主軸は「目標スコア到達」だが、playtest で進捗バーより数値の方が分かりやすいと
+ * 判定されたため、現在スコアを大きく数値表示し目標値を小さく併記する（進捗バーは廃止）。
+ * 上限時間は「残り N 秒」を大きめに出し、横ゲージで減りも見せる。残りが
+ * TIMER_WARNING_THRESHOLD_SEC 秒以下になると数値・ゲージとも danger 色になり、
+ * 「上限到達 = 失敗」が近いことを直感的に伝える。
  * バッジは優先度に応じて「機械停止中」表示時は他を抑制する。
  */
 export default function SorterHUD({
@@ -37,59 +46,80 @@ export default function SorterHUD({
   isRuleChanged,
   isSpeedUp,
 }: SorterHUDProps) {
-  // 進捗率（0–100%）。displayScore は下限 0 で TARGET_SCORE 到達時に終了するため 0..100 に収まる。
-  const progressPct = Math.min(100, (displayScore / TARGET_SCORE) * 100);
-  // 上限タイマーの残り秒（控えめ表示用）。経過が上限を超えても 0 で止める。
+  // 残り秒（経過が上限を超えても 0 で止める）。
   const remainingSec = Math.max(
     0,
     Math.ceil((TIME_CAP_MS - elapsedTimeMs) / 1000)
   );
+  // 残り時間の割合（0–100%）。横ゲージの幅に使う。
+  const remainingPct = Math.max(
+    0,
+    Math.min(100, 100 - (elapsedTimeMs / TIME_CAP_MS) * 100)
+  );
+  // 残りわずか → 警告色に切替（数値・ゲージ共通）。
+  const isTimerWarning = remainingSec <= TIMER_WARNING_THRESHOLD_SEC;
+  const timerColor = isTimerWarning
+    ? SORTER_UI_COLORS.danger
+    : SORTER_UI_COLORS.accent;
 
   return (
     <>
-      {/* === 上段: タイトル / 目標スコア進捗バー / SCORE + 上限タイマー === */}
+      {/* === 上段: タイトル / 現在スコア（大）/ 残り時間タイマー === */}
       <div className="z-10 px-4">
         <div className="mx-auto flex w-full max-w-4xl items-center gap-3 rounded-xl border-[4px] border-black bg-white px-4 py-2 shadow-[4px_4px_0_0_#000]">
           <h1
-            className="shrink-0 text-base font-black tracking-widest sm:text-lg"
+            className="hidden shrink-0 text-base font-black tracking-widest sm:block sm:text-lg"
             style={{ color: SORTER_UI_COLORS.accent }}
           >
             仕分けゲーム
           </h1>
 
-          {/* 目標スコア進捗バー（0 → TARGET_SCORE） */}
-          <div className="flex flex-1 items-center gap-2">
-            <div
-              className="relative h-4 flex-1 overflow-hidden rounded-full border-[3px] border-black bg-gray-200"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={TARGET_SCORE}
-              aria-valuenow={Math.min(TARGET_SCORE, displayScore)}
-              aria-label={`目標スコア ${TARGET_SCORE} 点までの進捗`}
-            >
-              <motion.div
-                className="absolute inset-y-0 left-0"
-                style={{ backgroundColor: SORTER_UI_COLORS.success }}
-                animate={{ width: `${progressPct}%` }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-              />
-            </div>
+          {/* 現在スコア（大）+ 目標値（小）。数値を主役にして分かりやすく見せる */}
+          <div className="flex flex-1 items-baseline justify-center gap-1">
             <span
-              className="shrink-0 text-base font-black tabular-nums sm:text-lg"
+              className="text-xs font-black tracking-wider text-black/45"
+              aria-hidden
+            >
+              SCORE
+            </span>
+            <span
+              className="text-3xl leading-none font-black tabular-nums sm:text-4xl"
               style={{ color: SORTER_UI_COLORS.accent }}
+              aria-label={`現在スコア ${displayScore} 点。目標 ${TARGET_SCORE} 点`}
             >
               {displayScore}
-              <span className="text-xs text-black/50">/{TARGET_SCORE}</span>
+            </span>
+            <span className="text-sm font-black text-black/40 tabular-nums sm:text-base">
+              / {TARGET_SCORE}
             </span>
           </div>
 
-          {/* 上限タイマー（控えめ表示。勝敗主軸ではないので小さく添える） */}
-          <span
-            className="shrink-0 text-xs font-bold tabular-nums text-black/45 sm:text-sm"
-            aria-label={`残り時間 ${remainingSec} 秒`}
-          >
-            {remainingSec}s
-          </span>
+          {/* 残り時間タイマー（数値 + 横ゲージ）。残りわずかで danger 色に */}
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <span
+              className="text-xl leading-none font-black tabular-nums sm:text-2xl"
+              style={{ color: timerColor }}
+              aria-label={`残り時間 ${remainingSec} 秒`}
+            >
+              {remainingSec}
+              <span className="ml-0.5 text-xs font-bold">s</span>
+            </span>
+            <div
+              className="h-2 w-20 overflow-hidden rounded-full border-[2px] border-black bg-gray-200 sm:w-28"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={Math.round(TIME_CAP_MS / 1000)}
+              aria-valuenow={remainingSec}
+              aria-label="残り時間ゲージ"
+            >
+              <motion.div
+                className="h-full origin-right"
+                style={{ backgroundColor: timerColor }}
+                animate={{ width: `${remainingPct}%` }}
+                transition={{ duration: 0.1, ease: 'linear' }}
+              />
+            </div>
+          </div>
         </div>
       </div>
 

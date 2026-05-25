@@ -755,8 +755,6 @@ export function useSorterGame(options: {
   // =========================================================
   /** 機械停止中（操作無効）か。BinTray / 荷物のクリック無効化判定に使う */
   const isFrozen = freezeStage === 'frozen';
-  /** ゲーム本編プレイ中か（HUD の表示制御に使う） */
-  const isInGame = phase === 'playing';
 
   return {
     // ステート
@@ -777,7 +775,6 @@ export function useSorterGame(options: {
     isRuleChanged,
     isFrozen,
     isSpeedUp,
-    isInGame,
     // ハンドラ（クリック方式）
     handlePackageClick,
     handleBinClick,

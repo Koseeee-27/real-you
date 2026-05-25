@@ -10,11 +10,7 @@ import {
   isApiClientError,
   isRestartCode,
 } from '@/lib/api/error';
-import {
-  SORTER_AUDIO_PATHS,
-  SORTER_UI_COLORS,
-  TIME_CAP_MS,
-} from '../data/sorterConstants';
+import { SORTER_AUDIO_PATHS, SORTER_UI_COLORS } from '../data/sorterConstants';
 import { useSorterGame } from '../hooks/useSorterGame';
 import Belt from './Belt';
 import BinTray from './BinTray';
@@ -209,7 +205,6 @@ export default function SorterGameFlow() {
     isRuleChanged,
     isFrozen,
     isSpeedUp,
-    isInGame,
     handlePackageClick,
     handleBinClick,
     handlePackageGrab,
@@ -280,7 +275,7 @@ export default function SorterGameFlow() {
         backgroundSize: '20px 20px',
       }}
     >
-      {/* === 上部 HUD: タイトル / 目標スコア進捗バー / 上限タイマー（控えめ） + 状態バッジ === */}
+      {/* === 上部 HUD: タイトル / 現在スコア（大）/ 残り時間タイマー + 状態バッジ === */}
       <SorterHUD
         displayScore={displayScore}
         elapsedTimeMs={elapsedTimeMs}
@@ -328,8 +323,8 @@ export default function SorterGameFlow() {
         </div>
 
         {/*
-          仕分け先。mb-6 で画面下端の fixed タイマーゲージと bin の補助ラベル
-          （「特急」「取扱注意」「重量物」）が重ならない余白を確保する。
+          仕分け先。mb-6 で画面下端と bin の補助ラベル（「特急」「取扱注意」「重量物」）が
+          詰まりすぎない余白を確保する。
           relative を付けて positioned 要素にすることで z-10 を有効化し、bin の
           重なり順を明示的に制御する（static のままだと z-10 は効かない）。
         */}
@@ -386,22 +381,6 @@ export default function SorterGameFlow() {
         ) : (
           <ErrorScreen variant="retry" onRetry={handleRetry} />
         ))}
-
-      {/*
-        === 上限タイマーゲージ（底辺の細いバー、控えめ表示） ===
-        勝敗の主軸は目標スコア進捗（HUD）なので、上限 60 秒は底辺の細いバーで
-        「残り時間」を控えめに示すに留める（playtest で見せ方は調整）。
-      */}
-      {isInGame && (
-        <div
-          aria-hidden
-          className="fixed bottom-0 left-0 z-0 h-1 transition-all duration-100"
-          style={{
-            width: `${Math.max(0, 100 - (elapsedTimeMs / TIME_CAP_MS) * 100)}%`,
-            backgroundColor: SORTER_UI_COLORS.danger,
-          }}
-        />
-      )}
     </div>
   );
 }
