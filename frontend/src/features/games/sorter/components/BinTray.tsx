@@ -48,7 +48,8 @@ export default function BinTray({
   hoveredBinType,
 }: BinTrayProps) {
   return (
-    <div className="mx-auto grid w-full max-w-2xl grid-cols-3 gap-4">
+    // bin をやや大きく見せるため最大幅を広げる（盤面の隙間解消に合わせ bin を強調）。
+    <div className="mx-auto grid w-full max-w-3xl grid-cols-3 gap-4 sm:gap-6">
       {PACKAGE_TYPES.map((binType) => {
         const showFeedback = lastFeedback?.binType === binType;
         // D&D 中、ポインタがこの bin の上に重なっているか（ドロップ可能の合図）
@@ -61,7 +62,7 @@ export default function BinTray({
               // D&D のドロップ先判定用。PackageItem が pointerup 位置の
               // document.elementFromPoint から `data-bin-type` を辿って仕分け先を特定する。
               data-bin-type={binType}
-              className={`relative w-full max-h-52 ${
+              className={`relative w-full max-h-60 ${
                 // ホバー（ドロップ可能）中はグロー / scale を framer-motion で継続パルスさせるため
                 // CSS の transition / hover scale は付けない（競合と二重補間を避ける）。
                 isDropTarget
@@ -111,7 +112,7 @@ export default function BinTray({
                 src={BIN_IMAGE_PATHS[binType]}
                 alt={PACKAGE_LABELS[binType]}
                 fill
-                sizes="(max-width: 640px) 33vw, 220px"
+                sizes="(max-width: 640px) 33vw, 256px"
                 className="object-contain"
                 priority
               />
