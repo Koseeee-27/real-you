@@ -1,6 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { GroupChatGameData } from '@/features/games/types';
 import {
   CHARACTERS,
@@ -216,7 +222,9 @@ export function useGroupChatGame(options: {
   // 入力デバイス種別を「初回 turn-active 開始後の最初の操作」で確定する。
   // オンボーディング中の Tab / Cmd+R / Esc 等のキー操作で誤確定しないよう、
   // turn-active 中のみリスナーを有効にする（pen / 空文字は 'mouse' に丸める）。
-  useEffect(() => {
+  // 描画完了直後に同期実行する useLayoutEffect で登録し、turn-active 切替直後の
+  // 最初の操作（pointerdown / keydown）を取りこぼさないようにする。
+  useLayoutEffect(() => {
     if (gamePhase !== 'turn-active') return;
     const onPointerDown = (e: PointerEvent) => {
       if (inputDeviceDetectedRef.current) return;
@@ -402,7 +410,10 @@ export function useGroupChatGame(options: {
   // =========================================================
   // turn-active: タイマー稼働 + メッセージ順次表示 + マウス軌跡計測
   // =========================================================
-  useEffect(() => {
+  // useLayoutEffect で描画完了直後に同期実行することで、ユーザーが
+  // ChoicePad のボタンをクリック/ホバーできるようになる前に refs を
+  // 確実に初期化する（reactionTimeMs / firstHoverElapsedMs の起点ズレ防止）。
+  useLayoutEffect(() => {
     if (gamePhase !== 'turn-active') return;
     const turn = TURNS[currentTurnIndex];
     if (!turn) return;
@@ -416,8 +427,11 @@ export function useGroupChatGame(options: {
       t1TypingIndicatorShownAtRef.current = null;
     }
 
-    // マウス総移動距離の計測（turn-active 中のみ）
+    // マウス総移動距離の計測（turn-active 中のみ）。
+    // ターン確定後（recordTurnAndAdvance で turnResolvedRef=true）から
+    // effect cleanup までの pointermove は加算しない（防御的）。
     const onPointerMove = (e: PointerEvent) => {
+      if (turnResolvedRef.current) return;
       const prev = lastPointerPosRef.current;
       if (prev) {
         const dx = e.clientX - prev.x;
