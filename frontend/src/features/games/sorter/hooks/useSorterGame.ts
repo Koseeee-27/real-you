@@ -12,7 +12,6 @@ import {
   EVENT_ANCHORS,
   FROZEN_DURATION_MS,
   FROZEN_WARNING_DURATION_MS,
-  ONBOARDING_SLIDE_COUNT,
   PACKAGE_FLOW_DURATION_MS,
   PACKAGE_FLOW_DURATION_SPEED_UP_MS,
   PACKAGE_TYPES,
@@ -129,7 +128,6 @@ export function useSorterGame(options: {
   const [phase, setPhase] = useState<GamePhase>('onboarding');
   /** 勝敗結果。ended 突入時に確定（結果画面の成功 / 失敗表示に使う。スキーマには含めない） */
   const [outcome, setOutcome] = useState<GameOutcome>(null);
-  const [onboardingSlideIndex, setOnboardingSlideIndex] = useState(0);
   /** 0 は「START」表示用。3 → 2 → 1 → 0(START) → ゲーム本編開始 */
   const [countdownValue, setCountdownValue] = useState<3 | 2 | 1 | 0>(3);
   const [packages, setPackages] = useState<ActivePackage[]>([]);
@@ -768,15 +766,10 @@ export function useSorterGame(options: {
 
   // =========================================================
   // ハンドラ: オンボーディング操作
+  //
+  // スライド送り（戻る / 次へ / 進捗ドット / アニメーション）は共通 `SlideModal`
+  // 側に集約され、本フックはオンボーディング終了の遷移だけを担当する。
   // =========================================================
-  function handleOnboardingNext(): void {
-    setOnboardingSlideIndex((i) => Math.min(ONBOARDING_SLIDE_COUNT - 1, i + 1));
-  }
-
-  function handleOnboardingPrev(): void {
-    setOnboardingSlideIndex((i) => Math.max(0, i - 1));
-  }
-
   function handleOnboardingStart(): void {
     setPhase('countdown');
   }
@@ -791,7 +784,6 @@ export function useSorterGame(options: {
     // ステート
     phase,
     outcome,
-    onboardingSlideIndex,
     countdownValue,
     packages,
     selectedPackageId,
@@ -814,8 +806,6 @@ export function useSorterGame(options: {
     handlePackageDrop,
     // ハンドラ（共通）
     handlePackageOutflow,
-    handleOnboardingNext,
-    handleOnboardingPrev,
     handleOnboardingStart,
   };
 }

@@ -1,8 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
+import SlideModal from '@/components/common/SlideModal';
 import {
   BIN_IMAGE_PATHS,
   PACKAGE_COLORS,
@@ -17,173 +16,56 @@ import {
 } from '../data/sorterConstants';
 
 interface OnboardingSlidesProps {
-  /** 0..(SLIDES.length - 1) のスライド index */
-  slideIndex: number;
-  onPrev: () => void;
-  onNext: () => void;
+  /** モーダルの表示状態。phase==='onboarding' のときだけ true で渡す想定 */
+  open: boolean;
+  /** 最終スライドの「スタート ▶」を押したときに呼ばれる */
   onStart: () => void;
 }
 
 /**
- * オンボーディングスライドのコンポーネント配列。
- * 描画・進捗ドット・末尾判定はすべてこの配列から派生する。
- * スライドを追加・削除する場合はここを変更するだけで、配列長に依存する 3 箇所が
- * 自動的に追従する。
+ * 仕分けゲームの開始前オンボーディング（2 スライド）。
  *
- * 外部から参照する `ONBOARDING_SLIDE_COUNT`（sorterConstants）も同じ値に
- * 揃える必要がある（SorterGameFlow の onNext 上限制御で参照する）。
- */
-const SLIDES = [SlideOverview, SlideControlsAndScoring] as const;
-
-/**
- * ゲーム開始時に表示する 2 スライドのオンボーディング。
+ * 共通 `SlideModal` の薄いラッパー。枠（オーバーレイ / カード / 進捗ドット /
+ * 戻る・次へ・スタート / 双方向アニメーション）は `SlideModal` 側に集約され、
+ * 本コンポーネントはスライドの中身（`SlideOverview` / `SlideControlsAndScoring`）
+ * を直下の子として並べるだけに留める。
  *
- * - スライド 1/2: 概要 + カテゴリー（流れてくる荷物を同じ色の仕分け先へ。目標 150 点でクリア。
- *                 特急=赤 / 取扱注意=青 / 重量物=茶 の色対応を横並び 3 で表示）
- * - スライド 2/2: 操作方法（どちらでもOK！）+ 採点（D&D / クリック 2 ステップ の 2 方式を
- *                 「または」で対等に並べ、+10 / -5 の採点を下段に、スタートボタン）
+ * - 直下の子 1 つ = スライド 1 枚として扱われる仕様のため、Fragment で包まずに
+ *   2 要素を並べる。
+ * - 既定の min-h（440/420/400）では SlideOverview の縦並び（タイトル + サブ 2 行 +
+ *   カテゴリーカード 3 列）が見切れる狭幅環境があるため、`classNames.body` で
+ *   560/520/480 に上書きしてカード高さを確保する（`cn()` の tailwind-merge により
+ *   後勝ち上書きされる）。
+ * - 強制チュートリアル用途のため `onClose` は渡さない（× / 背景クリック / ESC 不可）。
  *
- * スライド間は「← 戻る」「次へ →」で双方向移動可能。
- * 最終スライドの「スタート」を押すと `onStart` を呼び、親側で次の phase に遷移する。
- *
- * 双方向アニメーション: `direction` を useState で保持し、`AnimatePresence` の custom prop で
- * variants の `enter`/`exit` を方向別に切り替える。
+ * 内容詳細:
+ *   - スライド 1/2: 概要 + カテゴリー（流れてくる荷物を同じ色の仕分け先へ。目標
+ *     {TARGET_SCORE} 点でクリア / 制限 {TIME_CAP_SEC} 秒。特急=赤 / 取扱注意=青 /
+ *     重量物=茶 の色対応を横並び 3 で表示）
+ *   - スライド 2/2: 操作方法（どちらでもOK！）+ 採点（D&D / クリック 2 ステップ の
+ *     2 方式を「または」で対等に並べ、+{SCORE_CORRECT} / -{SCORE_WRONG_PENALTY} の
+ *     採点を下段に置く）
  */
 export default function OnboardingSlides({
-  slideIndex,
-  onPrev,
-  onNext,
+  open,
   onStart,
 }: OnboardingSlidesProps) {
-  /**
-   * 直前操作の方向（-1 = 戻る、1 = 進む）。
-   * ハンドラ内で setDirection を先に呼び、続けて親の onPrev/onNext を呼ぶ流儀にする
-   * （render 中に slideIndex から方向を計算するとフレーム間で値が安定しないため）。
-   */
-  const [direction, setDirection] = useState<1 | -1>(1);
-
-  const handlePrev = () => {
-    setDirection(-1);
-    onPrev();
-  };
-  const handleNext = () => {
-    setDirection(1);
-    onNext();
-  };
-
-  const isFirst = slideIndex === 0;
-  const isLast = slideIndex === SLIDES.length - 1;
-
-  const variants = {
-    enter: (dir: number) => ({
-      x: dir > 0 ? '100%' : '-100%',
-      opacity: 0,
-    }),
-    center: { x: 0, opacity: 1 },
-    exit: (dir: number) => ({
-      x: dir > 0 ? '-100%' : '100%',
-      opacity: 0,
-    }),
-  };
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="仕分けゲームのチュートリアル"
+    <SlideModal
+      open={open}
+      onComplete={onStart}
+      ariaLabel="仕分けゲームのチュートリアル"
+      classNames={{
+        // 既定（440/420/400）だと SlideOverview が見切れるため、現行値に合わせて拡張する。
+        // SlideOverview（タイトル + サブ 2 行 + カテゴリーカード 3 列）と
+        // SlideControlsAndScoring（2 方式カード縦積み + 採点）のうち背の高い方を
+        // 基準に、PC（lg）では横並びになるため低めに抑える。
+        body: 'min-h-[560px] sm:min-h-[520px] lg:min-h-[480px]',
+      }}
     >
-      <div className="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-[24px] border-[6px] border-black bg-white shadow-[8px_8px_0_0_#000] sm:max-w-2xl lg:max-w-5xl">
-        {/* スライド進捗インジケーター */}
-        <div
-          className="flex shrink-0 justify-center gap-2 border-b-[3px] border-black py-3 sm:gap-3 sm:py-4"
-          style={{ backgroundColor: SORTER_UI_COLORS.warning }}
-        >
-          {SLIDES.map((_, i) => (
-            <span
-              key={i}
-              className={`h-3 w-3 rounded-full border-[2px] border-black sm:h-4 sm:w-4 ${
-                i === slideIndex ? 'bg-black' : 'bg-white'
-              }`}
-              aria-hidden
-            />
-          ))}
-        </div>
-
-        {/*
-          スライドコンテンツ（双方向アニメーション）。
-          コンテナに min-h を持たせ、各スライドの中身は absolute + flex center で
-          中央寄せにする。これによりスライド切替時にカード全体の高さが揺れない。
-          min-h は「2 スライドのうち背が高い方」を基準に確保する。
-          狭幅では SlideOverview（タイトル + サブ 2 行 + カテゴリーカード 3 列）も
-          SlideControlsAndScoring（2 方式カードを縦積み + 採点）も縦に伸びるが、
-          いずれもこの min-h（560/520/480）内に収まる前提で値を据え置いている。
-          PC（lg）では両スライドとも横並びレイアウトで必要高さが減るため min-h を
-          低めに、狭い画面では縦積みになるため min-h を高めに取る。
-          外側モーダルの max-h-[90vh] で縦に短い画面では枠が縮む。その場合は
-          各スライド（absolute inset-0）を overflow-y-auto にして縦スクロールへ
-          逃がす。中身は m-auto でセンタリングし、収まる時は中央寄せ・溢れる時は
-          上端から全体をスクロール表示する（flex の justify-center だと溢れた際に
-          上端がクリップされスクロールできないため m-auto を使う）。
-          親は横方向 swipe のクリップ用に overflow-hidden のままにする。
-        */}
-        <div className="relative min-h-[560px] flex-1 overflow-hidden sm:min-h-[520px] lg:min-h-[480px]">
-          <AnimatePresence mode="wait" custom={direction} initial={false}>
-            <motion.div
-              key={slideIndex}
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="absolute inset-0 flex overflow-y-auto px-6 py-6 sm:px-10 lg:px-12"
-            >
-              <div className="m-auto w-full">
-                {(() => {
-                  const Slide = SLIDES[slideIndex];
-                  return Slide ? <Slide /> : null;
-                })()}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* フッターボタン */}
-        <div
-          className="flex shrink-0 justify-between border-t-[3px] border-black p-4 sm:p-5"
-          style={{ backgroundColor: SORTER_UI_COLORS.warning }}
-        >
-          <button
-            type="button"
-            onClick={handlePrev}
-            disabled={isFirst}
-            className="rounded-xl border-[3px] border-black bg-white px-4 py-2 text-sm font-black shadow-[3px_3px_0_0_#000] transition-transform hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:py-3 sm:text-base"
-          >
-            ← 戻る
-          </button>
-          {isLast ? (
-            <button
-              type="button"
-              onClick={onStart}
-              className="rounded-xl border-[3px] border-black px-6 py-2 text-sm font-black text-white shadow-[3px_3px_0_0_#000] transition-transform hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000] sm:px-8 sm:py-3 sm:text-base"
-              style={{ backgroundColor: SORTER_UI_COLORS.success }}
-            >
-              スタート ▶
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="rounded-xl border-[3px] border-black px-4 py-2 text-sm font-black text-white shadow-[3px_3px_0_0_#000] transition-transform hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000] sm:px-6 sm:py-3 sm:text-base"
-              style={{ backgroundColor: SORTER_UI_COLORS.link }}
-            >
-              次へ →
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+      <SlideOverview />
+      <SlideControlsAndScoring />
+    </SlideModal>
   );
 }
 

@@ -233,7 +233,6 @@ export default function SorterGameFlow() {
   const {
     phase,
     outcome,
-    onboardingSlideIndex,
     countdownValue,
     packages,
     selectedPackageId,
@@ -252,8 +251,6 @@ export default function SorterGameFlow() {
     handlePackageGrab,
     handlePackageDrop,
     handlePackageOutflow,
-    handleOnboardingNext,
-    handleOnboardingPrev,
     handleOnboardingStart,
   } = useSorterGame({ onComplete: handleComplete });
 
@@ -265,15 +262,9 @@ export default function SorterGameFlow() {
    */
   const shouldLiftBelt = draggingPackageIds.size > 0 && !isFrozen;
 
-  // SE を鳴らすラッパー（オンボーディング操作）
-  const onPrev = () => {
-    playSE(SORTER_AUDIO_PATHS.generalSE);
-    handleOnboardingPrev();
-  };
-  const onNext = () => {
-    playSE(SORTER_AUDIO_PATHS.generalSE);
-    handleOnboardingNext();
-  };
+  // SE を鳴らすラッパー（オンボーディング完了 = スタートボタン）。
+  // 戻る / 次へボタンは共通 `SlideModal` 側の実装に乗せたため、現状 SE は鳴らない
+  // （`SlideModal` に SE フックの口が無いため、意図的な regression として受け入れる）。
   const onStart = () => {
     playSE(SORTER_AUDIO_PATHS.generalSE);
     handleOnboardingStart();
@@ -444,14 +435,7 @@ export default function SorterGameFlow() {
       </div>
 
       {/* === オンボーディング === */}
-      {phase === 'onboarding' && (
-        <OnboardingSlides
-          slideIndex={onboardingSlideIndex}
-          onPrev={onPrev}
-          onNext={onNext}
-          onStart={onStart}
-        />
-      )}
+      <OnboardingSlides open={phase === 'onboarding'} onStart={onStart} />
 
       {/* === カウントダウン === */}
       {phase === 'countdown' && (
