@@ -185,6 +185,8 @@ export default function GroupChatGameFlow() {
     typingSpeaker,
     startGame: rawStartGame,
     selectOption: rawSelectOption,
+    handleOptionHover,
+    handleHistoryScroll,
   } = useGroupChatGame({ onComplete: handleComplete });
 
   // SE を鳴らすようにラップ
@@ -227,13 +229,18 @@ export default function GroupChatGameFlow() {
             </span>
           </header>
 
-          <ChatTimeline messages={chatMessages} typingSpeaker={typingSpeaker} />
+          <ChatTimeline
+            messages={chatMessages}
+            typingSpeaker={typingSpeaker}
+            onHistoryScroll={handleHistoryScroll}
+          />
 
           {gamePhase === 'turn-active' && currentTurn ? (
             <ChoicePad
               turn={currentTurn}
               remainingTimeMs={remainingTimeMs}
               onSelect={selectOption}
+              onHover={handleOptionHover}
             />
           ) : (
             <div className="shrink-0 border-t-[6px] border-black bg-[#f1cf44] py-6 text-center text-sm font-bold text-black/60">
