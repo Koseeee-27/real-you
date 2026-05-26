@@ -271,14 +271,14 @@ function SlideRules() {
           数字（+10 / -5）だけ色付き太字にして視認性を確保。上の「目標」を
           主役にし、採点は補足として軽く伝える。 */}
       <p className="mt-6 text-center text-base font-bold sm:mt-8 sm:text-lg lg:text-xl">
-        正解で
+        正しく仕分けると
         <span
           className="mx-1 font-black"
           style={{ color: SORTER_UI_COLORS.successText }}
         >
           +{SCORE_CORRECT} 点
         </span>
-        ／ ミスで
+        ／ 誤って仕分けると
         <span
           className="mx-1 font-black"
           style={{ color: SORTER_UI_COLORS.dangerText }}
