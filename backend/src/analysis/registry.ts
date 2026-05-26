@@ -77,6 +77,11 @@ type GameModuleEntry<TId extends GameId> = {
     readonly analyze: (data: unknown) => GameAnalyzeResult;
     readonly buildSummary: (data: unknown) => string;
     readonly buildDetails: (data: unknown, result: unknown) => GameDetail;
+    readonly buildHighlights: (data: unknown, result: unknown) => Array<{
+        text: string;
+        comparison: string;
+        reason: string;
+    }>;
 };
 
 type GameModulesMap = { readonly [K in GameId]: GameModuleEntry<K> };
