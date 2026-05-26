@@ -48,12 +48,19 @@ const WEIGHTS = {
 /**
  * `analyze()` の戻り値型。
  * `conformRate` / `avgReactionMs` / `timeoutRate` は buildDetails / buildSummary でも参照する。
+ * `answeredFirst` / `hoverChanged` / `avgReaction` は buildHighlights / feedbackGenerator で使用する。
  */
 export type GroupChatGameAnalyzeResult = {
     scores: { cooperativeness: number; positivity: number; caution: number };
     conformRate: number;
     avgReactionMs: number;
     timeoutRate: number;
+    /** ターン1で同期より先に回答したか */
+    answeredFirst: boolean;
+    /** 同期のタイピング後にホバー先が変わったか（null = データなし） */
+    hoverChanged: boolean | null;
+    /** 全ターンの平均反応時間（秒） */
+    avgReaction: number;
 };
 
 /**
@@ -66,6 +73,9 @@ function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResul
             conformRate: 0,
             avgReactionMs: THRESHOLDS.reactionMs.fallback,
             timeoutRate: 0,
+            answeredFirst: false,
+            hoverChanged: null,
+            avgReaction: THRESHOLDS.reactionMs.fallback / 1000,
         };
 
     const turns = data.turns;
@@ -169,7 +179,36 @@ function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResul
         conformRate,
         avgReactionMs,
         timeoutRate,
+        answeredFirst: data.turn1AnsweredBeforeColleagueA === true,
+        hoverChanged: data.turn1HoverChangedAfterColleagueATyping,
+        avgReaction: avgReactionMs / 1000,
     };
+}
+
+/**
+ * 空気読みグループチャットの行動データ + analyze 結果 → 結果画面 highlights 用のカード配列。
+ */
+function buildHighlights(data: GroupChatGameData | undefined, result: GroupChatGameAnalyzeResult) {
+    void data;
+    const answeredFirst = result.answeredFirst;
+    const hoverChanged = result.hoverChanged ?? false;
+    return [
+        {
+            text: `同期が動き出す前に返答${answeredFirst ? 'できました' : 'できませんでした'}。`,
+            comparison: '全体の約40%が先手を取れています',
+            reason: '先手を取れるかから〈積極性〉がわかるため',
+        },
+        {
+            text: `他の人が動いたあと、選択肢への迷いが${hoverChanged ? 'ありました' : 'ありませんでした'}。`,
+            comparison: '全体の約60%が影響を受けています',
+            reason: '周囲の動きで意思が変わるかから〈協調性〉がわかるため',
+        },
+        {
+            text: `返答までの平均時間は${result.avgReaction.toFixed(1)}秒。`,
+            comparison: '平均は約3秒',
+            reason: '即断か熟考かから〈積極性・慎重さ〉がわかるため',
+        },
+    ];
 }
 
 /**
@@ -253,4 +292,6 @@ export const groupChatGameModule = {
     buildSummary: (data: unknown) => buildSummary(data as GroupChatGameData | undefined),
     buildDetails: (data: unknown, result: unknown) =>
         buildDetails(data as GroupChatGameData | undefined, result as GroupChatGameAnalyzeResult),
+    buildHighlights: (data: unknown, result: unknown) =>
+        buildHighlights(data as GroupChatGameData | undefined, result as GroupChatGameAnalyzeResult),
 };
