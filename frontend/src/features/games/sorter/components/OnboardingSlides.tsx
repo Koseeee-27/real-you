@@ -169,32 +169,11 @@ function SlideHowToPlay() {
                   🖱 ドラッグ&ドロップ
                 </span>
               </div>
-              <div className="mt-1.5 flex items-center justify-center gap-2 sm:gap-3">
-                <div className="relative h-9 w-9 shrink-0 sm:h-10 sm:w-10">
-                  <Image
-                    src={PACKAGE_IMAGE_PATHS.urgent}
-                    alt="荷物の例"
-                    fill
-                    sizes="40px"
-                    className="object-contain"
-                  />
-                </div>
-                <span aria-hidden className="text-lg font-black sm:text-xl">
-                  →
-                </span>
-                <div className="relative h-9 w-9 shrink-0 sm:h-10 sm:w-10">
-                  <Image
-                    src={BIN_IMAGE_PATHS.urgent}
-                    alt="仕分け先の例"
-                    fill
-                    sizes="40px"
-                    className="object-contain"
-                  />
-                </div>
-                <span className="ml-1 text-xs font-bold text-gray-600 sm:text-sm">
-                  荷物をつかんで仕分け先へ
-                </span>
-              </div>
+              {/* イラストは左カラム「仕分け方」と重複するため省略し、説明テキストのみで簡潔に。
+                  クリック 2 ステップ側と同じくらいの padding・テキスト密度で視覚的に並ぶよう調整する。 */}
+              <p className="mt-1.5 px-2 text-center text-sm font-bold sm:mt-2 sm:px-4 sm:text-base">
+                荷物をつかんで仕分け先へドロップ
+              </p>
               <p className="mt-1.5 text-center text-[11px] font-bold text-gray-500 sm:text-xs">
                 ※ 仕分け先の外で離すと取り消し
               </p>
