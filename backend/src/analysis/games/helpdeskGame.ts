@@ -208,6 +208,26 @@ function buildDetails(
     };
 }
 
+function buildHighlights(_data: HelpdeskGameData | undefined, result: HelpdeskGameAnalyzeResult) {
+    return [
+        {
+            text: `AIへの平均反応時間は${(result.avgReact / 1000).toFixed(1)}秒。`,
+            comparison: '平均は約2.5秒',
+            reason: '反応の速さから〈積極性〉がわかるため',
+        },
+        {
+            text: `発話した合計時間は${(result.totalSpeech / 1000).toFixed(1)}秒。`,
+            comparison: '平均は約4.2秒',
+            reason: '発話量から〈積極性・論理性〉がわかるため',
+        },
+        {
+            text: `論理的な接続詞を${result.logicWordsCount}回使いました。`,
+            comparison: '平均は約0.5回',
+            reason: '論理接続詞の使用から〈論理性〉がわかるため',
+        },
+    ];
+}
+
 /**
  * AI カスタマーサポート（helpdesk_game）モジュール。
  * registry の `GameModuleEntry` 型に合わせて `unknown` 入力のアダプタを薄く挟む
@@ -221,4 +241,6 @@ export const helpdeskGameModule = {
     buildSummary: (data: unknown) => buildSummary(data as HelpdeskGameData | undefined),
     buildDetails: (data: unknown, result: unknown) =>
         buildDetails(data as HelpdeskGameData | undefined, result as HelpdeskGameAnalyzeResult),
+    buildHighlights: (data: unknown, result: unknown) =>
+        buildHighlights(data as HelpdeskGameData | undefined, result as HelpdeskGameAnalyzeResult),
 };
