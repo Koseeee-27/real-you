@@ -27,24 +27,23 @@ interface OnboardingSlidesProps {
  *
  * 共通 `SlideModal` の薄いラッパー。枠（オーバーレイ / カード / 進捗ドット /
  * 戻る・次へ・スタート / 双方向アニメーション）は `SlideModal` 側に集約され、
- * 本コンポーネントはスライドの中身（`SlideOverview` / `SlideControlsAndScoring`）
- * を直下の子として並べるだけに留める。
+ * 本コンポーネントはスライドの中身（`SlideHowToPlay` / `SlideRules`）を
+ * 直下の子として並べるだけに留める。
  *
  * - 直下の子 1 つ = スライド 1 枚として扱われる仕様のため、Fragment で包まずに
  *   2 要素を並べる。
- * - 既定の min-h（440/420/400）では SlideOverview の縦並び（タイトル + サブ 2 行 +
- *   カテゴリーカード 3 列）が見切れる狭幅環境があるため、`classNames.body` で
- *   560/520/480 に上書きしてカード高さを確保する（`cn()` の tailwind-merge により
- *   後勝ち上書きされる）。
+ * - 既定の min-h（440/420/400）では内容が見切れる狭幅環境があるため、
+ *   `classNames.body` で 560/520/480 に上書きしてカード高さを確保する
+ *   （`cn()` の tailwind-merge により後勝ち上書きされる）。
  * - 強制チュートリアル用途のため `onClose` は渡さない（× / 背景クリック / ESC 不可）。
  *
  * 内容詳細:
- *   - スライド 1/2: 概要 + カテゴリー（流れてくる荷物を同じ色の仕分け先へ。目標
- *     {TARGET_SCORE} 点でクリア / 制限 {TIME_CAP_SEC} 秒。特急=赤 / 取扱注意=青 /
- *     重量物=茶 の色対応を横並び 3 で表示）
- *   - スライド 2/2: 操作方法（どちらでもOK！）+ 採点（D&D / クリック 2 ステップ の
- *     2 方式を「または」で対等に並べ、+{SCORE_CORRECT} / -{SCORE_WRONG_PENALTY} の
- *     採点を下段に置く）
+ *   - スライド 1/2: 遊び方（D&D / クリック 2 ステップ の 2 方式を「または」で
+ *     対等に並べ、**各操作枠の下部にそれぞれの取消方法を併記**することで
+ *     「どの操作にどの取消が紐づくか」を明確化）
+ *   - スライド 2/2: ルール（目標 {TARGET_SCORE} 点でクリア / 制限 {TIME_CAP_SEC}
+ *     秒を大きく強調 + 3 カテゴリーの色対応（特急=赤 / 取扱注意=青 / 重量物=茶）+
+ *     採点 +{SCORE_CORRECT} / -{SCORE_WRONG_PENALTY}）
  */
 export default function OnboardingSlides({
   open,
@@ -56,15 +55,14 @@ export default function OnboardingSlides({
       onComplete={onStart}
       ariaLabel="仕分けゲームのチュートリアル"
       classNames={{
-        // 既定（440/420/400）だと SlideOverview が見切れるため、現行値に合わせて拡張する。
-        // SlideOverview（タイトル + サブ 2 行 + カテゴリーカード 3 列）と
-        // SlideControlsAndScoring（2 方式カード縦積み + 採点）のうち背の高い方を
-        // 基準に、PC（lg）では横並びになるため低めに抑える。
+        // 既定（440/420/400）だと SlideRules（目標 + カテゴリー 3 列 + 採点）が
+        // 見切れる狭幅環境があるため、両スライドのうち背の高い方を基準に拡張。
+        // PC（lg）では横並びになる箇所が多いため低めに抑える。
         body: 'min-h-[560px] sm:min-h-[520px] lg:min-h-[480px]',
       }}
     >
-      <SlideOverview />
-      <SlideControlsAndScoring />
+      <SlideHowToPlay />
+      <SlideRules />
     </SlideModal>
   );
 }
@@ -74,103 +72,33 @@ export default function OnboardingSlides({
 // =========================================================
 
 /**
- * スライド 1/2: 概要 + カテゴリー。
+ * スライド 1/2: 遊び方（操作）。
  *
- * 上段でゲームの目的・目標スコア・制限時間をコンパクトに伝え、
- * 下段で 3 カテゴリーの色対応（荷物 → 仕分け先）を横並び 3 で示す。
- * カラーペアリング（旧 SlideColorPairing）を概要に統合して 1 枚に圧縮した。
+ * 2 操作方式（D&D / クリック 2 ステップ）を同じ大きさで左右対等に並べ、間に
+ * 「または」コネクタを挟むことで「どちらでも仕分けできる」ことを明示する。
+ * **取消方法は対応する操作カードの下部に併記**し、「D&D は外で離す」「クリックは
+ * 再クリック」がそれぞれの操作に紐づくことを直感的に伝える。
  *
- * 横並び 3 は狭幅でも維持する（縦積みにすると 1 枚に収まらないため）。
- * 画像サイズと文字サイズを狭幅では控えめにして 1 枚に収める。
+ * レイアウト: 狭幅は flex-col（縦積み + 上下に「または」）、PC（lg）は flex-row
+ * （横並び + 中央に「または」）に切り替える。2 カードは flex-1 + basis-0 で等幅。
+ * 「または」は装飾（aria-hidden）、見出しの「どちらでもOK！」をテキストで読み上げ
+ * に乗せて意味を担保する。
  */
-function SlideOverview() {
-  return (
-    <div className="text-center">
-      <h2 className="text-2xl font-black tracking-widest sm:text-3xl lg:text-4xl">
-        仕分けゲーム
-      </h2>
-      <p className="mt-3 text-sm font-bold leading-relaxed sm:mt-4 sm:text-base lg:text-lg">
-        流れてくる荷物を同じ色の仕分け先へ。
-        <br />
-        <span style={{ color: SORTER_UI_COLORS.accent }}>
-          目標 {TARGET_SCORE} 点
-        </span>
-        でクリア（制限 {TIME_CAP_SEC} 秒）
-      </p>
-
-      {/*
-        3 カテゴリーの色対応（荷物 → 仕分け先）。
-        概要スライドに統合したため横並び 3 固定で、全幅でカテゴリーを一望できるようにする。
-        各カードは「荷物画像 → 矢印 → 仕分け先画像」の縦並び（ラベルを下に添える）。
-      */}
-      <div className="mt-5 grid grid-cols-3 gap-2 sm:mt-6 sm:gap-3 lg:gap-4">
-        {PACKAGE_TYPES.map((type) => (
-          <div
-            key={type}
-            className="flex flex-col items-center gap-1 rounded-xl border-[3px] border-black bg-white p-2 shadow-[3px_3px_0_0_#000] sm:gap-2 sm:p-3"
-          >
-            <div className="relative h-12 w-12 shrink-0 sm:h-16 sm:w-16 lg:h-20 lg:w-20">
-              <Image
-                src={PACKAGE_IMAGE_PATHS[type]}
-                alt={`${PACKAGE_LABELS[type]}の荷物`}
-                fill
-                sizes="(min-width: 1024px) 80px, (min-width: 640px) 64px, 48px"
-                className="object-contain"
-              />
-            </div>
-            <span aria-hidden className="text-lg font-black sm:text-2xl">
-              ↓
-            </span>
-            <div className="relative h-12 w-12 shrink-0 sm:h-16 sm:w-16 lg:h-20 lg:w-20">
-              <Image
-                src={BIN_IMAGE_PATHS[type]}
-                alt={`${PACKAGE_LABELS[type]}の仕分け先`}
-                fill
-                sizes="(min-width: 1024px) 80px, (min-width: 640px) 64px, 48px"
-                className="object-contain"
-              />
-            </div>
-            <span
-              className="text-sm font-black tracking-wider sm:text-base lg:text-lg"
-              style={{ color: PACKAGE_COLORS[type] }}
-            >
-              {PACKAGE_LABELS[type]}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/**
- * スライド 2/2: 操作方法（どちらでもOK！）+ 採点。
- *
- * 「ドラッグ&ドロップ」「クリック 2 ステップ」のどちらでも仕分けできることを
- * 明確に伝えるため、2 方式カードを同じ大きさで左右に対等配置し、間に「または」
- * コネクタを挟む（PC は左右の中央、狭幅は上下カードの間）。採点（+10 / -5）は
- * 下段にコンパクトに横並びで置く。最終スライドのため、フッターには「スタート」
- * ボタンが表示される。
- *
- * レイアウトは flex で、狭幅は flex-col（縦積み + 上下に「または」）、
- * PC（lg）は flex-row（横並び + 中央に「または」）に切り替える。2 カードは
- * flex-1 + basis-0 で等幅にし「どちらでも良い」感を出す。
- * 「または」は装飾なので aria-hidden、見出しの「どちらでもOK！」をテキストで
- * 読み上げに乗せて意味を担保する。
- */
-function SlideControlsAndScoring() {
+function SlideHowToPlay() {
   return (
     <div>
       <h2 className="text-center text-xl font-black tracking-widest sm:text-2xl lg:text-3xl">
         操作方法（どちらでもOK！）
       </h2>
+      <p className="mt-2 text-center text-sm font-bold text-gray-600 sm:text-base">
+        流れてくる荷物を仕分け先に投入！
+      </p>
 
       {/*
-        2 方式カード + 「または」コネクタ。
-        狭幅: 縦積み（カード → または → カード）。lg: 横並び（カード｜または｜カード）。
-        items-stretch で 2 カードの高さを揃え、対等に見せる。
+        2 方式カード + 「または」コネクタ。狭幅は縦積み、lg は横並び。
+        各カードの下部にそれぞれの取消方法を併記する。
       */}
-      <div className="mt-4 flex flex-col items-stretch gap-3 sm:mt-5 lg:flex-row lg:items-stretch lg:gap-4">
+      <div className="mt-4 flex flex-col items-stretch gap-3 sm:mt-5 lg:flex-row lg:gap-4">
         {/* 方式 A: ドラッグ&ドロップ */}
         <div className="flex flex-1 basis-0 flex-col rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_#000]">
           <div className="flex justify-center">
@@ -206,6 +134,11 @@ function SlideControlsAndScoring() {
           </div>
           <p className="mt-1 text-center text-xs font-bold text-gray-600 sm:text-sm">
             荷物をつかんで仕分け先へ
+          </p>
+          {/* この操作方式に紐づく取消方法（D&D = 外で離す）。
+              mt-auto でカード下部に押し下げ、2 カードで高さを揃えても取消注記の位置が揃う。 */}
+          <p className="mt-auto pt-2 text-center text-[11px] font-bold text-gray-500 sm:text-xs">
+            ※ 仕分け先の外で離すと取り消し
           </p>
         </div>
 
@@ -255,43 +188,111 @@ function SlideControlsAndScoring() {
               仕分け先をクリック
             </span>
           </div>
+          {/* この操作方式に紐づく取消方法（クリック = 再クリック）。 */}
+          <p className="mt-auto pt-2 text-center text-[11px] font-bold text-gray-500 sm:text-xs">
+            ※ 再クリックで取り消し
+          </p>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/*
-        採点（下段・コンパクト）。+10 / -5 を横並びにし、注意書きを小さく添える。
-        狭幅でも横並びを維持して縦の高さを抑える（枠内に収めるため）。
-      */}
-      <div className="mt-4 flex flex-col items-center gap-2 sm:mt-5">
-        <div className="flex w-full items-stretch justify-center gap-2 sm:gap-3">
-          <div
-            className="flex flex-1 basis-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black p-2 sm:p-3"
-            style={{ backgroundColor: SORTER_UI_COLORS.successBgSubtle }}
-          >
-            <span
-              className="shrink-0 text-2xl font-black sm:text-3xl"
-              style={{ color: SORTER_UI_COLORS.successText }}
-            >
-              +{SCORE_CORRECT}
-            </span>
-            <span className="text-xs font-bold sm:text-sm">正しい仕分け先</span>
-          </div>
-          <div
-            className="flex flex-1 basis-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black p-2 sm:p-3"
-            style={{ backgroundColor: SORTER_UI_COLORS.dangerBgSubtle }}
-          >
-            <span
-              className="shrink-0 text-2xl font-black sm:text-3xl"
-              style={{ color: SORTER_UI_COLORS.dangerText }}
-            >
-              -{SCORE_WRONG_PENALTY}
-            </span>
-            <span className="text-xs font-bold sm:text-sm">誤った仕分け先</span>
-          </div>
-        </div>
-        <p className="text-center text-xs font-bold text-gray-500">
-          ※ 仕分け先の外で離す / 再クリックで取り消し
+/**
+ * スライド 2/2: ルール（目標・カテゴリー・採点）。
+ *
+ * 上段で目標スコア（accent 色で強調）と制限時間を大きく示し、中段で 3 カテゴリーの
+ * 色対応（荷物 → 仕分け先）を横並び 3 で見せ、下段で採点（+10 / -5）をコンパクトに
+ * 横並びで置く。最終スライドのため、フッターには SlideModal の「スタート ▶」が
+ * 自動表示される。
+ *
+ * 横並び 3（カテゴリー）は狭幅でも維持して 1 枚に収め、画像と文字サイズを狭幅では
+ * 控えめにする。
+ */
+function SlideRules() {
+  return (
+    <div>
+      <h2 className="text-center text-xl font-black tracking-widest sm:text-2xl lg:text-3xl">
+        ルール
+      </h2>
+
+      {/* 目標スコア・制限時間（大きく強調） */}
+      <div className="mt-3 flex flex-col items-center sm:mt-4">
+        <p
+          className="text-2xl font-black sm:text-3xl lg:text-4xl"
+          style={{ color: SORTER_UI_COLORS.accent }}
+        >
+          目標 {TARGET_SCORE} 点でクリア
         </p>
+        <p className="mt-1 text-sm font-bold text-gray-600 sm:text-base">
+          制限 {TIME_CAP_SEC} 秒
+        </p>
+      </div>
+
+      {/* 3 カテゴリーの色対応（荷物 → 仕分け先） */}
+      <div className="mt-4 grid grid-cols-3 gap-2 sm:mt-5 sm:gap-3 lg:gap-4">
+        {PACKAGE_TYPES.map((type) => (
+          <div
+            key={type}
+            className="flex flex-col items-center gap-1 rounded-xl border-[3px] border-black bg-white p-2 shadow-[3px_3px_0_0_#000] sm:gap-2 sm:p-3"
+          >
+            <div className="relative h-12 w-12 shrink-0 sm:h-14 sm:w-14 lg:h-16 lg:w-16">
+              <Image
+                src={PACKAGE_IMAGE_PATHS[type]}
+                alt={`${PACKAGE_LABELS[type]}の荷物`}
+                fill
+                sizes="(min-width: 1024px) 64px, (min-width: 640px) 56px, 48px"
+                className="object-contain"
+              />
+            </div>
+            <span aria-hidden className="text-base font-black sm:text-xl">
+              ↓
+            </span>
+            <div className="relative h-12 w-12 shrink-0 sm:h-14 sm:w-14 lg:h-16 lg:w-16">
+              <Image
+                src={BIN_IMAGE_PATHS[type]}
+                alt={`${PACKAGE_LABELS[type]}の仕分け先`}
+                fill
+                sizes="(min-width: 1024px) 64px, (min-width: 640px) 56px, 48px"
+                className="object-contain"
+              />
+            </div>
+            <span
+              className="text-sm font-black tracking-wider sm:text-base lg:text-lg"
+              style={{ color: PACKAGE_COLORS[type] }}
+            >
+              {PACKAGE_LABELS[type]}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* 採点（下段・コンパクト・横並び維持で縦の高さを抑える） */}
+      <div className="mt-4 flex items-stretch justify-center gap-2 sm:mt-5 sm:gap-3">
+        <div
+          className="flex flex-1 basis-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black p-2 sm:p-3"
+          style={{ backgroundColor: SORTER_UI_COLORS.successBgSubtle }}
+        >
+          <span
+            className="shrink-0 text-2xl font-black sm:text-3xl"
+            style={{ color: SORTER_UI_COLORS.successText }}
+          >
+            +{SCORE_CORRECT}
+          </span>
+          <span className="text-xs font-bold sm:text-sm">正しい仕分け先</span>
+        </div>
+        <div
+          className="flex flex-1 basis-0 items-center justify-center gap-2 rounded-xl border-[3px] border-black p-2 sm:p-3"
+          style={{ backgroundColor: SORTER_UI_COLORS.dangerBgSubtle }}
+        >
+          <span
+            className="shrink-0 text-2xl font-black sm:text-3xl"
+            style={{ color: SORTER_UI_COLORS.dangerText }}
+          >
+            -{SCORE_WRONG_PENALTY}
+          </span>
+          <span className="text-xs font-bold sm:text-sm">誤った仕分け先</span>
+        </div>
       </div>
     </div>
   );
