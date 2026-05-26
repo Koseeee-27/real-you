@@ -376,19 +376,46 @@ export const resultsResponseExample = {
         { game_id: 'group_chat_game', scores: { cooperativeness: 60, positivity: 70, caution: 45 } },
     ],
     feedback: {
-        title: '直感ドリブン',
-        description: 'あなたは論理よりも直感を優先して意思決定する傾向があります。',
+        title: '直感で生きる哺乳類',
+        subtitle: '理屈より先に体が動く、本能で正解を掴むタイプ',
+        description: 'あなたの自己認識一致度は78%。「論理的に考えるタイプ」と思っていたかもしれません。でも仕分けゲームでルールが変わった後も、あなたは3.5秒間、以前のルールで動き続けていました。',
         gap_point: '論理性',
     },
     accuracy_score: 78,
     phase_summaries: [
-        { game_id: 'terms_game', summary: '規約を爆速でスクロールし、最後まで読まずに同意しました。' },
+        {
+            game_id: 'terms_game',
+            summary: '規約を爆速でスクロールし、最後まで読まずに同意しました。',
+            highlights: [
+                {
+                    text: '「同意する」ボタンを押すまで、規約をわずか8.2秒しか見ませんでした。',
+                    comparison: '平均は約15秒',
+                    reason: '読む時間の長さから〈慎重さ・論理性〉がわかるため',
+                },
+            ],
+        },
         {
             game_id: 'sorter_game',
-            summary:
-                'ルール変更には3.5秒で適応しました。システム障害中も落ち着いて待てました。',
+            summary: 'ルール変更には3.5秒で適応しました。システム障害中も落ち着いて待てました。',
+            highlights: [
+                {
+                    text: '荷物1つを仕分けるまでの平均判断時間は1.2秒。',
+                    comparison: '平均は約1.5秒',
+                    reason: '判断の速さから〈慎重さ／積極性〉がわかるため',
+                },
+            ],
         },
-        { game_id: 'group_chat_game', summary: 'グループの空気を読みつつ、自分の意見も主張していました。' },
+        {
+            game_id: 'group_chat_game',
+            summary: 'グループの空気を読みつつ、自分の意見も主張していました。',
+            highlights: [
+                {
+                    text: '同期が動き出す前に返答できました。',
+                    comparison: '全体の約40%が先手を取れています',
+                    reason: '先手を取れるかから〈積極性〉がわかるため',
+                },
+            ],
+        },
     ],
     // タイトル文字列は analysis/scoreCalculator.ts の実装値に合わせる
     // （sorter_game: '荷物仕分けゲーム' / group_chat_game: '空気読みグループチャット'）
