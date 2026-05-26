@@ -117,6 +117,12 @@ export interface ChoiceOption {
   /** 内部意図 ID（1,2=協調系 / 3,4=独自系）。表示順とは独立 */
   selectedOptionId: OptionIntentId;
   text: string;
+  /**
+   * `true` の場合、この選択肢を選んでも user メッセージとしてチャットに表示しない。
+   * 「（黙って様子を見る）」などの「無反応」を意図する選択肢に付与する。
+   * BE には `selectedOptionId` のみ送るため、このフラグは FE の表示制御専用。
+   */
+  isSilent?: boolean;
 }
 
 export interface TurnDefinition {
@@ -142,7 +148,11 @@ export const TURNS: TurnDefinition[] = [
       { selectedOptionId: 3, text: '私の方も今ちょっと厳しくて…💦' }, // 独自: やんわり拒否
       { selectedOptionId: 1, text: '私やりましょうか？' }, // 協調: 引き受ける
       { selectedOptionId: 4, text: '同期A、対応できそう？' }, // 独自: 他人に振る
-      { selectedOptionId: 2, text: '（黙って様子を見る）' }, // 協調: 同期Aに譲る／場を読む
+      {
+        selectedOptionId: 2,
+        text: '（黙って様子を見る）',
+        isSilent: true,
+      }, // 協調: 同期Aに譲る／場を読む（無反応）
     ],
     timerMs: TURN_TIMER_MS[1],
   },
@@ -157,7 +167,11 @@ export const TURNS: TurnDefinition[] = [
         text: 'ちなみに不具合の原因って何だったんですか？',
       }, // 独自: 話題転換
       { selectedOptionId: 2, text: '同期A、ほんと頼りになるね！' }, // 協調: 同期A持ち上げ
-      { selectedOptionId: 3, text: '（黙って様子を見る）' }, // 独自: 流れに乗らない／同調しない
+      {
+        selectedOptionId: 3,
+        text: '（黙って様子を見る）',
+        isSilent: true,
+      }, // 独自: 流れに乗らない／同調しない（無反応）
     ],
     timerMs: TURN_TIMER_MS[2],
   },
@@ -175,7 +189,11 @@ export const TURNS: TurnDefinition[] = [
       { selectedOptionId: 1, text: 'もちろんです！後で共有します' }, // 協調: 応じる
       { selectedOptionId: 4, text: '同期A なら大丈夫だと思います！' }, // 独自: 他者を立てる
       { selectedOptionId: 2, text: 'えーと…ちょっと思い出します💦' }, // 協調: 一応応じる
-      { selectedOptionId: 3, text: '（黙って様子を見る）' }, // 独自: 指名を無視
+      {
+        selectedOptionId: 3,
+        text: '（黙って様子を見る）',
+        isSilent: true,
+      }, // 独自: 指名を無視（無反応）
     ],
     timerMs: TURN_TIMER_MS[3],
   },
@@ -196,16 +214,25 @@ export const T1_PREEMPT_MESSAGE: BotMessage = {
 // ターン2 冒頭・上司セリフ分岐（演出のみ・データ保存なし）
 // =========================================================
 /**
+ * 「無反応」扱いの場合（silent 選択肢 = 黙って様子を見る / タイムアウト）に
+ * 共通で使う上司セリフ。プレイヤーには触れず、同期A への感謝だけを伝える。
+ */
+const NO_RESPONSE_BOSS_LINE = 'あ、同期A が手を上げてくれた！助かる〜🙏';
+
+/**
  * ターン1の選択（意図 ID）に応じてターン2冒頭の上司セリフを差し替える。
  * キーはターン1の `selectedOptionId`。タイムアウト時は `timeout` を使う。
  * BE には保存しない（`turns[0].selectedOptionId` から逆引き可能なため）。
+ *
+ * 「黙って様子を見る」（ID=2）とタイムアウトは、いずれも「プレイヤーの無反応」
+ * という意味で同じ上司セリフ（NO_RESPONSE_BOSS_LINE）を共有する。
  */
 export const TURN2_BOSS_BRANCH = {
   1: 'ありがとう🙏 でも今回は同期A がやってくれるって！また次お願いね', // 私やりましょうか？
-  2: 'お、見守ってくれてたんだね。同期A がやってくれるって🙏', // （黙って様子を見る）
+  2: NO_RESPONSE_BOSS_LINE, // （黙って様子を見る）= 無反応扱い
   3: '大丈夫大丈夫、無理しないで！同期A がやってくれるって🙏', // 私の方も厳しくて
   4: 'ナイス振り！同期A、ありがとう🙏', // 同期A、対応できそう？
-  timeout: 'あ、同期A が手を上げてくれた！助かる〜🙏', // タイムアウト
+  timeout: NO_RESPONSE_BOSS_LINE, // タイムアウト = 無反応扱い
 } as const satisfies Record<OptionIntentId | 'timeout', string>;
 
 /**

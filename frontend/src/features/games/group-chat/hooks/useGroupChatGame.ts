@@ -220,13 +220,17 @@ export function useGroupChatGame(options: {
             : null;
       }
 
+      // 無言系の選択肢（isSilent: true、例:「黙って様子を見る」）は chat に
+      // 表示しない。BE には selectedOptionId を送るので分析には影響しない。
       const choice = turn.choices.find(
         (c) => c.selectedOptionId === selectedOptionId
       );
-      setChatMessages((prev) => [
-        ...prev,
-        { type: 'user', text: choice?.text ?? '' },
-      ]);
+      if (choice && !choice.isSilent) {
+        setChatMessages((prev) => [
+          ...prev,
+          { type: 'user', text: choice.text },
+        ]);
+      }
 
       recordTurnAndAdvance(selectedOptionId, reactionTimeMs, false);
     },
@@ -243,10 +247,8 @@ export function useGroupChatGame(options: {
       turn1AnsweredBeforeColleagueARef.current = null;
       turn1TypingIndicatorReactTimeMsRef.current = null;
     }
-    setChatMessages((prev) => [
-      ...prev,
-      { type: 'user', text: '（タイムアウト）' },
-    ]);
+    // タイムアウトは「無反応」扱い: user メッセージを chat に追加しない。
+    // BE には selectedOptionId=0 / isTimeout=true で送るため分析側で識別可能。
     // 仕様: タイムアウトは reactionTimeMs を実時間（≒制限時間）として記録
     recordTurnAndAdvance(0, turn.timerMs, true);
   }, [currentTurnIndex, recordTurnAndAdvance]);
