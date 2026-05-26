@@ -58,10 +58,11 @@ export default function OnboardingSlides({
       onComplete={onStart}
       ariaLabel="仕分けゲームのチュートリアル"
       classNames={{
-        // 既定（440/420/400）だとスライド 1（概要 + カテゴリー + 2 方式の操作）が
-        // 見切れる狭幅環境があるため、両スライドのうち背の高い方（=スライド 1）を
-        // 基準に拡張する。PC（lg）では操作が横並びになり背が低くなるため低めに抑える。
-        body: 'min-h-[640px] sm:min-h-[580px] lg:min-h-[500px]',
+        // カテゴリーを 1 行の早見表に圧縮したことで slide1 全体が低くなったため、
+        // 既定（440/420/400）より少し高い程度に抑えてスクロールを避ける。
+        // 両スライドのうち背の高い方（=スライド 1）基準。PC（lg）では操作が横並びに
+        // なり一段背が低くなるためさらに抑える。
+        body: 'min-h-[580px] sm:min-h-[520px] lg:min-h-[440px]',
       }}
     >
       <SlideHowToPlay />
@@ -102,44 +103,45 @@ function SlideHowToPlay() {
       </div>
 
       {/*
-        3 カテゴリーの色対応（荷物 → 仕分け先）。
-        スライド 1 内では「これから仕分ける対象の早見表」として控えめなサイズで配置し、
-        下段の操作説明に高さを譲る。横並び 3 は狭幅でも維持して 1 行で全カテゴリーを
-        一望できるようにする。
+        3 カテゴリーの色対応（荷物 → 仕分け先）の早見表。
+        個別カードに分けず、横一列に 3 マッピングをまとめて配置する（境界線なし）。
+        各マッピングは「色付きラベル（上）+ 荷物画像 → 仕分け先画像（横並び）」の
+        コンパクトな縦サイズで、下段の操作説明に高さを譲る。
+        中央寄せ + gap で 3 マッピングを等間隔に並べ、3 つで 1 つの早見表という
+        まとまり感を出す。
       */}
-      <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4 sm:gap-3 lg:gap-4">
+      <div className="mt-3 flex items-center justify-center gap-5 sm:mt-4 sm:gap-7 lg:gap-10">
         {PACKAGE_TYPES.map((type) => (
-          <div
-            key={type}
-            className="flex flex-col items-center gap-1 rounded-xl border-[3px] border-black bg-white p-2 shadow-[3px_3px_0_0_#000]"
-          >
-            <div className="relative h-10 w-10 shrink-0 sm:h-12 sm:w-12 lg:h-14 lg:w-14">
-              <Image
-                src={PACKAGE_IMAGE_PATHS[type]}
-                alt={`${PACKAGE_LABELS[type]}の荷物`}
-                fill
-                sizes="(min-width: 1024px) 56px, (min-width: 640px) 48px, 40px"
-                className="object-contain"
-              />
-            </div>
-            <span aria-hidden className="text-sm font-black sm:text-base">
-              ↓
-            </span>
-            <div className="relative h-10 w-10 shrink-0 sm:h-12 sm:w-12 lg:h-14 lg:w-14">
-              <Image
-                src={BIN_IMAGE_PATHS[type]}
-                alt={`${PACKAGE_LABELS[type]}の仕分け先`}
-                fill
-                sizes="(min-width: 1024px) 56px, (min-width: 640px) 48px, 40px"
-                className="object-contain"
-              />
-            </div>
+          <div key={type} className="flex flex-col items-center gap-1.5">
             <span
               className="text-xs font-black tracking-wider sm:text-sm lg:text-base"
               style={{ color: PACKAGE_COLORS[type] }}
             >
               {PACKAGE_LABELS[type]}
             </span>
+            <div className="flex items-center gap-1.5">
+              <div className="relative h-10 w-10 shrink-0 sm:h-12 sm:w-12">
+                <Image
+                  src={PACKAGE_IMAGE_PATHS[type]}
+                  alt={`${PACKAGE_LABELS[type]}の荷物`}
+                  fill
+                  sizes="(min-width: 640px) 48px, 40px"
+                  className="object-contain"
+                />
+              </div>
+              <span aria-hidden className="text-base font-black sm:text-lg">
+                →
+              </span>
+              <div className="relative h-10 w-10 shrink-0 sm:h-12 sm:w-12">
+                <Image
+                  src={BIN_IMAGE_PATHS[type]}
+                  alt={`${PACKAGE_LABELS[type]}の仕分け先`}
+                  fill
+                  sizes="(min-width: 640px) 48px, 40px"
+                  className="object-contain"
+                />
+              </div>
+            </div>
           </div>
         ))}
       </div>
