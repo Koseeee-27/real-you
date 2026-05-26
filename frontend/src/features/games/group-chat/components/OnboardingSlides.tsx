@@ -7,6 +7,7 @@ import {
   CHARACTERS,
   INTRO_CHARACTERS,
   ONBOARDING_TITLE,
+  PLAYER_INTRO_TEXT,
   RULES,
   SCENE_TEXT,
   SITUATION_TEXT,
@@ -85,6 +86,11 @@ export default function OnboardingSlides({ onStart }: OnboardingSlidesProps) {
           </span>
         </h2>
 
+        {/* プレイヤーの役割サブタイトル */}
+        <p className="-mt-2 text-center text-sm font-bold text-gray-700 sm:text-base">
+          {PLAYER_INTRO_TEXT}
+        </p>
+
         <div className="grid gap-5 lg:grid-cols-[3fr_2fr] lg:gap-x-10">
           {/* 左カラム: 場面 / 状況 / ルール */}
           <div className="flex flex-col gap-4">
@@ -121,11 +127,11 @@ export default function OnboardingSlides({ onStart }: OnboardingSlidesProps) {
                   <Image
                     src={CHARACTERS[c.characterId].iconPath}
                     alt={c.role}
-                    width={72}
-                    height={72}
-                    className="h-[72px] w-[72px] rounded-full border-[3px] border-black bg-white object-cover shadow-[2px_2px_0_0_#000]"
+                    width={64}
+                    height={64}
+                    className="h-16 w-16 rounded-full border-[3px] border-black bg-white object-cover shadow-[2px_2px_0_0_#000]"
                   />
-                  <span className="text-sm font-black tracking-wide sm:text-base">
+                  <span className="text-xs font-black tracking-wide sm:text-sm">
                     {c.role}
                   </span>
                 </div>

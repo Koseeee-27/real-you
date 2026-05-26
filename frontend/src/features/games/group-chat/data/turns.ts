@@ -42,9 +42,9 @@ export const CHARACTERS = {
   },
 } as const satisfies Record<CharacterId, Character>;
 
-/** オンボーディング1スライドに並べる登場人物（プレイヤー以外の3人）。名前のみ */
+/** オンボーディング1スライドに並べる登場人物（プレイヤー含む全4人）。名前のみ */
 export interface IntroCharacter {
-  characterId: Exclude<CharacterId, 'player'>;
+  characterId: CharacterId;
   role: string;
 }
 
@@ -52,9 +52,13 @@ export const INTRO_CHARACTERS: IntroCharacter[] = [
   { characterId: 'boss', role: '上司' },
   { characterId: 'colleague-a', role: '同期A' },
   { characterId: 'colleague-b', role: '同期B' },
+  { characterId: 'player', role: 'あなた' },
 ];
 
 export const ONBOARDING_TITLE = '空気読みチャットゲーム';
+
+/** オンボーディング: サブタイトル（プレイヤーの役割説明） */
+export const PLAYER_INTRO_TEXT = 'あなたは開発チームのメンバーの一人です';
 
 /** オンボーディング: 場面（短く） */
 export const SCENE_TEXT = '開発チームのグループチャット';
@@ -66,7 +70,7 @@ export const SITUATION_TEXT =
 /** オンボーディング: ルール（箇条書き） */
 export const RULES: readonly string[] = [
   '4 つの選択肢から 1 つを選んで返信',
-  '各ターンに制限時間あり（時間切れも記録される）',
+  '各ターンに制限時間あり',
 ];
 
 // =========================================================
