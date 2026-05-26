@@ -177,7 +177,6 @@ export default function GroupChatGameFlow() {
 
   const {
     gamePhase,
-    slideIndex,
     chatMessages,
     remainingTimeMs,
     currentTurn,
@@ -185,8 +184,6 @@ export default function GroupChatGameFlow() {
     totalTurns,
     typingSpeaker,
     startGame: rawStartGame,
-    goToNextSlide,
-    goToPrevSlide,
     selectOption: rawSelectOption,
   } = useGroupChatGame({ onComplete: handleComplete });
 
@@ -212,14 +209,7 @@ export default function GroupChatGameFlow() {
       {/* デスクトップ背景（壁紙 + 装飾ウィンドウ） */}
       <DesktopBackdrop />
 
-      {gamePhase === 'onboarding' && (
-        <OnboardingSlides
-          slideIndex={slideIndex}
-          onPrev={goToPrevSlide}
-          onNext={goToNextSlide}
-          onStart={startGame}
-        />
-      )}
+      {gamePhase === 'onboarding' && <OnboardingSlides onStart={startGame} />}
 
       {gamePhase !== 'onboarding' && (
         <div className="relative z-10 flex h-[800px] max-h-[92vh] w-[1240px] max-w-[96vw] flex-col overflow-hidden rounded-[22px] border-[6px] border-black bg-white shadow-[10px_10px_0_0_rgba(0,0,0,0.35),0_36px_90px_rgba(0,0,0,0.32)]">

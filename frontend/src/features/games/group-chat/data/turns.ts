@@ -42,34 +42,25 @@ export const CHARACTERS = {
   },
 } as const satisfies Record<CharacterId, Character>;
 
-/** オンボーディング スライド2 に並べる登場人物（プレイヤー以外の3人） */
+/** オンボーディング1スライドに並べる登場人物（プレイヤー以外の3人）。名前のみ */
 export interface IntroCharacter {
   characterId: Exclude<CharacterId, 'player'>;
   role: string;
-  personality: string;
 }
 
 export const INTRO_CHARACTERS: IntroCharacter[] = [
-  { characterId: 'boss', role: '上司', personality: '面倒見の良い上司' },
-  {
-    characterId: 'colleague-a',
-    role: '同期A',
-    personality: 'いつも先手を取りたがる同期',
-  },
-  {
-    characterId: 'colleague-b',
-    role: '同期B',
-    personality: '物静かに場を見守る同期',
-  },
+  { characterId: 'boss', role: '上司' },
+  { characterId: 'colleague-a', role: '同期A' },
+  { characterId: 'colleague-b', role: '同期B' },
 ];
 
 export const SITUATION_TEXT =
   '業務時間後半。開発チームのグループチャットで、上司が「今日中に対応が必要な不具合」を共有してきた。チームの空気を読みながら、自分はどう動く？';
 
-export const ONBOARDING_TITLE = '適切に応答せよ！';
-export const ONBOARDING_DESC = `あなたは開発チームのグループチャットに参加しています。
+/** タイムアウトでも問題ない（無視も選択肢）旨をプレイヤーに伝える注記 */
+export const TIMEOUT_OK_NOTE = '※ 答えにくいときは無理に返さなくても大丈夫です';
 
-自由に返信せよ！！`;
+export const ONBOARDING_TITLE = '空気読みチャットゲーム';
 
 // =========================================================
 // グループ / タイミング定数
@@ -99,7 +90,6 @@ export const TURN_TIMER_MS = {
 // =========================================================
 export type TurnId = 1 | 2 | 3;
 export type OptionIntentId = 1 | 2 | 3 | 4;
-export type TimerColor = 'red' | 'green';
 
 /** number（BE 生型 `selectedOptionId`）が意図 ID（1-4）かを判定するガード */
 export function isOptionIntentId(v: number): v is OptionIntentId {
@@ -126,11 +116,10 @@ export interface TurnDefinition {
   /** 表示順（散らした固定順）に並べた選択肢。各要素に意図 ID を付与 */
   choices: ChoiceOption[];
   timerMs: number;
-  timerColor: TimerColor;
 }
 
 export const TURNS: TurnDefinition[] = [
-  // --- ターン1: 沈黙の挙手（積極性主軸 / 制限時間短め・赤）---
+  // --- ターン1: 沈黙の挙手（積極性主軸 / 制限時間短め）---
   {
     turnId: 1,
     initialBotMessages: [
@@ -146,9 +135,8 @@ export const TURNS: TurnDefinition[] = [
       { selectedOptionId: 2, text: '何時までにですか？' }, // 協調: 関わる・確認
     ],
     timerMs: TURN_TIMER_MS[1],
-    timerColor: 'red',
   },
-  // --- ターン2: 同調プレッシャー（協調性主軸 / 制限時間長め・緑）---
+  // --- ターン2: 同調プレッシャー（協調性主軸 / 制限時間長め）---
   {
     turnId: 2,
     initialBotMessages: [], // 冒頭の上司セリフは TURN2_BOSS_BRANCH から差し込む
@@ -165,9 +153,8 @@ export const TURNS: TurnDefinition[] = [
       { selectedOptionId: 2, text: '同期A、ほんと頼りになるね！' }, // 協調: 同期A持ち上げ
     ],
     timerMs: TURN_TIMER_MS[2],
-    timerColor: 'green',
   },
-  // --- ターン3: 名指し返球（慎重さ主軸 / 制限時間短め・赤）---
+  // --- ターン3: 名指し返球（慎重さ主軸 / 制限時間短め）---
   {
     turnId: 3,
     initialBotMessages: [
@@ -184,7 +171,6 @@ export const TURNS: TurnDefinition[] = [
       { selectedOptionId: 4, text: '同期A なら大丈夫だと思います！' }, // 独自: 他人を立てる
     ],
     timerMs: TURN_TIMER_MS[3],
-    timerColor: 'red',
   },
 ];
 

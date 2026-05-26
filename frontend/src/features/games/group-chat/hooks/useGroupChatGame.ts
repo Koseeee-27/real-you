@@ -25,8 +25,6 @@ import type {
 
 /** タイマーの更新間隔（ms） */
 const TIMER_TICK_MS = 100;
-/** オンボーディングのスライド枚数（slide1 + slide2） */
-const SLIDE_COUNT = 2;
 
 /** OpenAPI 生成型から 1 ターン分の型を取り出す（名前付き型の再エクスポート有無に依存しない） */
 type GroupChatGameTurn = GroupChatGameData['turns'][number];
@@ -34,7 +32,7 @@ type GroupChatGameTurn = GroupChatGameData['turns'][number];
 /**
  * ゲームの進行状態。
  *
- * onboarding  → オンボーディング2スライド表示中（スライド番号は slideIndex で管理）
+ * onboarding  → オンボーディング表示中（OnboardingSlides 内の SlideModal が描画）
  * turn-cutin  → 「ターン N」カットイン演出中
  * turn-active → 選択肢 + タイマー稼働中。bot メッセージは並行して順次表示
  * submitting  → 全ターン完了、GroupChatGameData を組み立てて onComplete に渡す
@@ -92,7 +90,6 @@ export function useGroupChatGame(options: {
   // UI に反映するステート
   // =========================================================
   const [gamePhase, setGamePhase] = useState<GamePhase>('onboarding');
-  const [slideIndex, setSlideIndex] = useState(0);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [remainingTimeMs, setRemainingTimeMs] = useState<number>(
@@ -409,17 +406,8 @@ export function useGroupChatGame(options: {
   }, [clearAllPendingTimeouts]);
 
   // =========================================================
-  // オンボーディング操作 / ゲーム開始
+  // ゲーム開始（オンボーディングからの遷移）
   // =========================================================
-  const goToNextSlide = useCallback(
-    () => setSlideIndex((i) => Math.min(i + 1, SLIDE_COUNT - 1)),
-    []
-  );
-  const goToPrevSlide = useCallback(
-    () => setSlideIndex((i) => Math.max(i - 1, 0)),
-    []
-  );
-
   const startGame = useCallback(() => {
     if (gamePhase !== 'onboarding') return;
     tutorialViewTimeRef.current = Date.now() - onboardingOpenedAtRef.current;
@@ -447,7 +435,6 @@ export function useGroupChatGame(options: {
 
   return {
     gamePhase,
-    slideIndex,
     chatMessages,
     remainingTimeMs,
     currentTurn,
@@ -456,8 +443,6 @@ export function useGroupChatGame(options: {
     isTypingIndicatorVisible,
     typingSpeaker,
     startGame,
-    goToNextSlide,
-    goToPrevSlide,
     selectOption,
   };
 }

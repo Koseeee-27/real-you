@@ -9,7 +9,7 @@ interface ChoicePadProps {
   onSelect: (selectedOptionId: OptionIntentId) => void;
 }
 
-/** 下部のタイマーバー（赤/緑）+ 2×2 選択肢グリッド。 */
+/** 下部のタイマーバー（黄色固定）+ 2×2 選択肢グリッド。 */
 export default function ChoicePad({
   turn,
   remainingTimeMs,
@@ -19,12 +19,11 @@ export default function ChoicePad({
 
   return (
     <div className="shrink-0 border-t-[6px] border-black bg-[#f1cf44] pb-6">
-      {/* タイマーゲージ */}
+      {/* タイマーゲージ: 全ターン共通の黄色。残り時間を視覚化するのみで、
+          赤色などで「答えないと失敗」のプレッシャーを与えない設計。 */}
       <div className="h-2.5 w-full bg-black">
         <div
-          className={`h-full transition-[width] duration-100 ${
-            turn.timerColor === 'green' ? 'bg-[#57d071]' : 'bg-[#e03131]'
-          }`}
+          className="h-full bg-[#f1cf44] transition-[width] duration-100"
           style={{ width: `${ratio * 100}%` }}
         />
       </div>
