@@ -584,7 +584,17 @@ export function useSorterGame(options: {
     }
 
     // ルール変更適応の初正解
-    if (isRuleChanged && correct && firstCorrectAfterRuleChangeRef.current) {
+    // 「変更ルールに該当する荷物」を正しく仕分けた時のみ確定する。
+    // ルール変更 (RULE_CHANGED_CORRECT_BIN) で正解 bin が変わるのは urgent (→ heavy) のみ。
+    // 変更されない fragile / heavy を正解しても ruleChangeAdaptMs は確定させない。
+    // これにより「変更ルールへの本当の適応時間」を測れる（分析ロジック仕様書 ruleChangeAdaptMs の定義に整合）。
+    const touchesChangedRule =
+      isRuleChanged && RULE_CHANGED_CORRECT_BIN[pkg.type] !== pkg.type;
+    if (
+      touchesChangedRule &&
+      correct &&
+      firstCorrectAfterRuleChangeRef.current
+    ) {
       const changedAt = ruleChangedAtRef.current;
       if (changedAt != null) {
         ruleChangeAdaptMsRef.current = Date.now() - changedAt;
