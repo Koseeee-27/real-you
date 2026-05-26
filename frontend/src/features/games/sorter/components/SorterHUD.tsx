@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   SORTER_UI_COLORS,
   TARGET_SCORE,
@@ -27,26 +27,96 @@ interface SorterHUDProps {
 const TIMER_WARNING_THRESHOLD_SEC = 10;
 
 /**
- * 円形リングタイマーの SVG 寸法（px）。
- * RADIUS は線幅を内側に収めるため (SIZE/2 - STROKE/2) で算出する。
+ * 状態バッジ 1 つ分の表示設定。
+ * 配列で持つことで「機械停止中だけ単独」「ルール変更 + スピード 2 倍は両立」を
+ * if 分岐ではなく宣言的に表現でき、JSX 側を 1 つの map に集約できる（DRY）。
  */
-const RING_SIZE_PX = 56;
-const RING_STROKE_PX = 7;
-const RING_RADIUS_PX = RING_SIZE_PX / 2 - RING_STROKE_PX / 2;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS_PX;
+type BadgeConfig = {
+  /** AnimatePresence の key（出入りアニメの識別子） */
+  key: string;
+  /** バッジ本文（装飾アイコンも文字列に含めて対称化する） */
+  label: string;
+  /** 背景色（SORTER_UI_COLORS のいずれか） */
+  bgColor: string;
+  /** 文字色（背景とのコントラストで指定） */
+  textColor: 'black' | 'white';
+  /**
+   * 継続パルスの最大スケール。1 を超えるほど呼吸が大きく見える。
+   * 緊急度が高いほど 1 に近い値で控えめ（停止 < ルール変更 < スピード 2 倍 の順で速さ・幅を上げる）。
+   */
+  pulseScale: number;
+  /** パルス 1 周分の秒数。小さいほど速い呼吸 = 緊急感が強い */
+  pulseDuration: number;
+};
+
+/**
+ * 現在の状態フラグから「いま表示すべきバッジ」の配列を組み立てる。
+ *
+ * - `isFrozen` は最優先で他バッジを抑制する（停止中は他の演出を出さない）
+ * - 凍結中でなければ `isRuleChanged` / `isSpeedUp` は両立しうる（両方を並べる）
+ *
+ * 並び順は「ルール変更 → スピード 2 倍」の順で安定させ、出現順に左から並ぶ。
+ */
+function buildActiveBadges(flags: {
+  isFrozen: boolean;
+  isRuleChanged: boolean;
+  isSpeedUp: boolean;
+}): BadgeConfig[] {
+  if (flags.isFrozen) {
+    return [
+      {
+        key: 'frozen',
+        label: '✗ 機械停止中 ✗',
+        bgColor: SORTER_UI_COLORS.warning,
+        textColor: 'black',
+        pulseScale: 1.04,
+        pulseDuration: 0.7,
+      },
+    ];
+  }
+
+  const badges: BadgeConfig[] = [];
+  if (flags.isRuleChanged) {
+    badges.push({
+      key: 'rule-change',
+      label: '⚠ ルール変更中: 特急 → 重量物 ⚠',
+      bgColor: SORTER_UI_COLORS.warning,
+      textColor: 'black',
+      pulseScale: 1.03,
+      pulseDuration: 0.9,
+    });
+  }
+  if (flags.isSpeedUp) {
+    badges.push({
+      key: 'speed-up',
+      label: '⚡ スピード 2 倍 ⚡',
+      bgColor: SORTER_UI_COLORS.accent,
+      textColor: 'white',
+      pulseScale: 1.05,
+      pulseDuration: 0.5,
+    });
+  }
+  return badges;
+}
 
 /**
  * ゲーム画面上部の HUD（Heads-Up Display）。
  *
- * - 上段（厚め）: タイトル / 現在スコア（大、目標併記）/ 円形リングのカウントダウンタイマー
- * - 下段: 状態バッジ帯（機械停止中 / ルール変更中 / スピード 2 倍）を幅広・大きめに表示
+ * 構造（固定高さ + 絶対配置レイヤー）:
+ *   - ルート: `relative h-[88px]` の固定枠。フロー上は常に同じ高さを占有する
+ *   - バッジ群: 左 absolute。AnimatePresence で出入り + 継続パルスで強調
+ *   - タイマー: 中央 absolute（pill 形、大きな数字のみ）。主役の位置で目立たせる
+ *   - SCORE パネル: 右 absolute、独立枠
  *
- * 勝敗の主軸は「目標スコア到達」だが、playtest で進捗バーより数値の方が分かりやすいと
- * 判定されたため、現在スコアを大きく数値表示し目標値を小さく併記する。
- * 上限時間は円形リングで残り割合（remainingTimeMs / TIME_CAP_MS）を見せ、中央に残り秒数を出す。
- * 残りが TIMER_WARNING_THRESHOLD_SEC 秒以下になると数値・リングとも danger 色になり、
- * 「上限到達 = 失敗」が近いことを直感的に伝える。
- * バッジは優先度に応じて「機械停止中」表示時は他を抑制する。
+ * **不変条件**: バッジ数の変化（0 → 1 → 2）が HUD のフロー高さに影響しないこと。
+ *   バッジ群と SCORE / タイマーは全て absolute レイヤーに浮かせており、ルートの高さは
+ *   常に 88px 固定。これにより呼び出し側（SorterGameFlow）でベルトの開始位置を pt で
+ *   固定でき、「バッジ複数表示時にベルトが押し下げられる」事象を構造的に防ぐ。
+ *
+ * 勝敗の主軸は「目標スコア到達」だが、現在スコアを数値で大きく出すほうが playtest で
+ * 分かりやすかったため、SCORE を主役にして目標値を小さく併記する。
+ * 上限時間は中央の pill 形タイマーで残り秒数を大きく表示。残り時間の進捗バーは持たず、
+ * 残り秒数の数値 + 残り 10 秒以下の色変化 + pulse + 発光で「迫っている」を伝える。
  */
 export default function SorterHUD({
   displayScore,
@@ -60,34 +130,120 @@ export default function SorterHUD({
     0,
     Math.ceil((TIME_CAP_MS - elapsedTimeMs) / 1000)
   );
-  // 残り時間の割合（0–1）。リングの strokeDashoffset 算出に使う。
-  // remainingTimeMs / TIME_CAP_MS をそのまま割合として扱う。
-  const remainingFraction = Math.max(
-    0,
-    Math.min(1, (TIME_CAP_MS - elapsedTimeMs) / TIME_CAP_MS)
-  );
-  // リングの欠け量。残りが減るほど offset が増え、リングが時計回りに減っていく。
-  const ringOffset = RING_CIRCUMFERENCE * (1 - remainingFraction);
-  // 残りわずか → 警告色に切替（数値・リング共通）。
+  // 残りわずか → 警告色に切替。
   const isTimerWarning = remainingSec <= TIMER_WARNING_THRESHOLD_SEC;
   const timerColor = isTimerWarning
     ? SORTER_UI_COLORS.danger
     : SORTER_UI_COLORS.accent;
 
-  return (
-    <>
-      {/* === 上段（厚め）: タイトル / 現在スコア（大）/ 円形リングタイマー === */}
-      <div className="z-10 px-4">
-        <div className="mx-auto flex w-full max-w-4xl items-center gap-3 rounded-2xl border-[5px] border-black bg-white px-5 py-3 shadow-[5px_5px_0_0_#000] sm:gap-4 sm:px-6 sm:py-4">
-          <h1
-            className="hidden shrink-0 text-lg font-black tracking-widest sm:block sm:text-2xl"
-            style={{ color: SORTER_UI_COLORS.accent }}
-          >
-            仕分けゲーム
-          </h1>
+  const activeBadges = buildActiveBadges({
+    isFrozen,
+    isRuleChanged,
+    isSpeedUp,
+  });
 
-          {/* 現在スコア（大）+ 目標値（小）。数値を主役にして分かりやすく見せる */}
-          <div className="flex flex-1 items-baseline justify-center gap-1.5">
+  return (
+    <div className="relative mx-auto h-[88px] w-full max-w-7xl">
+      {/*
+        === バッジエリア（左 absolute、horizontal 固定で 1 行） ===
+        バッジ群は AnimatePresence で出入り。出現時は上からスライドイン + スケールイン、
+        表示中は continuous パルスで「いま何かが起きている」ことを伝える。
+        flex-nowrap で 2 つ並んでも 1 行を維持。
+        中央のタイマーと右の SCORE と被らないよう、ここは左寄せのみ（最大幅は内容依存）。
+      */}
+      <div className="absolute inset-y-0 left-0 flex items-center">
+        <div className="flex flex-nowrap items-center gap-2 sm:gap-3">
+          <AnimatePresence mode="popLayout">
+            {activeBadges.map((badge) => (
+              <motion.span
+                key={badge.key}
+                initial={{ opacity: 0, y: -12, scale: 0.85 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  // 出現後は scale を [1, pulseScale, 1] で繰り返し、継続呼吸を作る。
+                  // opacity / y は出現演出のみ、scale は出現完了後に repeat に切り替わる。
+                  scale: [1, badge.pulseScale, 1],
+                }}
+                exit={{ opacity: 0, scale: 0.85 }}
+                transition={{
+                  opacity: { duration: 0.25 },
+                  y: { duration: 0.25 },
+                  scale: {
+                    duration: badge.pulseDuration,
+                    repeat: Infinity,
+                    repeatType: 'loop',
+                    ease: 'easeInOut',
+                  },
+                }}
+                className="inline-flex items-center justify-center rounded-xl border-[5px] border-black px-3 py-1.5 text-sm font-black tracking-wider whitespace-nowrap shadow-[5px_5px_0_0_#000] sm:px-4 sm:py-2 sm:text-lg"
+                style={{
+                  backgroundColor: badge.bgColor,
+                  color: badge.textColor === 'white' ? '#ffffff' : '#000000',
+                }}
+              >
+                {badge.label}
+              </motion.span>
+            ))}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/*
+        === 中央: タイマー pill ===
+        参考画像（Wii Party）の細長い pill 形を踏襲。
+        - rounded-full + 黒枠 + 白背景 + ベタ影で neo-brutalism の主役感を出す
+        - 中央に残り秒数を大きく（text-5xl sm:text-6xl）
+        - 進捗バーは持たず、残り秒数の数値 + 色 + pulse で「迫っている」を伝える
+        - 残り TIMER_WARNING_THRESHOLD_SEC 秒以下:
+            数字を danger 色 / scale [1, 1.12, 1] で 0.5s 速 pulse / danger 色の drop-shadow 発光
+      */}
+      <motion.div
+        className="absolute inset-y-0 left-1/2 flex -translate-x-1/2 items-center"
+        animate={isTimerWarning ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+        transition={
+          isTimerWarning
+            ? {
+                duration: 0.5,
+                repeat: Infinity,
+                repeatType: 'loop',
+                ease: 'easeInOut',
+              }
+            : { duration: 0.3 }
+        }
+        style={{
+          // drop-shadow は 'none' との切替で interpolate トラップに陥るため、非警告時も
+          // 同形式の透明 drop-shadow を入れて framer-motion の filter 補間を安定させる。
+          filter: isTimerWarning
+            ? 'drop-shadow(0 0 8px rgba(224, 49, 49, 0.7))'
+            : 'drop-shadow(0 0 0px rgba(224, 49, 49, 0))',
+        }}
+      >
+        <div
+          className="flex items-center justify-center rounded-full border-[5px] border-black bg-white px-6 py-1 shadow-[5px_5px_0_0_#000] sm:px-8 sm:py-1.5"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(TIME_CAP_MS / 1000)}
+          aria-valuenow={remainingSec}
+          aria-label={`残り時間 ${remainingSec} 秒`}
+        >
+          <span
+            className="text-5xl leading-tight font-black tabular-nums sm:text-6xl"
+            style={{ color: timerColor }}
+            aria-hidden
+          >
+            {remainingSec}
+          </span>
+        </div>
+      </motion.div>
+
+      {/*
+        === 右: SCORE パネル（独立枠、絶対配置で右寄せ） ===
+        neo-brutalism の黒枠 + 影パネル。数値主役で進捗を直感化する（現在値大 + 目標値小）。
+      */}
+      <div className="absolute inset-y-0 right-0 flex items-center">
+        <div className="flex items-center rounded-2xl border-[4px] border-black bg-white px-5 shadow-[4px_4px_0_0_#000] sm:px-6">
+          <div className="flex items-baseline gap-2">
             <span
               className="text-sm font-black tracking-wider text-black/45"
               aria-hidden
@@ -101,93 +257,12 @@ export default function SorterHUD({
             >
               {displayScore}
             </span>
-            <span className="text-lg font-black text-black/40 tabular-nums sm:text-xl">
+            <span className="text-base font-black text-black/40 tabular-nums sm:text-lg">
               / {TARGET_SCORE}
             </span>
           </div>
-
-          {/* 残り時間タイマー（円形リング + 中央に残り秒数）。残りわずかで danger 色に */}
-          <div
-            className="relative shrink-0"
-            style={{ width: RING_SIZE_PX, height: RING_SIZE_PX }}
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={Math.round(TIME_CAP_MS / 1000)}
-            aria-valuenow={remainingSec}
-            aria-label={`残り時間 ${remainingSec} 秒`}
-          >
-            <svg
-              width={RING_SIZE_PX}
-              height={RING_SIZE_PX}
-              viewBox={`0 0 ${RING_SIZE_PX} ${RING_SIZE_PX}`}
-              // 12 時方向から始めて時計回りに減らすため -90deg 回転
-              className="-rotate-90"
-              aria-hidden
-            >
-              {/* 背景トラック */}
-              <circle
-                cx={RING_SIZE_PX / 2}
-                cy={RING_SIZE_PX / 2}
-                r={RING_RADIUS_PX}
-                fill="none"
-                stroke="#e5e7eb"
-                strokeWidth={RING_STROKE_PX}
-              />
-              {/* 進捗リング（残り割合）。strokeDashoffset を 100ms tick ごとに補間して滑らかに見せる */}
-              <motion.circle
-                cx={RING_SIZE_PX / 2}
-                cy={RING_SIZE_PX / 2}
-                r={RING_RADIUS_PX}
-                fill="none"
-                stroke={timerColor}
-                strokeWidth={RING_STROKE_PX}
-                strokeLinecap="round"
-                strokeDasharray={RING_CIRCUMFERENCE}
-                animate={{ strokeDashoffset: ringOffset }}
-                transition={{ duration: 0.1, ease: 'linear' }}
-              />
-            </svg>
-            {/* 中央の残り秒数 */}
-            <span
-              className="absolute inset-0 flex items-center justify-center text-base font-black tabular-nums sm:text-lg"
-              style={{ color: timerColor }}
-              aria-hidden
-            >
-              {remainingSec}
-            </span>
-          </div>
         </div>
       </div>
-
-      {/* === 下段: 状態バッジ帯（幅広・大きめ） === */}
-      <div className="z-10 mt-2 px-4">
-        <div className="mx-auto flex w-full max-w-4xl min-h-[40px] items-center justify-center gap-2 sm:gap-3">
-          {isFrozen && (
-            <span
-              className="inline-flex w-full max-w-md items-center justify-center rounded-xl border-[4px] border-black px-4 py-1.5 text-base font-black tracking-wider text-black shadow-[3px_3px_0_0_#000] sm:text-lg"
-              style={{ backgroundColor: SORTER_UI_COLORS.warning }}
-            >
-              ✗ 機械停止中
-            </span>
-          )}
-          {!isFrozen && isRuleChanged && (
-            <span
-              className="inline-flex w-full max-w-md items-center justify-center rounded-xl border-[4px] border-black px-4 py-1.5 text-base font-black tracking-wider text-black shadow-[3px_3px_0_0_#000] sm:text-lg"
-              style={{ backgroundColor: SORTER_UI_COLORS.warning }}
-            >
-              ルール変更中: 特急 → 重量物
-            </span>
-          )}
-          {!isFrozen && isSpeedUp && (
-            <span
-              className="inline-flex w-full max-w-xs items-center justify-center rounded-xl border-[4px] border-black px-4 py-1.5 text-base font-black tracking-wider text-white shadow-[3px_3px_0_0_#000] sm:text-lg"
-              style={{ backgroundColor: SORTER_UI_COLORS.accent }}
-            >
-              ⚡ スピード2倍
-            </span>
-          )}
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
