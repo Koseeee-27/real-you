@@ -54,13 +54,20 @@ export const INTRO_CHARACTERS: IntroCharacter[] = [
   { characterId: 'colleague-b', role: '同期B' },
 ];
 
-export const SITUATION_TEXT =
-  '業務時間後半。開発チームのグループチャットで、上司が「今日中に対応が必要な不具合」を共有してきた。チームの空気を読みながら、自分はどう動く？';
-
-/** タイムアウトでも問題ない（無視も選択肢）旨をプレイヤーに伝える注記 */
-export const TIMEOUT_OK_NOTE = '※ 答えにくいときは無理に返さなくても大丈夫です';
-
 export const ONBOARDING_TITLE = '空気読みチャットゲーム';
+
+/** オンボーディング: 場面（短く） */
+export const SCENE_TEXT = '開発チームのグループチャット';
+
+/** オンボーディング: 状況（短く） */
+export const SITUATION_TEXT =
+  '上司から「今日中に対応必要な不具合」が共有された';
+
+/** オンボーディング: ルール（箇条書き） */
+export const RULES: readonly string[] = [
+  '4 つの選択肢から 1 つを選んで返信',
+  '各ターンに制限時間あり（時間切れも記録される）',
+];
 
 // =========================================================
 // グループ / タイミング定数
@@ -132,7 +139,7 @@ export const TURNS: TurnDefinition[] = [
       { selectedOptionId: 3, text: '私の方も今ちょっと厳しくて…💦' }, // 独自: やんわり拒否
       { selectedOptionId: 1, text: '私やりましょうか？' }, // 協調: 引き受ける
       { selectedOptionId: 4, text: '同期A、対応できそう？' }, // 独自: 他人に振る
-      { selectedOptionId: 2, text: '何時までにですか？' }, // 協調: 関わる・確認
+      { selectedOptionId: 2, text: '（黙って様子を見る）' }, // 協調: 同期Aに譲る／場を読む
     ],
     timerMs: TURN_TIMER_MS[1],
   },
@@ -141,16 +148,13 @@ export const TURNS: TurnDefinition[] = [
     turnId: 2,
     initialBotMessages: [], // 冒頭の上司セリフは TURN2_BOSS_BRANCH から差し込む
     choices: [
-      { selectedOptionId: 3, text: 'みんなで助け合えばいいですよ〜' }, // 独自: 無難
-      {
-        selectedOptionId: 1,
-        text: 'いえいえ、こちらこそありがとうございます🙏',
-      }, // 協調: 上司にフォロー
+      { selectedOptionId: 1, text: '同期A、引き受けてくれてありがとう🙏' }, // 協調: 同期Aへの感謝で場に乗る
       {
         selectedOptionId: 4,
         text: 'ちなみに不具合の原因って何だったんですか？',
       }, // 独自: 話題転換
       { selectedOptionId: 2, text: '同期A、ほんと頼りになるね！' }, // 協調: 同期A持ち上げ
+      { selectedOptionId: 3, text: '（黙って様子を見る）' }, // 独自: 流れに乗らない／同調しない
     ],
     timerMs: TURN_TIMER_MS[2],
   },
@@ -165,10 +169,10 @@ export const TURNS: TurnDefinition[] = [
       },
     ],
     choices: [
-      { selectedOptionId: 3, text: '私もそんな詳しくないですよ〜' }, // 独自: かわす
       { selectedOptionId: 1, text: 'もちろんです！後で共有します' }, // 協調: 応じる
+      { selectedOptionId: 4, text: '同期A なら大丈夫だと思います！' }, // 独自: 他者を立てる
       { selectedOptionId: 2, text: 'えーと…ちょっと思い出します💦' }, // 協調: 一応応じる
-      { selectedOptionId: 4, text: '同期A なら大丈夫だと思います！' }, // 独自: 他人を立てる
+      { selectedOptionId: 3, text: '（黙って様子を見る）' }, // 独自: 指名を無視
     ],
     timerMs: TURN_TIMER_MS[3],
   },
@@ -195,7 +199,7 @@ export const T1_PREEMPT_MESSAGE: BotMessage = {
  */
 export const TURN2_BOSS_BRANCH = {
   1: 'ありがとう🙏 でも今回は同期A がやってくれるって！また次お願いね', // 私やりましょうか？
-  2: 'あ、詳細はあとで送るね。同期A が引き受けてくれたから一旦大丈夫🙏', // 何時までにですか？
+  2: 'お、見守ってくれてたんだね。同期A がやってくれるって🙏', // （黙って様子を見る）
   3: '大丈夫大丈夫、無理しないで！同期A がやってくれるって🙏', // 私の方も厳しくて
   4: 'ナイス振り！同期A、ありがとう🙏', // 同期A、対応できそう？
   timeout: 'あ、同期A が手を上げてくれた！助かる〜🙏', // タイムアウト
