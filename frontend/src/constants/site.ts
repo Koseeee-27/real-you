@@ -11,4 +11,4 @@
  * 公開情報なのでハードコードしている（環境変数化不要）。
  * Vercel デプロイ後、実 URL と差異がある場合は別 PR で更新する。
  */
-export const SITE_URL = 'https://real-you.vercel.app';
+export const SITE_URL = 'https://realyou-jp.vercel.app';
