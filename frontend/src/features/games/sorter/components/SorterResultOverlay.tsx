@@ -48,18 +48,29 @@ export default function SorterResultOverlay({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
       <motion.div
+        // モーダルセマンティクス: dialog + aria-modal で「全画面モーダル」を支援技術に伝え、
+        // labelledby / describedby で見出し（title）と副題（subtitle）を関連付けて
+        // スクリーンリーダーに文脈を提供する。
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sorter-result-title"
+        aria-describedby="sorter-result-subtitle"
         initial={{ scale: 0.8, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="w-full max-w-md rounded-3xl border-[6px] border-black bg-white p-6 text-center shadow-[8px_8px_0_0_#000] sm:p-8"
       >
         <h2
+          id="sorter-result-title"
           className="text-3xl font-black tracking-widest sm:text-4xl"
           style={{ color: accentColor }}
         >
           {title}
         </h2>
-        <p className="mt-3 text-sm font-bold text-black/70 sm:text-base">
+        <p
+          id="sorter-result-subtitle"
+          className="mt-3 text-sm font-bold text-black/70 sm:text-base"
+        >
           {subtitle}
         </p>
 
