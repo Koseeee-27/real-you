@@ -1,8 +1,22 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { SORTER_UI_COLORS } from '../data/sorterConstants';
+import {
+  PACKAGE_LABELS,
+  RULE_CHANGE_PAIRS,
+  SORTER_UI_COLORS,
+} from '../data/sorterConstants';
 import type { FreezeStage } from '../hooks/useSorterGame';
+
+/**
+ * ルール変更通知バナーのサブ文言（フル文・複数行は ` / ` 結合）。
+ * `RULE_CHANGE_PAIRS` から `PACKAGE_LABELS` 経由で派生し、マッピング変更時に
+ * 文言を取り残さない。例: 「『特急』は今後『重量物』の振り分け先へ」。
+ */
+const RULE_CHANGE_NOTICE_TEXT = RULE_CHANGE_PAIRS.map(
+  ({ from, to }) =>
+    `「${PACKAGE_LABELS[from]}」は今後「${PACKAGE_LABELS[to]}」の振り分け先へ`
+).join(' / ');
 
 interface SorterEventBannerProps {
   /** 機械停止のサブシーケンス段階。warning / frozen で危機感オーバーレイ、recovery で復旧バナー */
@@ -109,7 +123,7 @@ export default function SorterEventBanner({
               ルール変更！
             </p>
             <p className="text-xs font-bold text-white sm:text-sm">
-              「特急」は今後「重量物」の振り分け先へ
+              {RULE_CHANGE_NOTICE_TEXT}
             </p>
           </motion.div>
         )}

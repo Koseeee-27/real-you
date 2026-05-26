@@ -274,6 +274,25 @@ export const RULE_CHANGED_CORRECT_BIN = {
   heavy: 'heavy',
 } as const satisfies Record<PackageType, PackageType>;
 
+/**
+ * ルール変更で正解が動いた行（恒等から外れた `{ from, to }` のペア）の配列。
+ *
+ * `RULE_CHANGED_CORRECT_BIN` を真実の単一ソースとして派生する。これを各 UI コンポーネント
+ * （SorterHUD のバッジ文言・SorterEventBanner の通知バナー）で参照することで、
+ * 「特急 → 重量物」のような表示文字列を複数ファイルにハードコードせず DRY を保つ。
+ * 将来 `RULE_CHANGED_CORRECT_BIN` を変更したら、表示側の文言も自動追従する。
+ *
+ * 表示時のフォーマット例（PACKAGE_LABELS で日本語化）:
+ *   - 矢印形式（HUD バッジ）: `${PACKAGE_LABELS[from]} → ${PACKAGE_LABELS[to]}`
+ *   - フル文（バナー）: `「${PACKAGE_LABELS[from]}」は今後「${PACKAGE_LABELS[to]}」の振り分け先へ`
+ */
+export const RULE_CHANGE_PAIRS: ReadonlyArray<{
+  from: PackageType;
+  to: PackageType;
+}> = PACKAGE_TYPES.filter(
+  (type) => RULE_CHANGED_CORRECT_BIN[type] !== type
+).map((type) => ({ from: type, to: RULE_CHANGED_CORRECT_BIN[type] }));
+
 // ========================================
 // 音声
 // ========================================

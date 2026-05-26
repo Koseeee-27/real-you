@@ -2,10 +2,21 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  PACKAGE_LABELS,
+  RULE_CHANGE_PAIRS,
   SORTER_UI_COLORS,
   TARGET_SCORE,
   TIME_CAP_MS,
 } from '../data/sorterConstants';
+
+/**
+ * ルール変更バッジに表示する文言（矢印形式・複数行は ` / ` 結合）。
+ * `RULE_CHANGE_PAIRS` から `PACKAGE_LABELS` 経由で派生し、マッピング変更時に
+ * 文言を取り残さない。例: 「特急 → 重量物」。
+ */
+const RULE_CHANGE_LABEL = RULE_CHANGE_PAIRS.map(
+  ({ from, to }) => `${PACKAGE_LABELS[from]} → ${PACKAGE_LABELS[to]}`
+).join(' / ');
 
 interface SorterHUDProps {
   /** 現在の表示スコア（= 目標スコア進捗の現在値） */
@@ -36,8 +47,11 @@ type BadgeConfig = {
   key: string;
   /** バッジ本文（装飾アイコンも文字列に含めて対称化する） */
   label: string;
-  /** 背景色（SORTER_UI_COLORS のいずれか） */
-  bgColor: string;
+  /**
+   * 背景色。SORTER_UI_COLORS のいずれかの値に絞り、定数外の文字列を渡せないようにする。
+   * 色の追加時は SORTER_UI_COLORS に追記すれば自動的に許容される。
+   */
+  bgColor: (typeof SORTER_UI_COLORS)[keyof typeof SORTER_UI_COLORS];
   /** 文字色（背景とのコントラストで指定） */
   textColor: 'black' | 'white';
   /**
@@ -66,6 +80,7 @@ function buildActiveBadges(flags: {
     return [
       {
         key: 'frozen',
+        // 「機械停止」は固定演出のためアイコンのみハードコード。
         label: '✗ 機械停止中 ✗',
         bgColor: SORTER_UI_COLORS.warning,
         textColor: 'black',
@@ -79,7 +94,9 @@ function buildActiveBadges(flags: {
   if (flags.isRuleChanged) {
     badges.push({
       key: 'rule-change',
-      label: '⚠ ルール変更中: 特急 → 重量物 ⚠',
+      // ルール変更の文言は `RULE_CHANGE_PAIRS` → `PACKAGE_LABELS` から派生（DRY）。
+      // `RULE_CHANGED_CORRECT_BIN` を書き換えれば自動で追従する。
+      label: `⚠ ルール変更中: ${RULE_CHANGE_LABEL} ⚠`,
       bgColor: SORTER_UI_COLORS.warning,
       textColor: 'black',
       pulseScale: 1.03,
@@ -153,7 +170,13 @@ export default function SorterHUD({
       */}
       <div className="absolute inset-y-0 left-0 flex items-center">
         <div className="flex flex-nowrap items-center gap-2 sm:gap-3">
-          <AnimatePresence mode="popLayout">
+          {/*
+            mode は省略（デフォルト 'sync'）。バッジは絶対配置の flex-nowrap 内に並ぶだけで
+            layout アニメは不要なので、'popLayout' を指定すると getBoundingClientRect の
+            計算オーバーヘッドが乗るだけになる。出入りの fade/slide は各 motion.span の
+            initial/animate/exit で完結する。
+          */}
+          <AnimatePresence>
             {activeBadges.map((badge) => (
               <motion.span
                 key={badge.key}
@@ -161,8 +184,9 @@ export default function SorterHUD({
                 animate={{
                   opacity: 1,
                   y: 0,
-                  // 出現後は scale を [1, pulseScale, 1] で繰り返し、継続呼吸を作る。
-                  // opacity / y は出現演出のみ、scale は出現完了後に repeat に切り替わる。
+                  // scale は出現と同時に [1, pulseScale, 1] の継続パルスを開始する。
+                  // opacity / y の出現アニメ（0.25s）と並行して scale も pulse 前半を走るため、
+                  // 「ふわっと出ながら微かに息づく」見え方になる（出現と pulse の同時進行は意図通り）。
                   scale: [1, badge.pulseScale, 1],
                 }}
                 exit={{ opacity: 0, scale: 0.85 }}
