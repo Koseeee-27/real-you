@@ -13,13 +13,15 @@
     "check:api-types": "npm run gen:api-types && git diff --exit-code -- src/lib/api/generated.ts"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
     "framer-motion": "^12.34.2",
     "jotai": "^2.18.0",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "recharts": "^3.7.0"
+    "recharts": "^3.7.0",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
