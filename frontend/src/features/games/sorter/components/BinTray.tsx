@@ -153,7 +153,8 @@ export default function BinTray({
 
             {/*
               フィードバックポップアップ。
-              bin の上に「+10 OK」「-5 NG」を 0.7s フラッシュ表示。
+              bin の上に「+10」「-5」を 0.7s フラッシュ表示。
+              正解 / 不正解は背景色（success / danger）で示すため、テキストは数値のみ。
               keyframes:
                 0%   : opacity 0, y +10, scale 0.8
                 20%  : opacity 1, y 0, scale 1.1
@@ -175,7 +176,7 @@ export default function BinTray({
                     times: [0, 0.2, 0.8, 1],
                     ease: 'easeOut',
                   }}
-                  className="pointer-events-none absolute top-0 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-lg border-[3px] border-black px-3 py-1 text-sm font-black tracking-widest whitespace-nowrap shadow-[3px_3px_0_0_#000] sm:text-base"
+                  className="pointer-events-none absolute top-0 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-lg border-[3px] border-black px-4 py-1.5 text-lg font-black tracking-widest whitespace-nowrap shadow-[3px_3px_0_0_#000] sm:text-xl"
                   style={{
                     backgroundColor: lastFeedback.correct
                       ? SORTER_UI_COLORS.success
@@ -184,8 +185,8 @@ export default function BinTray({
                   }}
                 >
                   {lastFeedback.correct
-                    ? `+${lastFeedback.scoreChange} OK`
-                    : `${lastFeedback.scoreChange} NG`}
+                    ? `+${lastFeedback.scoreChange}`
+                    : `${lastFeedback.scoreChange}`}
                 </motion.div>
               )}
             </AnimatePresence>
