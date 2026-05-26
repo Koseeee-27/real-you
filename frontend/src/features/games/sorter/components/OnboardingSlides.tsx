@@ -95,10 +95,12 @@ function SlideHowToPlay() {
         仕分けゲーム
       </h2>
 
-      {/* 下段: 2 カラム（左: 仕分け方 / 右: 操作方法）。狭幅は縦積み、sm 以上で左右並び。 */}
-      <div className="mt-4 flex flex-col gap-4 sm:mt-5 sm:flex-row sm:gap-5 lg:gap-6">
+      {/* 下段: 2 カラム（左: 仕分け方 / 右: 操作方法）。狭幅は縦積み、sm 以上で左右並び。
+          items-stretch でカラム高さを揃え、bordered card 側を flex-1 で残り高さを
+          埋めることで両カラムの黒枠カードの底辺を揃える。間に縦の区切り線を入れる。 */}
+      <div className="mt-4 flex flex-col gap-4 sm:mt-5 sm:flex-row sm:items-stretch sm:gap-5 lg:gap-6">
         {/* === 左カラム: 1 行説明 + 仕分け方（カテゴリー早見表） === */}
-        <section className="sm:basis-2/5">
+        <section className="flex flex-col sm:basis-2/5">
           <p className="text-center text-sm font-bold sm:text-base lg:text-lg">
             流れてくる荷物を適切に仕分けよう！
           </p>
@@ -110,7 +112,7 @@ function SlideHowToPlay() {
             行ごとに色付きラベル（固定幅）+ 荷物画像 → 仕分け先画像。
             個別境界なしで「3 つで 1 つの早見表」というまとまり感を出す。
           */}
-          <div className="mt-3 flex flex-col gap-2 rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_#000]">
+          <div className="mt-3 flex flex-1 flex-col justify-evenly gap-2 rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_0_#000]">
             {PACKAGE_TYPES.map((type) => (
               <div
                 key={type}
@@ -150,8 +152,15 @@ function SlideHowToPlay() {
           </div>
         </section>
 
+        {/* 縦の区切り線（sm 以上で表示）。2 カラム間を視覚的に分ける。
+            self-stretch で行全体（=カラムの最大高さ）に伸ばす。 */}
+        <div
+          aria-hidden
+          className="hidden w-px self-stretch bg-gray-300 sm:block"
+        />
+
         {/* === 右カラム: 操作方法（D&D / クリック 2 ステップ） === */}
-        <section className="sm:basis-3/5">
+        <section className="flex flex-col sm:basis-3/5">
           <h3 className="text-center text-base font-black tracking-widest sm:text-lg lg:text-xl">
             操作方法（どちらでもOK！）
           </h3>
@@ -162,7 +171,7 @@ function SlideHowToPlay() {
             各カードの下部にそれぞれの取消方法を併記する。items-stretch で
             横並び時に 2 カードの高さを揃える。
           */}
-          <div className="mt-3 flex flex-col items-stretch gap-2 lg:flex-row lg:gap-3">
+          <div className="mt-3 flex flex-1 flex-col items-stretch gap-2 lg:flex-row lg:gap-3">
             {/* 方式 A: ドラッグ&ドロップ */}
             <div className="flex flex-col rounded-xl border-[3px] border-black bg-white p-2.5 shadow-[3px_3px_0_0_#000] sm:p-3 lg:flex-1 lg:basis-0">
               <div className="flex justify-center">
