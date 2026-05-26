@@ -219,6 +219,8 @@ export const SORTER_UI_COLORS = {
   dangerBgSubtle: 'rgba(224, 49, 49, 0.2)',
   /** 採点ルール「誤仕分け」バッジの濃文字色（danger のダーク版） */
   dangerText: '#a52828',
+  /** 操作方法「クリック 2 ステップ」カードの薄背景（link の alpha 0.15） */
+  linkBgSubtle: 'rgba(45, 91, 227, 0.15)',
 } as const;
 
 /** 荷物種別 → 日本語表示ラベル */

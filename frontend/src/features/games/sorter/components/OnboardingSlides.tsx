@@ -172,8 +172,13 @@ function SlideHowToPlay() {
             横並び時に 2 カードの高さを揃える。
           */}
           <div className="mt-3 flex flex-1 flex-col items-stretch gap-2 lg:flex-row lg:gap-3">
-            {/* 方式 A: ドラッグ&ドロップ */}
-            <div className="flex flex-col rounded-xl border-[3px] border-black bg-white p-2.5 shadow-[3px_3px_0_0_#000] sm:p-3 lg:flex-1 lg:basis-0">
+            {/* 方式 A: ドラッグ&ドロップ。
+                黒枠 + ベタ影を廃止し、success（緑）系の薄背景でやさしく区別する。
+                badge の緑と背景の緑が呼応して「D&D 方式」とひと目で分かる。 */}
+            <div
+              className="flex flex-col rounded-xl p-2.5 sm:p-3 lg:flex-1 lg:basis-0"
+              style={{ backgroundColor: SORTER_UI_COLORS.successBgSubtle }}
+            >
               <div className="flex justify-center">
                 <span
                   className="rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
@@ -206,8 +211,13 @@ function SlideHowToPlay() {
               </span>
             </div>
 
-            {/* 方式 B: クリック 2 ステップ */}
-            <div className="flex flex-col rounded-xl border-[3px] border-black bg-white p-2.5 shadow-[3px_3px_0_0_#000] sm:p-3 lg:flex-1 lg:basis-0">
+            {/* 方式 B: クリック 2 ステップ。
+                黒枠 + ベタ影を廃止し、link（青）系の薄背景でやさしく区別する。
+                badge の青と背景の青が呼応して「クリック方式」とひと目で分かる。 */}
+            <div
+              className="flex flex-col rounded-xl p-2.5 sm:p-3 lg:flex-1 lg:basis-0"
+              style={{ backgroundColor: SORTER_UI_COLORS.linkBgSubtle }}
+            >
               <div className="flex justify-center">
                 <span
                   className="rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
@@ -217,10 +227,13 @@ function SlideHowToPlay() {
                 </span>
               </div>
               <div className="mt-1.5 flex flex-col items-start justify-center gap-1 px-2 text-xs font-bold sm:mt-2 sm:px-4 sm:text-sm">
+                {/* ステップ番号バッジは同じ「クリック方式」の連続ステップなので、
+                    ① と ② を同色（link 青）に統一して一貫性を出す。badge と card 背景
+                    の色とも揃え、視覚的な情報量を抑える。 */}
                 <span className="flex items-center gap-1.5">
                   <span
-                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[2px] border-black text-xs"
-                    style={{ backgroundColor: SORTER_UI_COLORS.success }}
+                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[2px] border-black text-xs text-white"
+                    style={{ backgroundColor: SORTER_UI_COLORS.link }}
                   >
                     1
                   </span>
