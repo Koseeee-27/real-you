@@ -270,8 +270,12 @@ export function useGroupChatGame(options: {
         const idx = distinctHoverOrderRef.current.indexOf(selectedOptionId);
         return idx >= 0 ? idx + 1 : null;
       })();
+      // 「クリックした選択肢に直近 hover していたか」を厳密に判定する。
+      // 直近 hover 先と一致しない場合（キーボード操作・別の選択肢中のクリック等）は null。
       const decisionConfidenceMs =
-        isClickedOption && lastHoverEnterAtRef.current !== null
+        isClickedOption &&
+        lastHoverEnterAtRef.current !== null &&
+        lastHoverChoiceRef.current === selectedOptionId
           ? Date.now() - lastHoverEnterAtRef.current
           : null;
 
@@ -309,15 +313,23 @@ export function useGroupChatGame(options: {
   // ユーザー操作: 選択肢ホバー / クリック / 履歴スクロール
   // =========================================================
 
-  /** 選択肢にホバーしたとき（pointerenter）。連続して同じ選択肢に入った場合は無視する */
+  /**
+   * 選択肢にホバーしたとき（pointerenter）。
+   * - `hoverSequence` への push は連続重複を抑制（同じ選択肢への連続 pointerenter を 1 件にまとめる）
+   * - `lastHoverEnterAtRef` は同一選択肢への再ホバーでも更新する（`decisionConfidenceMs` を「直近の pointerenter からクリックまで」に保つため）
+   */
   const handleOptionHover = useCallback(
     (optionId: OptionIntentId) => {
       if (gamePhase !== 'turn-active' || turnResolvedRef.current) return;
-      if (lastHoverChoiceRef.current === optionId) return;
 
       const now = Date.now();
       if (firstHoverAtRef.current === null) firstHoverAtRef.current = now;
-      if (hoverSequenceRef.current.length < HOVER_SEQUENCE_CAP) {
+
+      const isSameAsLast = lastHoverChoiceRef.current === optionId;
+      if (
+        !isSameAsLast &&
+        hoverSequenceRef.current.length < HOVER_SEQUENCE_CAP
+      ) {
         hoverSequenceRef.current.push(optionId);
       }
       if (!distinctHoverOrderRef.current.includes(optionId)) {
