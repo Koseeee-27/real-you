@@ -78,14 +78,19 @@ export const CUTIN_DURATION_MS = 1_200;
 /** T2 冒頭・上司分岐セリフの表示ディレイ（ターン開始からの ms。モック準拠） */
 export const TURN2_BOSS_LINE_DELAY_MS = 600;
 
-/** ターン1: 上司発言からタイマー開始後、同期A「入力中」表示までの遅延 */
-export const T1_TYPING_INDICATOR_DELAY_MS = 2_000;
-/** ターン1:「入力中」表示後、同期A 先回り発言が出るまでの遅延 */
-export const T1_PREEMPT_REVEAL_DELAY_MS = 1_500;
+/** ターン1: 上司発言からタイマー開始後、同期A「入力中」表示までの遅延（ゲーム開始直後の考える時間） */
+export const T1_TYPING_INDICATOR_DELAY_MS = 2_500;
+/** ターン1:「入力中」表示後、同期A 先回り発言が出るまでの遅延（「打っている感」を出すため長めに保つ） */
+export const T1_PREEMPT_REVEAL_DELAY_MS = 2_500;
 
-/** 各ターンの制限時間（モック仮値。実装段階で調整可） */
+/**
+ * 各ターンの制限時間。
+ * - T1: 14s — 同期A 先回り発言（=5.0s 地点）後に約 9.0s の判断時間を確保
+ * - T2: 15s — 上司+同期A+同期B 段階表示後に約 12.8s
+ * - T3: 7s  — 名指し返球の緊張感を出すため短め
+ */
 export const TURN_TIMER_MS = {
-  1: 10_000,
+  1: 14_000,
   2: 15_000,
   3: 7_000,
 } as const satisfies Record<1 | 2 | 3, number>;
