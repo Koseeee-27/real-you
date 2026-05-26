@@ -303,7 +303,38 @@ export const gameDetailSchema = registry.register(
                     }),
                 )
                 .openapi({
-                    description: 'ユーザー値と平均値を並べた比較指標の配列',
+                    description: 'ユーザー値と平均値を並べた比較指標の配列（全件）',
+                }),
+            analysis_comment: z.array(z.string()).openapi({
+                description:
+                    '軸スコアの根拠を複数文で説明する解析コメント。' +
+                    '「どの行動がどの軸の判定につながったか」をゲームごとに生成する。' +
+                    'グラフ横の解析コメント欄での表示を想定（1文 = 1要素）',
+            }),
+            top_deviation_metrics: z
+                .array(
+                    z.object({
+                        label: z.string().openapi({
+                            description: '指標の表示ラベル（metrics と同じ値）',
+                        }),
+                        user: z.number().openapi({
+                            description: 'ユーザーの実測値',
+                        }),
+                        average: z.number().openapi({
+                            description: '比較対象の平均値',
+                        }),
+                        deviation: z.number().openapi({
+                            description: '相対乖離度（|user - average| / |average|）。大きいほど平均と離れている',
+                        }),
+                        praise: z.string().openapi({
+                            description: 'メトリクスの値方向（平均より上/下）に応じた褒め言葉',
+                        }),
+                    }),
+                )
+                .openapi({
+                    description:
+                        '平均との乖離が大きい順に上位4件のメトリクス。行動データカード表示用。' +
+                        '各カードに褒め言葉（praise）付き',
                 }),
         })
         .openapi({

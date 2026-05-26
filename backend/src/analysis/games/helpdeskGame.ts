@@ -1,6 +1,6 @@
 import { HelpdeskGameData, helpdeskGameDataSchema } from '../../schemas/games/helpdeskGame';
 import type { GameDetail } from '../../schemas/results';
-import { linear, linearInv, logNorm, sigmoidInv } from '../scoreUtils';
+import { linear, linearInv, logNorm, sigmoidInv, buildTopDeviationMetrics } from '../scoreUtils';
 
 /**
  * AI カスタマーサポート（helpdesk_game）の分析モジュール。
@@ -163,14 +163,83 @@ function buildSummary(data: HelpdeskGameData | undefined): string {
     return `${reactionText}、${method}反論を展開しました。`;
 }
 
+/** AIカスタマーサポートの解析コメント */
+function buildAnalysisComment(_data: HelpdeskGameData, result: HelpdeskGameAnalyzeResult): string[] {
+    const comments: string[] = [];
+    const avgReactSec = (result.avgReact / 1000).toFixed(1);
+
+    // 積極性（反応速度）
+    if (result.avgReact < 800) {
+        comments.push(`AIへの平均反応時間は${avgReactSec}秒と素早い対応。この即断力が「積極性」の高スコアにつながっています。`);
+    } else {
+        comments.push(`AIへの平均反応時間は${avgReactSec}秒。一呼吸おいてから対応する行動パターンが「積極性」のスコアに表れています。`);
+    }
+
+    // 論理性（論理接続詞）
+    if (result.logicWordsCount >= 2) {
+        comments.push(`「なぜなら」「つまり」などの論理接続詞を${result.logicWordsCount}回使用。筋道を立てて話す行動が「論理性」の高スコアにつながっています。`);
+    } else {
+        comments.push(`論理接続詞の使用は${result.logicWordsCount}回でした。直感的な言い回しが「論理性」のスコアに表れています。`);
+    }
+
+    return comments;
+}
+
+/** AIカスタマーサポートの行動データカード用 褒め言葉マップ */
+const HELPDESK_PRAISE_MAP: Record<string, { above: string; below: string }> = {
+    '反応潜時(ms)': {
+        above: '一呼吸おいてから丁寧に対応できる！焦らず着実に進める冷静さの持ち主。',
+        below: '即座に対応できるスピード感がある！素早い判断力で場をリードできるタイプ。',
+    },
+    '発話時間(秒)': {
+        above: '豊富な言葉で丁寧に伝えられる！コミュニケーション力と表現力が高い。',
+        below: '端的に要点を伝えられる！簡潔で伝わりやすいコミュニケーションができるタイプ。',
+    },
+    '平均音量(dB)': {
+        above: '存在感のある声で自分の意見を伝えられる！自信を持って発言できるタイプ。',
+        below: '落ち着いた声のトーンで穏やかに伝えられる！聞き取りやすい話し方の持ち主。',
+    },
+    '論理的接続詞(回)': {
+        above: '筋道を立てて話す論理的思考力が高い！理由を説明しながら伝えられるタイプ。',
+        below: '直感的な言い回しで自然に話せる！流れるような自然なコミュニケーションができる。',
+    },
+};
+
 /**
  * AI カスタマーサポートの行動データ + analyze 結果 → 結果画面 details 用の構造体。
  * Issue #102 で旧 `scoreCalculator.ts` の `details: [...]` の helpdesk_game 要素を移管。挙動は完全同一。
  */
 function buildDetails(
-    _data: HelpdeskGameData | undefined,
+    data: HelpdeskGameData | undefined,
     result: HelpdeskGameAnalyzeResult,
 ): GameDetail {
+    const metrics = [
+        {
+            label: '反応潜時(ms)',
+            user: Math.round(result.avgReact ?? 0),
+            average: 2500,
+            category: 'time',
+        },
+        {
+            label: '発話時間(秒)',
+            user: Number(((result.totalSpeech ?? 0) / 1000).toFixed(1)),
+            average: 4.2,
+            category: 'time',
+        },
+        {
+            label: '平均音量(dB)',
+            user: Number((result.avgVolume ?? 0).toFixed(1)),
+            average: -25.0,
+            category: 'voice',
+        },
+        {
+            label: '論理的接続詞(回)',
+            user: result.logicWordsCount ?? 0,
+            average: 0.5,
+            category: 'logic',
+        },
+    ];
+
     return {
         game_id: helpdeskGameModule.id,
         title: helpdeskGameModule.title,
@@ -179,32 +248,9 @@ function buildDetails(
             { axis: 'calmness', name: '冷静さ', score: result.scores.calmness },
             { axis: 'logic', name: '論理性', score: result.scores.logic },
         ],
-        metrics: [
-            {
-                label: '反応潜時(ms)',
-                user: Math.round(result.avgReact ?? 0),
-                average: 2500,
-                category: 'time',
-            },
-            {
-                label: '発話時間(秒)',
-                user: Number(((result.totalSpeech ?? 0) / 1000).toFixed(1)),
-                average: 4.2,
-                category: 'time',
-            },
-            {
-                label: '平均音量(dB)',
-                user: Number((result.avgVolume ?? 0).toFixed(1)),
-                average: -25.0,
-                category: 'voice',
-            },
-            {
-                label: '論理的接続詞(回)',
-                user: result.logicWordsCount ?? 0,
-                average: 0.5,
-                category: 'logic',
-            },
-        ],
+        metrics,
+        analysis_comment: data ? buildAnalysisComment(data, result) : [],
+        top_deviation_metrics: buildTopDeviationMetrics(metrics, HELPDESK_PRAISE_MAP),
     };
 }
 

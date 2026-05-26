@@ -429,12 +429,27 @@ export const resultsResponseExample = {
             metrics: [
                 { label: '読了速度(px/s)', user: 2500, average: 800, category: 'scroll' },
             ],
+            analysis_comment: [
+                '規約を42.5秒かけて読み込みました（平均の約2.8倍）。この丁寧な読み込み行動が「慎重さ」の高評価につながっています。',
+                'ポップアップ出現時のクリックは2回と最小限。落ち着いた対応が「冷静さ」の高スコアにつながっています。',
+            ],
+            top_deviation_metrics: [
+                { label: '総滞在時間(秒)', user: 42.5, average: 15, deviation: 1.83, praise: '時間をかけてでも確実に読み込む粘り強さがある！細部を見逃さない知性の持ち主。' },
+                { label: '読了速度(px/s)', user: 480, average: 800, deviation: 0.40, praise: '一語一句じっくり読む丁寧さがある！テキストを大切にする知性の持ち主。' },
+            ],
         },
         {
             game_id: 'sorter_game',
             title: '荷物仕分けゲーム',
             feature_scores: [{ axis: 'caution', name: '慎重さ', score: 50 }],
             metrics: [{ label: '平均判断時間(ms)', user: 1200, average: 1500, category: 'time' }],
+            analysis_comment: [
+                'システム障害の5秒間もクリックは2回と落ち着いた対応。この冷静さが「冷静さ」の高スコアにつながっています。',
+                'ルール変更後わずか3.8秒で正解。素早い適応力が「論理性」の高スコアにつながっています。',
+            ],
+            top_deviation_metrics: [
+                { label: '平均判断時間(ms)', user: 1200, average: 1500, deviation: 0.20, praise: '瞬時に正解を掴む直感力が抜群！スピーディーに動ける行動力の持ち主。' },
+            ],
         },
         {
             game_id: 'group_chat_game',
@@ -443,7 +458,14 @@ export const resultsResponseExample = {
                 { axis: 'cooperativeness', name: '協調性', score: 60 },
             ],
             metrics: [
-                { label: '発言数', user: 4, average: 3, category: 'message' },
+                { label: '同調率(%)', user: 67, average: 67, category: 'social' },
+            ],
+            analysis_comment: [
+                'ターン1で同僚より先に回答。場の流れを待たず動く積極性が「積極性」の高スコアにつながっています。',
+                '同僚の入力中にホバー先を変えていました。周囲への反応が「協調性」の高スコアにつながっています。',
+            ],
+            top_deviation_metrics: [
+                { label: '同調率(%)', user: 67, average: 67, deviation: 0, praise: '場の雰囲気を自然に読み取れる！チームワークを大切にする協力的なタイプ。' },
             ],
         },
     ],

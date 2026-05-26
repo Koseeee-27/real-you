@@ -58,3 +58,48 @@ export const logNorm = (val: number, min: number, max: number) => {
  */
 export const sigmoidInv = (val: number, c: number, k = 0.4) =>
     clamp(100 - 100 / (1 + Math.exp(-k * (val - c))));
+
+// ---------------------------------------------------------------------------
+// 行動データカード（top_deviation_metrics）用ユーティリティ
+// ---------------------------------------------------------------------------
+
+/**
+ * 行動データカードの1件分。
+ * `deviation` = |user - average| / |average|（average = 0 の場合は絶対差）。
+ */
+export type TopDeviationMetric = {
+    label: string;
+    user: number;
+    average: number;
+    deviation: number;
+    praise: string;
+};
+
+/**
+ * メトリクス配列から平均との相対乖離が大きい順に上位 N 件を返す。
+ * 各件には `praiseMap` から方向（user >= average → above / below）で引いた褒め言葉を付与する。
+ *
+ * @param metrics    buildDetails の `metrics` 配列と同形
+ * @param praiseMap  label → { above: string; below: string }
+ * @param topN       返す件数（デフォルト 4）
+ */
+export function buildTopDeviationMetrics(
+    metrics: { label: string; user: number; average: number; category: string }[],
+    praiseMap: Record<string, { above: string; below: string }>,
+    topN = 4,
+): TopDeviationMetric[] {
+    return metrics
+        .map((m) => {
+            const deviation =
+                m.average !== 0
+                    ? Math.abs(m.user - m.average) / Math.abs(m.average)
+                    : Math.abs(m.user - m.average);
+            const praise =
+                m.user >= m.average
+                    ? (praiseMap[m.label]?.above ?? '')
+                    : (praiseMap[m.label]?.below ?? '');
+            return { label: m.label, user: m.user, average: m.average, deviation, praise };
+        })
+        .sort((a, b) => b.deviation - a.deviation)
+        .slice(0, topN);
+}

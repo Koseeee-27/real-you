@@ -1,6 +1,6 @@
 import { TermsGameData, termsGameDataSchema } from '../../schemas/games/termsGame';
 import type { GameDetail } from '../../schemas/results';
-import { linear, linearInv, logNorm } from '../scoreUtils';
+import { linear, linearInv, logNorm, buildTopDeviationMetrics } from '../scoreUtils';
 
 /**
  * 利用規約ゲーム（terms_game）の分析モジュール。
@@ -194,7 +194,121 @@ function buildHighlights(data: TermsGameData | undefined, result: TermsGameAnaly
     ];
 }
 
+/** 利用規約ゲームの解析コメント（軸スコアの根拠を複数文で説明） */
+function buildAnalysisComment(data: TermsGameData, result: TermsGameAnalyzeResult): string[] {
+    const comments: string[] = [];
+    const totalTime = result.totalTime;
+    const ratio = (totalTime / 15).toFixed(1);
+
+    // 慎重さ
+    if (totalTime > 30) {
+        comments.push(`規約を${totalTime.toFixed(1)}秒かけて読み込みました（平均の約${ratio}倍）。この丁寧な読み込み行動が「慎重さ」の高評価につながっています。`);
+    } else if (totalTime >= 15) {
+        comments.push(`規約の滞在時間は${totalTime.toFixed(1)}秒と平均的でした。バランスよく確認する行動が「慎重さ」に反映されています。`);
+    } else {
+        comments.push(`規約をわずか${totalTime.toFixed(1)}秒で読み進めました。スピード重視の行動パターンが「慎重さ」のスコアに表れています。`);
+    }
+
+    // 冷静さ
+    const clickCount = data.popupStats?.clickCount ?? 0;
+    if (clickCount <= 2) {
+        comments.push(`ポップアップ出現時のクリックは${clickCount}回と最小限。落ち着いた対応が「冷静さ」の高スコアにつながっています。`);
+    } else if (clickCount > 3) {
+        comments.push(`ポップアップ出現時に${clickCount}回クリック（平均3回）。予期せぬ状況への反応が「冷静さ」のスコアに影響しています。`);
+    } else {
+        comments.push(`ポップアップへの対応は${clickCount}回と平均的でした。`);
+    }
+
+    // 論理性
+    if (data.hiddenInput === '確認済み') {
+        comments.push(`隠しフィールドにも気づき「確認済み」と記入。細部まで確認する行動が「論理性」の高評価につながっています。`);
+    } else if (result.reversalCount >= 3) {
+        comments.push(`規約を${result.reversalCount}回読み返すなど、徹底した確認行動が「論理性」の高スコアにつながっています。`);
+    } else {
+        comments.push(`読み返し${result.reversalCount}回と、流れを重視したテンポよい進め方が「論理性」のスコアに表れています。`);
+    }
+
+    return comments;
+}
+
+/** 利用規約ゲームの行動データカード用 褒め言葉マップ */
+const TERMS_PRAISE_MAP: Record<string, { above: string; below: string }> = {
+    '読了速度(px/s)': {
+        above: '情報を素早くスキャンできる！要点把握が得意な情報処理の達人。',
+        below: '一語一句じっくり読む丁寧さがある！テキストを大切にする知性の持ち主。',
+    },
+    '総滞在時間(秒)': {
+        above: '時間をかけてでも確実に読み込む粘り強さがある！細部を見逃さない知性の持ち主。',
+        below: '必要な情報を素早く見抜ける！切れ味鋭い情報処理の持ち主。',
+    },
+    '決断前迷い(ms)': {
+        above: '最後まで確認してから決断するリスク管理力が高い！',
+        below: '迷いのない決断力がある！自信を持って動けるタイプ。',
+    },
+    'チェック変更(回)': {
+        above: '細かい設定も見逃さない几帳面さが光る！契約書も安心して任せられるタイプ。',
+        below: '直感で正解を掴む嗅覚がある！シンプルに判断できるタイプ。',
+    },
+    '逆行確認(回)': {
+        above: '念入りに読み返す確認力が高い！ミスを未然に防ぐ慎重さの持ち主。',
+        below: '一度で理解できる高い読解力がある！集中力と記憶力が優秀。',
+    },
+    'マウスブレ(px)': {
+        above: '細やかな反応力の持ち主！感受性が豊かで変化に敏感。',
+        below: '落ち着いた操作が示す安定したメンタル！プレッシャーに強い。',
+    },
+    '無駄クリック(回)': {
+        above: '念入りに確認しに行く徹底力がある！しっかり確かめてから進む安心派。',
+        below: '効率的な操作でムダのない動き！最小限のアクションで目標を達成できるタイプ。',
+    },
+};
+
 function buildDetails(data: TermsGameData | undefined, result: TermsGameAnalyzeResult): GameDetail {
+    const metrics = [
+        {
+            label: '読了速度(px/s)',
+            user: Math.round(result.averageSpeed ?? 0),
+            average: 800,
+            category: 'scroll',
+        },
+        {
+            label: '総滞在時間(秒)',
+            user: Number((data?.totalTime ?? 0).toFixed(1)),
+            average: 15.0,
+            category: 'time',
+        },
+        {
+            label: '決断前迷い(ms)',
+            user: data?.agreeButtonHoverTimeMs ?? 0,
+            average: 1200,
+            category: 'mouse',
+        },
+        {
+            label: 'チェック変更(回)',
+            user: result.changedCount,
+            average: 3.2,
+            category: 'input',
+        },
+        {
+            label: '逆行確認(回)',
+            user: result.reversalCount ?? 0,
+            average: 2.1,
+            category: 'scroll',
+        },
+        {
+            label: 'マウスブレ(px)',
+            user: data?.popupStats?.mouseJitter ?? 0,
+            average: 12.0,
+            category: 'mouse',
+        },
+        {
+            label: '無駄クリック(回)',
+            user: data?.popupStats?.clickCount ?? 0,
+            average: 1.5,
+            category: 'mouse',
+        },
+    ];
+
     return {
         game_id: termsGameModule.id,
         title: termsGameModule.title,
@@ -203,53 +317,9 @@ function buildDetails(data: TermsGameData | undefined, result: TermsGameAnalyzeR
             { axis: 'logic', name: '論理性', score: result.scores.logic },
             { axis: 'calmness', name: '冷静さ', score: result.scores.calmness },
         ],
-        // result.averageSpeed / result.reversalCount は analyze() 内で scrollEvents から
-        // 算出済み（仕様書上、FE は scrollEvents のみ送信する設計のため、raw_data には
-        // scrollMetrics は無い）
-        metrics: [
-            {
-                label: '読了速度(px/s)',
-                user: Math.round(result.averageSpeed ?? 0),
-                average: 800,
-                category: 'scroll',
-            },
-            {
-                label: '総滞在時間(秒)',
-                user: Number((data?.totalTime ?? 0).toFixed(1)),
-                average: 15.0,
-                category: 'time',
-            },
-            {
-                label: '決断前迷い(ms)',
-                user: data?.agreeButtonHoverTimeMs ?? 0,
-                average: 1200,
-                category: 'mouse',
-            },
-            {
-                label: 'チェック変更(回)',
-                user: result.changedCount,
-                average: 3.2,
-                category: 'input',
-            },
-            {
-                label: '逆行確認(回)',
-                user: result.reversalCount ?? 0,
-                average: 2.1,
-                category: 'scroll',
-            },
-            {
-                label: 'マウスブレ(px)',
-                user: data?.popupStats?.mouseJitter ?? 0,
-                average: 12.0,
-                category: 'mouse',
-            },
-            {
-                label: '無駄クリック(回)',
-                user: data?.popupStats?.clickCount ?? 0,
-                average: 1.5,
-                category: 'mouse',
-            },
-        ],
+        metrics,
+        analysis_comment: data ? buildAnalysisComment(data, result) : [],
+        top_deviation_metrics: buildTopDeviationMetrics(metrics, TERMS_PRAISE_MAP),
     };
 }
 
