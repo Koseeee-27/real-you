@@ -4,6 +4,8 @@ import { aggregateScores } from './aggregator';
 import { generateFeedback } from './feedbackGenerator';
 import { GAME_MODULES, NORMAL_FLOW } from './registry';
 import { safeScore } from './scoreUtils';
+import type { SorterGameAnalyzeResult } from './games/sorterGame';
+import type { TermsGameAnalyzeResult } from './games/termsGame';
 
 /**
  * 結果レスポンスを組み立てる薄い統合層（Issue #102 で縮小）。
@@ -88,15 +90,21 @@ export function generateAnalysisResult(
     dataByGameId: GameDataByGameId,
     baseline_scores: BaselineScores,
 ) {
-    // モジュールごとの出力を一度の loop で組み立てる。各モジュールの adapter が
-    // unknown データを内部の concrete 型に narrow するため、ここでは型を意識しない。
+    // analyzeResult を gameId ごとに保持して feedbackGenerator と highlights の両方で再利用する
+    const analyzeResultByGameId: Partial<Record<GameId, ReturnType<typeof GAME_MODULES[GameId]['analyze']>>> = {};
+
     const moduleOutputs = NORMAL_FLOW.map((gameId) => {
         const gameModule = GAME_MODULES[gameId];
         const data = dataByGameId[gameId];
         const analyzeResult = gameModule.analyze(data);
+        analyzeResultByGameId[gameId] = analyzeResult;
         return {
             breakdown: { game_id: gameId, scores: analyzeResult.scores },
-            summary: { game_id: gameId, summary: gameModule.buildSummary(data) },
+            summary: {
+                game_id: gameId,
+                summary: gameModule.buildSummary(data),
+                highlights: gameModule.buildHighlights(data, analyzeResult),
+            },
             detail: gameModule.buildDetails(data, analyzeResult),
         };
     });
@@ -108,7 +116,17 @@ export function generateAnalysisResult(
     const scores = aggregateScores(game_breakdown);
     const gaps = computeGaps(scores, baseline_scores);
     const accuracy_score = computeAccuracyScore(gaps);
-    const feedback = generateFeedback(scores, gaps);
+
+    // 各ゲームの analyzeResult からメトリクスを取り出して feedbackGenerator に渡す
+    const termsResult = analyzeResultByGameId['terms_game'] as TermsGameAnalyzeResult | undefined;
+    const sorterResult = analyzeResultByGameId['sorter_game'] as SorterGameAnalyzeResult | undefined;
+
+    const feedback = generateFeedback(scores, gaps, accuracy_score, {
+        totalTime: termsResult?.totalTime,
+        panicCount: sorterResult?.panicCount,
+        adaptTime: sorterResult?.adaptTime,
+        avgHesitation: sorterResult?.avgHesitation,
+    });
 
     return {
         user_id: userId,
