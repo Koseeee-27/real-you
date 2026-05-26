@@ -18,17 +18,6 @@ type AxisFeedback = {
     low: FeedbackPattern;
 };
 
-const fb = (
-    accuracy: number,
-    metrics: GameMetrics,
-    pattern: FeedbackPattern,
-): { title: string; subtitle: string; description: string; gap_point: string } => ({
-    title: pattern.title,
-    subtitle: pattern.subtitle,
-    description: pattern.buildDescription(accuracy, metrics),
-    gap_point: '',
-});
-
 const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
     caution: {
         high: {
@@ -161,12 +150,17 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
                 const avg =
                     avgHesitation !== undefined ? `${avgHesitation.toFixed(1)}` : '？';
                 const diffVal = avgHesitation !== undefined ? avgHesitation - 1.5 : null;
-                const diff = diffVal !== null && diffVal > 0 ? `${diffVal.toFixed(1)}` : '？';
+                // avgHesitation が平均（1.5秒）以下の場合は「長く」という文言が使えないため、
+                // 「データなし」ではなく「平均並み」として別文言で落とす。
+                const lastLine =
+                    diffVal !== null && diffVal > 0
+                        ? `平均より${diffVal.toFixed(1)}秒長く、全部確認してから動くタイプです。`
+                        : `判断は平均並みでしたが、自己認識より慎重な行動パターンが出ています。`;
                 return [
                     `あなたの自己認識一致度は${accuracy}%。`,
                     '「積極的に動けるタイプ」と思っていたかもしれません。',
                     `でも仕分けゲームで、あなたの平均判断時間は${avg}秒。`,
-                    `平均より${diff}秒長く、全部確認してから動くタイプです。`,
+                    lastLine,
                 ].join('\n');
             },
         },

@@ -118,6 +118,8 @@ export function generateAnalysisResult(
     const accuracy_score = computeAccuracyScore(gaps);
 
     // 各ゲームの analyzeResult からメトリクスを取り出して feedbackGenerator に渡す
+    // NOTE: group_chat_game / helpdesk_game 由来のメトリクスは現時点で feedbackGenerator が
+    // 参照しないため抽出していない。将来パターンを拡張する際はここでの抽出ロジックも追加すること。
     const termsResult = analyzeResultByGameId['terms_game'] as TermsGameAnalyzeResult | undefined;
     const sorterResult = analyzeResultByGameId['sorter_game'] as SorterGameAnalyzeResult | undefined;
 
