@@ -38,6 +38,12 @@ export type SorterGameAnalyzeResult = {
     avgHesitationMs: number;
     wrongSortRate: number;
     concentration: number;
+    /** 荷物1個あたりの平均判断時間（秒）。buildHighlights / feedbackGenerator で使用 */
+    avgHesitation: number;
+    /** 機械停止中のパニッククリック回数。buildHighlights / feedbackGenerator で使用 */
+    panicCount: number;
+    /** ルール変更後の適応時間（秒）。buildHighlights / feedbackGenerator で使用 */
+    adaptTime: number;
 };
 
 function analyze(data: SorterGameData | undefined): SorterGameAnalyzeResult {
@@ -47,6 +53,9 @@ function analyze(data: SorterGameData | undefined): SorterGameAnalyzeResult {
             avgHesitationMs: 0,
             wrongSortRate: 0,
             concentration: 0.5,
+            avgHesitation: 0,
+            panicCount: 0,
+            adaptTime: 0,
         };
 
     // --- 誤仕分け率 ---
@@ -113,6 +122,9 @@ function analyze(data: SorterGameData | undefined): SorterGameAnalyzeResult {
         avgHesitationMs: data.averageHesitationMs,
         wrongSortRate,
         concentration,
+        avgHesitation: data.averageHesitationMs / 1000,
+        panicCount: data.panicClickCount,
+        adaptTime: adaptMs / 1000,
     };
 }
 
@@ -130,6 +142,27 @@ function buildSummary(data: SorterGameData | undefined): string {
             : 'システム障害中も落ち着いて待てました。';
 
     return `${adaptText}${panicText}`;
+}
+
+function buildHighlights(data: SorterGameData | undefined, result: SorterGameAnalyzeResult) {
+    return [
+        {
+            text: `荷物1つを仕分けるまでの平均判断時間は${result.avgHesitation.toFixed(1)}秒。`,
+            comparison: '平均は約1.5秒',
+            reason: '判断の速さから〈慎重さ／積極性〉がわかるため',
+        },
+        {
+            text: `ルールが変わってから正しく仕分けできるまで${result.adaptTime.toFixed(1)}秒かかりました。`,
+            comparison: '平均は約5秒',
+            reason: '新ルールへの適応速度から〈論理性〉がわかるため',
+        },
+        {
+            text: `機械が止まっている間、${result.panicCount}回クリックしていました。`,
+            comparison: '平均は約3回',
+            reason: '操作できない状況での連打から〈冷静さ〉がわかるため',
+        },
+    ];
+    void data;
 }
 
 function buildDetails(data: SorterGameData | undefined, result: SorterGameAnalyzeResult): GameDetail {
@@ -185,4 +218,6 @@ export const sorterGameModule = {
     buildSummary: (data: unknown) => buildSummary(data as SorterGameData | undefined),
     buildDetails: (data: unknown, result: unknown) =>
         buildDetails(data as SorterGameData | undefined, result as SorterGameAnalyzeResult),
+    buildHighlights: (data: unknown, result: unknown) =>
+        buildHighlights(data as SorterGameData | undefined, result as SorterGameAnalyzeResult),
 };
