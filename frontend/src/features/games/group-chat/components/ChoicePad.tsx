@@ -34,7 +34,7 @@ export default function ChoicePad({
             key={choice.selectedOptionId}
             type="button"
             onClick={() => onSelect(choice.selectedOptionId)}
-            className="min-h-[56px] rounded-2xl border-[3px] border-black bg-white px-5 py-4 text-left text-[15px] font-bold leading-snug text-black shadow-[3px_3px_0_0_#000] transition-transform hover:-translate-y-1 hover:shadow-[5px_5px_0_0_#000]"
+            className="min-h-[56px] rounded-2xl border-[3px] border-black bg-white px-5 py-4 text-left text-[15px] font-bold leading-snug text-black shadow-[3px_3px_0_0_#000] transition-transform hover:-translate-y-1 hover:shadow-[5px_5px_0_0_#000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/40 focus-visible:ring-offset-2"
           >
             {choice.text}
           </button>

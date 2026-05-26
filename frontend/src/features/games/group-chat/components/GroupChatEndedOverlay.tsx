@@ -12,7 +12,11 @@ export default function GroupChatEndedOverlay({
   submitStatus,
 }: GroupChatEndedOverlayProps) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 px-6 text-center">
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 px-6 text-center"
+      role="status"
+      aria-live="polite"
+    >
       <p className="animate-[fadeInUp_0.4s_ease-out] text-6xl font-black tracking-[0.12em] text-white drop-shadow-[4px_4px_0_rgba(0,0,0,0.5)] sm:text-7xl">
         終了！
       </p>
