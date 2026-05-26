@@ -34,6 +34,8 @@ export type TermsGameAnalyzeResult = {
     changedCount: number;
     averageSpeed: number;
     reversalCount: number;
+    /** 規約画面の滞在時間（秒）。feedbackGenerator / buildHighlights で使用 */
+    totalTime: number;
 };
 
 /**
@@ -82,6 +84,7 @@ function analyze(data: TermsGameData | undefined): TermsGameAnalyzeResult {
             changedCount: 0,
             averageSpeed: 0,
             reversalCount: 0,
+            totalTime: 0,
         };
 
     const totalTimeMs = (data.totalTime || 0) * 1000;
@@ -125,6 +128,7 @@ function analyze(data: TermsGameData | undefined): TermsGameAnalyzeResult {
         changedCount: checkboxChanged,
         averageSpeed: speed,
         reversalCount,
+        totalTime: data.totalTime ?? 0,
     };
 }
 
@@ -163,6 +167,33 @@ function buildSummary(data: TermsGameData | undefined): string {
  * `feature_scores` / `metrics` の各値は仕様書「データ構造」→ `GameDetail` 準拠。
  * `metrics` の平均値・カテゴリは旧 scoreCalculator の値をそのまま転記している。
  */
+function buildHighlights(data: TermsGameData | undefined, result: TermsGameAnalyzeResult) {
+    const totalTime = data?.totalTime ?? 0;
+    const AVERAGE_READ_TIME = 15; // 秒
+    const readTimeText =
+        totalTime < AVERAGE_READ_TIME
+            ? `「同意する」ボタンを押すまで、規約をわずか${totalTime.toFixed(1)}秒しか見ませんでした。`
+            : `「同意する」ボタンを押すまで、規約を${totalTime.toFixed(1)}秒かけてじっくり読んでいました。`;
+
+    return [
+        {
+            text: readTimeText,
+            comparison: '平均は約15秒',
+            reason: '読む時間の長さから〈慎重さ・論理性〉がわかるため',
+        },
+        {
+            text: `同意ボタンに手を伸ばしてから押すまでの迷いは${((data?.agreeButtonHoverTimeMs ?? 0) / 1000).toFixed(1)}秒。`,
+            comparison: '平均は約1.2秒',
+            reason: 'クリック前の躊躇から〈大胆さ／慎重さ〉がわかるため',
+        },
+        {
+            text: `規約を上にスクロールして読み返した回数は${result.reversalCount}回。`,
+            comparison: '平均は2.1回',
+            reason: '読み返しの有無から〈慎重さ〉がわかるため',
+        },
+    ];
+}
+
 function buildDetails(data: TermsGameData | undefined, result: TermsGameAnalyzeResult): GameDetail {
     return {
         game_id: termsGameModule.id,
@@ -242,4 +273,6 @@ export const termsGameModule = {
     buildSummary: (data: unknown) => buildSummary(data as TermsGameData | undefined),
     buildDetails: (data: unknown, result: unknown) =>
         buildDetails(data as TermsGameData | undefined, result as TermsGameAnalyzeResult),
+    buildHighlights: (data: unknown, result: unknown) =>
+        buildHighlights(data as TermsGameData | undefined, result as TermsGameAnalyzeResult),
 };
