@@ -61,7 +61,16 @@ type BadgeConfig = {
   pulseScale: number;
   /** パルス 1 周分の秒数。小さいほど速い呼吸 = 緊急感が強い */
   pulseDuration: number;
+  /**
+   * バッジテキストのサイズ class。省略時は標準の `text-sm sm:text-base`。
+   * 2 バッジ同時表示（ルール変更 + スピード 2 倍）時に中央のタイマー pill と
+   * 衝突しないよう、緊急度が低めのバッジには控えめなサイズを個別に与える。
+   */
+  textSizeClassName?: string;
 };
+
+/** バッジのデフォルトのテキストサイズ class。`textSizeClassName` が指定されていない時に使う。 */
+const DEFAULT_BADGE_TEXT_SIZE = 'text-sm sm:text-base';
 
 /**
  * 現在の状態フラグから「いま表示すべきバッジ」の配列を組み立てる。
@@ -111,6 +120,9 @@ function buildActiveBadges(flags: {
       textColor: 'white',
       pulseScale: 1.05,
       pulseDuration: 0.5,
+      // ルール変更中バッジと並んだ時に中央タイマー pill と衝突しないよう、
+      // 控えめなサイズで詰める（速度上昇は緊急度が低めなので情報量よりレイアウト優先）。
+      textSizeClassName: 'text-xs sm:text-sm',
     });
   }
   return badges;
@@ -165,52 +177,57 @@ export default function SorterHUD({
         === バッジエリア（左 absolute、horizontal 固定で 1 行） ===
         バッジ群は AnimatePresence で出入り。出現時は上からスライドイン + スケールイン、
         表示中は continuous パルスで「いま何かが起きている」ことを伝える。
-        flex-nowrap で 2 つ並んでも 1 行を維持。
-        中央のタイマーと右の SCORE と被らないよう、ここは左寄せのみ（最大幅は内容依存）。
+        flex-nowrap で 2 つ並んでも 1 行を維持し、中央のタイマーと右の SCORE と被らないよう
+        左寄せのみ（最大幅は内容依存）。gap は最小限（PC で 4px）にして、ルール変更中バッジと
+        スピード 2 倍バッジを詰めて配置し、中央タイマー pill との衝突を可能な限り回避する。
+        AnimatePresence の mode は省略（デフォルト 'sync'）。バッジは flex-nowrap 内に並ぶだけで
+        layout アニメは不要なので、'popLayout' を指定すると getBoundingClientRect の
+        計算オーバーヘッドが乗るだけになる。出入りの fade/slide は各 motion.span の
+        initial/animate/exit で完結する。
       */}
-      <div className="absolute inset-y-0 left-0 flex items-center">
-        <div className="flex flex-nowrap items-center gap-2 sm:gap-3">
-          {/*
-            mode は省略（デフォルト 'sync'）。バッジは絶対配置の flex-nowrap 内に並ぶだけで
-            layout アニメは不要なので、'popLayout' を指定すると getBoundingClientRect の
-            計算オーバーヘッドが乗るだけになる。出入りの fade/slide は各 motion.span の
-            initial/animate/exit で完結する。
-          */}
-          <AnimatePresence>
-            {activeBadges.map((badge) => (
-              <motion.span
-                key={badge.key}
-                initial={{ opacity: 0, y: -12, scale: 0.85 }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  // scale は出現と同時に [1, pulseScale, 1] の継続パルスを開始する。
-                  // opacity / y の出現アニメ（0.25s）と並行して scale も pulse 前半を走るため、
-                  // 「ふわっと出ながら微かに息づく」見え方になる（出現と pulse の同時進行は意図通り）。
-                  scale: [1, badge.pulseScale, 1],
-                }}
-                exit={{ opacity: 0, scale: 0.85 }}
-                transition={{
-                  opacity: { duration: 0.25 },
-                  y: { duration: 0.25 },
-                  scale: {
-                    duration: badge.pulseDuration,
-                    repeat: Infinity,
-                    repeatType: 'loop',
-                    ease: 'easeInOut',
-                  },
-                }}
-                className="inline-flex items-center justify-center rounded-xl border-[5px] border-black px-3 py-1.5 text-sm font-black tracking-wider whitespace-nowrap shadow-[5px_5px_0_0_#000] sm:px-4 sm:py-2 sm:text-lg"
-                style={{
-                  backgroundColor: badge.bgColor,
-                  color: badge.textColor === 'white' ? '#ffffff' : '#000000',
-                }}
-              >
-                {badge.label}
-              </motion.span>
-            ))}
-          </AnimatePresence>
-        </div>
+      <div className="absolute inset-y-0 left-0 flex flex-nowrap items-center gap-0.5 sm:gap-1">
+        <AnimatePresence>
+          {activeBadges.map((badge) => (
+            <motion.span
+              key={badge.key}
+              initial={{ opacity: 0, y: -12, scale: 0.85 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                // scale は出現と同時に [1, pulseScale, 1] の継続パルスを開始する。
+                // opacity / y の出現アニメ（0.25s）と並行して scale も pulse 前半を走るため、
+                // 「ふわっと出ながら微かに息づく」見え方になる（出現と pulse の同時進行は意図通り）。
+                scale: [1, badge.pulseScale, 1],
+              }}
+              exit={{
+                opacity: 0,
+                scale: 0.85,
+                // exit に独自の transition を必ず指定する。指定しないと親の transition
+                // （scale.repeat: Infinity）を継承して exit アニメが完了せず、要素が
+                // DOM 上に opacity 0 のゾンビ要素として残り続け、後続バッジとの間に
+                // 不要な隙間が生まれる（実際にこの不具合が観測されたため対処）。
+                transition: { duration: 0.2 },
+              }}
+              transition={{
+                opacity: { duration: 0.25 },
+                y: { duration: 0.25 },
+                scale: {
+                  duration: badge.pulseDuration,
+                  repeat: Infinity,
+                  repeatType: 'loop',
+                  ease: 'easeInOut',
+                },
+              }}
+              className={`inline-flex items-center justify-center rounded-xl border-[5px] border-black px-2.5 py-1 font-black tracking-wider whitespace-nowrap shadow-[5px_5px_0_0_#000] sm:px-3 sm:py-1.5 ${badge.textSizeClassName ?? DEFAULT_BADGE_TEXT_SIZE}`}
+              style={{
+                backgroundColor: badge.bgColor,
+                color: badge.textColor === 'white' ? '#ffffff' : '#000000',
+              }}
+            >
+              {badge.label}
+            </motion.span>
+          ))}
+        </AnimatePresence>
       </div>
 
       {/*
