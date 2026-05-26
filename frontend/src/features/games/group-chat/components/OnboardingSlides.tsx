@@ -1,16 +1,14 @@
 'use client';
 
 import Image from 'next/image';
-import type { ReactNode } from 'react';
 import SlideModal from '@/components/common/SlideModal';
 import {
   CHARACTERS,
+  GAME_TAGLINE,
   INTRO_CHARACTERS,
   ONBOARDING_TITLE,
   PLAYER_INTRO_TEXT,
-  RULES,
-  SCENE_TEXT,
-  SITUATION_TEXT,
+  SCENE_DESCRIPTION,
 } from '../data/turns';
 
 interface OnboardingSlidesProps {
@@ -18,52 +16,19 @@ interface OnboardingSlidesProps {
   onStart: () => void;
 }
 
-/** セクション見出しの色トークン（ゲームのブランドパレットから割り当て） */
-const SECTION_COLORS = {
-  scene: '#2d5be3', // 青（チャットヘッダー色）
-  situation: '#e03131', // 赤（緊急感）
-  rules: '#57d071', // 緑（START ボタンと同系・READY 感）
-  characters: '#f1cf44', // 黄（ブランドカラー）
-} as const;
-
 /**
- * 見出し付きセクション。左端に色付きの縦バーを置く（「▍」のような見え方）。
- */
-function Section({
-  label,
-  color,
-  children,
-}: {
-  label: string;
-  color: string;
-  children: ReactNode;
-}) {
-  return (
-    <section>
-      <h3 className="mb-2 flex items-center gap-2.5 text-sm font-black tracking-wide text-black sm:text-base">
-        <span
-          aria-hidden
-          className="inline-block h-5 w-1.5 rounded-sm"
-          style={{ backgroundColor: color }}
-        />
-        {label}
-      </h3>
-      <div className="pl-4 text-sm font-bold leading-relaxed text-gray-700 sm:text-[15px]">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-/**
- * 空気読みチャットゲームのオンボーディング（1スライド・4ブロック構造）。
+ * 空気読みチャットゲームのオンボーディング（1スライド）。
  * 仕様書: `notion-docs/screen-design.md` の Game 3 新実装「オンボーディング画面の内容」。
  * 共通の `SlideModal`（強制チュートリアル = onClose 未指定）を 1 スライドで使用。
  *
- * レイアウト:
- * - 広い画面（lg）: 2 カラム（左 = 場面 / 状況 / ルール、右 = 登場人物）。
- *   ワイドな横スペースを活用し、縦高さを抑えてモーダル内に収める。
- * - 狭い画面: 縦並び 1 カラムにフォールバック。
+ * 構成（参考: notion-docs に紐づくスナップショット）:
+ * 1. タイトル: 黄色ステッカー風（タイトル + タグラインを 1 行併記、控えめサイズ）
+ * 2. プレイヤー役割サブタイトル
+ * 3. 状況説明: 黄色ベタの枠でシーンをナレーション
+ * 4. 「登場人物」見出し（黄色ステッカー）+ 大きめキャラアイコン 4 人並べ（密に）
+ *
+ * モーダル body は flex-col + justify-center でコンテンツを縦中央寄せし、
+ * SlideModal の min-h によって生じる上下の余白を均等化する。
  */
 export default function OnboardingSlides({ onStart }: OnboardingSlidesProps) {
   return (
@@ -73,72 +38,57 @@ export default function OnboardingSlides({ onStart }: OnboardingSlidesProps) {
       completeLabel="START"
       ariaLabel="空気読みチャットゲーム 説明"
     >
-      <div className="flex flex-col gap-5">
-        {/* タイトル: 黄色の蛍光ペン風ハイライト */}
-        <h2 className="text-center text-2xl font-black tracking-[0.08em] sm:text-3xl lg:text-4xl">
-          <span
-            className="inline-block px-2 pb-0.5"
-            style={{
-              backgroundImage: 'linear-gradient(transparent 55%, #f1cf44 55%)',
-            }}
-          >
-            {ONBOARDING_TITLE}
-          </span>
-        </h2>
+      <div className="flex h-full flex-col justify-center gap-3 sm:gap-4">
+        {/* タイトル: 黄色ステッカー風（タイトル + タグラインを 1 行併記、控えめサイズ） */}
+        <div className="text-center">
+          <h2 className="inline-flex flex-wrap items-baseline justify-center gap-x-2.5 gap-y-1 rounded-xl border-[3px] border-black bg-[#f1cf44] px-4 py-1 text-base font-black tracking-[0.06em] shadow-[3px_3px_0_0_#000] sm:text-lg lg:text-xl">
+            <span>{ONBOARDING_TITLE}</span>
+            <span className="text-xs font-bold text-black/70 sm:text-sm">
+              / {GAME_TAGLINE}
+            </span>
+          </h2>
+        </div>
 
         {/* プレイヤーの役割サブタイトル */}
-        <p className="-mt-2 text-center text-sm font-bold text-gray-700 sm:text-base">
+        <p className="-mt-1 text-center text-xs font-bold text-gray-700 sm:text-sm">
           {PLAYER_INTRO_TEXT}
         </p>
 
-        <div className="grid gap-5 lg:grid-cols-[3fr_2fr] lg:gap-x-10">
-          {/* 左カラム: 場面 / 状況 / ルール */}
-          <div className="flex flex-col gap-4">
-            <Section label="場面" color={SECTION_COLORS.scene}>
-              {SCENE_TEXT}
-            </Section>
-            <Section label="状況" color={SECTION_COLORS.situation}>
-              {SITUATION_TEXT}
-            </Section>
-            <Section label="ルール" color={SECTION_COLORS.rules}>
-              <ul className="space-y-1.5">
-                {RULES.map((rule) => (
-                  <li key={rule} className="flex gap-2">
-                    <span
-                      aria-hidden
-                      className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: SECTION_COLORS.rules }}
-                    />
-                    <span>{rule}</span>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          </div>
-
-          {/* 右カラム: 登場人物（横並び 3 アイコン） */}
-          <Section label="登場人物" color={SECTION_COLORS.characters}>
-            <div className="flex items-start justify-around gap-3 pt-1">
-              {INTRO_CHARACTERS.map((c) => (
-                <div
-                  key={c.characterId}
-                  className="flex flex-col items-center gap-1.5"
-                >
-                  <Image
-                    src={CHARACTERS[c.characterId].iconPath}
-                    alt={c.role}
-                    width={64}
-                    height={64}
-                    className="h-16 w-16 rounded-full border-[3px] border-black bg-white object-cover shadow-[2px_2px_0_0_#000]"
-                  />
-                  <span className="text-xs font-black tracking-wide sm:text-sm">
-                    {c.role}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Section>
+        {/* 状況説明: 黄色ベタ枠でシーンをナレーション */}
+        <div className="rounded-lg border-2 border-black/20 bg-[#fff8dc] px-4 py-2.5 sm:px-5 sm:py-3">
+          <p className="text-xs font-bold leading-relaxed text-black sm:text-sm">
+            {SCENE_DESCRIPTION}
+          </p>
         </div>
+
+        {/* 登場人物セクション: 黄色ステッカー見出し + キャラアイコン（密に） */}
+        <section>
+          <div className="mb-3 text-center">
+            <h3 className="inline-block rounded-lg border-[3px] border-black bg-[#f1cf44] px-4 py-1 text-sm font-black tracking-[0.08em] shadow-[2px_2px_0_0_#000] sm:text-base">
+              登場人物
+            </h3>
+          </div>
+          {/* gap で間隔を制御し、justify-center で中央密集にする */}
+          <div className="flex flex-wrap items-start justify-center gap-x-6 gap-y-2 sm:gap-x-10">
+            {INTRO_CHARACTERS.map((c) => (
+              <div
+                key={c.characterId}
+                className="flex flex-col items-center gap-1.5"
+              >
+                <Image
+                  src={CHARACTERS[c.characterId].iconPath}
+                  alt={c.role}
+                  width={64}
+                  height={64}
+                  className="h-14 w-14 rounded-full border-[3px] border-black bg-white object-cover shadow-[2px_2px_0_0_#000] sm:h-16 sm:w-16"
+                />
+                <span className="text-xs font-black tracking-wide sm:text-sm">
+                  {c.role}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </SlideModal>
   );
