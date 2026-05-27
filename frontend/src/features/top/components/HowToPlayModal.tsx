@@ -23,24 +23,24 @@ export default function HowtoPlayModal({
   const howToPlaySteps = [
     {
       title: 'Real Youとは？',
-      subtitle: '本当の私じゃ、ダメですか？',
+      subtitle: '“本当のあなた”が分かる、新しい性格診断アプリ。',
       bullets: [
-        'その性格診断、「こうありたい自分」が混ざってませんか？',
-        'Real You は、あなたの バイアスを取り除いた"本当の自分" を映し出す診断です！',
+        '直感のままにプレイするだけ。',
+        'あなたらしさが、自然とあらわれます。',
       ],
     },
     {
-      title: '所要時間は約5分！',
+      title: 'プレイ時間は約5分！',
       subtitle: 'ゲームでサクッと、診断完了！',
       bullets: [
-        '質問にじっくり答える時間も、細かい操作も必要ありません！直感のままにプレイしてください！',
+        '※PCでのプレイをおすすめします',
+        '※ゲーム中、BGMや効果音が流れます'
       ],
     },
     {
-      title: '始める前に、ちょっとだけ',
-      subtitle: 'PC（Chrome 推奨）でのプレイをおすすめします',
-      subtitle2: 'いざ！本当の自分に会いに行こう！！',
-      bullets: ['ゲーム中、BGM や効果音が流れます'],
+      title: 'さあ！”本当の自分”に会いに行こう！',
+      subtitle: '',
+      bullets: [],
     },
   ];
 
@@ -101,12 +101,6 @@ export default function HowtoPlayModal({
             </ul>
           </div>
         </div>
-
-        {howToPlaySteps[page - 1].subtitle2 && (
-          <p className="mt-0 mb-0 text-lg font-bold text-center">
-            {howToPlaySteps[page - 1].subtitle2}
-          </p>
-        )}
 
         {/* ナビゲーションボタン */}
         <div className="mt-5 flex min-h-[64px] items-center justify-center gap-4">
