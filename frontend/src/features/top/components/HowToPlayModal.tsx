@@ -52,7 +52,7 @@ export default function HowtoPlayModal({
     <dialog
       ref={dialogRef}
       className={cn(
-        'rounded-[24px] border-[6px] border-black bg-white max-w-xl w-[90vw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden p-0 flex flex-col',
+        'rounded-[24px] border-[6px] border-black max-w-xl w-[90vw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden p-0 flex flex-col',
         classNames.overlay
       )}
       onClose={onClose}
@@ -76,9 +76,16 @@ export default function HowtoPlayModal({
       {/* ポップアップ本体 */}
       <div
         className={cn(
-          'relative w-full bg-white px-0 pt-5 pb-0 flex flex-col flex-1min-h-[440px] sm:min-h-[420px] lg:min-h-[400px]',
+          'relative w-full px-0 pt-5 pb-0 flex flex-col flex-1 min-h-[440px] sm:min-h-[420px] lg:min-h-[400px]',
           classNames.card
         )}
+        style={{
+        backgroundImage:
+          "linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)), url('/images/fukidashi.png')",
+        backgroundSize: "100% 70%",
+        backgroundPosition: "center 30%",
+        backgroundRepeat: "no-repeat",
+        }}
         onClick={(event) => event.stopPropagation()}
       >
         
@@ -86,16 +93,16 @@ export default function HowtoPlayModal({
       {/* メインコンテンツ */}
       <div className={cn("flex flex-col w-full items-center justify-center text-center flex-1", classNames.body)}>
         {page === 1 && (
-          <div className="flex flex-col items-center mt-4">
-            <h2 className="mb-4 text-6xl font-bold leading-relaxed">
+          <div className="flex flex-col items-center mt-0">
+            <h2 className="mb-1 text-6xl font-bold leading-relaxed">
               {howToPlaySteps[0].title}
             </h2>
 
-            <p className="mb-10 text-base leading-relaxed">
+            <p className="mb-6 text-base leading-relaxed">
               {howToPlaySteps[0].subtitle}
             </p>
 
-            <div className="space-y-2 text-base leading-relaxed text-[#111]">
+            <div className="space-y-1 text-base font-bold leading-relaxed text-[#111]">
               {howToPlaySteps[0].bullets.map((line, index) => (
                 <p key={index}>{line}</p>
               ))}
@@ -105,15 +112,15 @@ export default function HowtoPlayModal({
 
         {page === 2 && (
           <div className="flex flex-col items-center mt-4">
-            <h2 className="mb-4 text-5xl font-bold leading-relaxed">
+            <h2 className="mb-1 text-5xl font-bold leading-relaxed">
               {howToPlaySteps[1].title}
             </h2>
 
-            <p className="mb-7 text-2xl leading-relaxed">
+            <p className="mb-5 text-base leading-relaxed">
               {howToPlaySteps[1].subtitle}
             </p>
 
-            <div className="space-y-2 text-base leading-relaxed text-[#111] text-left text-gray-500">
+            <div className="space-y-1 text-base leading-relaxed text-[#111] text-left text-gray-600">
               {howToPlaySteps[1].bullets.map((line, index) => (
                 <p key={index}>{line}</p>
               ))}
@@ -143,6 +150,9 @@ export default function HowtoPlayModal({
             'rounded-xl border-[3px] border-black py-2 text-sm font-black shadow-[3px_3px_0_0_#000] transition-transform hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000] sm:py-3 sm:text-base',
             // 色
             'bg-white text-black px-6 sm:px-8',
+            page === 1
+              ? 'bg-white text-gray-500 shadow-none translate-y-0 cursor-not-allowed'
+              : 'bg-white text-black hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000]',
             classNames.backButton
           )}
         >
