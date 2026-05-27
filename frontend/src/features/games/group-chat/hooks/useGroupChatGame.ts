@@ -152,8 +152,13 @@ export function useGroupChatGame(options: {
   /** ターン1「入力中」表示時点でホバーしていた選択肢 ID（未ホバーは null） */
   const hoverChoiceAtTypingRef = useRef<OptionIntentId | null>(null);
 
-  /** 入力デバイス種別（初回操作で確定） */
-  const inputDeviceTypeRef = useRef<InputDeviceType>('mouse');
+  /**
+   * 入力デバイス種別（初回操作で確定）。
+   * 既定値は `'keyboard'` とし、検出前 / 無操作で送信した場合に `'mouse'` と
+   * 誤判定されないようにする（BE 側で `inputDeviceType !== 'mouse'` のとき
+   * マウス移動距離由来の指標を無効化する判定があるため）。
+   */
+  const inputDeviceTypeRef = useRef<InputDeviceType>('keyboard');
   const inputDeviceDetectedRef = useRef(false);
 
   /** 各ターンの結果ログ */
@@ -602,6 +607,9 @@ export function useGroupChatGame(options: {
     turn1HoverChangedAfterColleagueATypingRef.current = null;
     t1PreemptShownRef.current = false;
     t1TypingIndicatorShownAtRef.current = null;
+    // リトライ時に初回プレイの入力デバイス種別を持ち越さない（既定値に戻す）
+    inputDeviceDetectedRef.current = false;
+    inputDeviceTypeRef.current = 'keyboard';
     resetTurnMetrics();
     setChatMessages([]);
     setCurrentTurnIndex(0);
