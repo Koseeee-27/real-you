@@ -27,7 +27,7 @@ export interface AnalysisResultRow {
     feedback_description: string;
     feedback_gap_point: string;
     // その他
-    game_contributions: GameBreakdown;
+    game_breakdown: GameBreakdown;
     accuracy_score: number;
     phase_summaries: PhaseSummaries;
     /** 各ゲーム詳細（GET /api/results の details と同一構造）。`analysis_results.details` JSONB。 */

@@ -134,7 +134,7 @@ export type GameId = z.infer<typeof gameIdSchema>;
  * ゲームごとのスコア内訳（配列形式）。
  *
  * 各要素は `{ game_id, scores }` の構造で、`game_id` はゲームを識別する文字列
- * （現状は 'terms_game' / 'helpdesk_game' / 'group_chat_game'）。
+ * （現状は 'terms_game' / 'sorter_game' / 'group_chat_game'）。
  * 配列化の理由は将来のゲーム追加・差し替えに耐えるため（Phase 1 / Issue #97）。
  *
  * `scores` は当該ゲームで測定する軸のみを含む（例: terms_game は caution / logic / calmness のみ）。
