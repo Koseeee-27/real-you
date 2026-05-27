@@ -1,86 +1,173 @@
 'use client';
 
 import type { ResultResponse } from '../types';
-import RadarChart from './RadarChart';
+import BipolarSlider from './BipolarSlider';
 
 type OverviewTabProps = {
   data: ResultResponse;
 };
 
-// ギャップ率の計算（元コードのロジックを継承）
-function getGapRateDisplay(data: ResultResponse): string {
-  const { gaps } = data;
-  const maxAbsGap = Math.max(
-    Math.abs(gaps.caution),
-    Math.abs(gaps.calmness),
-    Math.abs(gaps.logic),
-    Math.abs(gaps.cooperativeness),
-    Math.abs(gaps.positivity)
-  );
-  return `${Math.min(100, Math.round(maxAbsGap))}%`;
+// ハイライト正規表現（BEが埋め込む数値 + 単位 / 『テキスト』引用）
+const HIGHLIGHT_NUM_RE = /(\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
+const HIGHLIGHT_QUOTE_RE = /(『[^』]+』)/g;
+const COMBINED_RE = /(『[^』]+』|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
+
+/**
+ * 解析コメントテキストを JSX に変換する。
+ * - 数値 + 単位 → マゼンタ大文字ハイライト
+ * - 『引用』  → ブルー大文字ハイライト
+ */
+function renderComment(text: string): React.ReactNode {
+  const parts = text.split(COMBINED_RE);
+  return parts.map((part, i) => {
+    if (HIGHLIGHT_NUM_RE.test(part)) {
+      HIGHLIGHT_NUM_RE.lastIndex = 0; // reset stateful regex
+      return (
+        <span
+          key={i}
+          className="font-black"
+          style={{
+            fontSize: '1.3em',
+            color: '#db2777',
+            background: '#fdf2f8',
+            padding: '1px 4px',
+            borderRadius: 3,
+            display: 'inline-block',
+            lineHeight: 1.2,
+          }}
+        >
+          {part}
+        </span>
+      );
+    }
+    if (HIGHLIGHT_QUOTE_RE.test(part)) {
+      HIGHLIGHT_QUOTE_RE.lastIndex = 0;
+      return (
+        <span
+          key={i}
+          className="font-black"
+          style={{
+            fontSize: '1.3em',
+            color: '#4d85ff',
+            background: '#eff6ff',
+            padding: '1px 4px',
+            borderRadius: 3,
+            display: 'inline-block',
+            lineHeight: 1.2,
+          }}
+        >
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
 }
 
-// キーワード強調用の小コンポーネント
-const Highlight = ({
-  children,
-  color,
-}: {
-  children: React.ReactNode;
-  color: string;
-}) => (
-  <span
-    className={`${color} px-2 py-0.5 rounded-md font-black mx-1 inline-block shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]`}
-  >
-    {children}
-  </span>
-);
+// 5 軸の表示順（上から下）
+const AXES = [
+  'caution',
+  'calmness',
+  'logic',
+  'cooperativeness',
+  'positivity',
+] as const;
 
 export default function OverviewTab({ data }: OverviewTabProps) {
-  const gapRate = getGapRateDisplay(data);
-  const { feedback } = data;
+  const { feedback, scores, baseline_scores } = data;
 
   return (
-    <div className="grid gap-8 md:grid-cols-2 items-center h-full max-h-full">
-      {/* 左側：レーダーチャートのカード */}
-      {/* 修正ポイント：aspect-square と overflow-hidden で「飛び出し」を防止 */}
-      <div className="relative bg-white border-4 border-black rounded-[2.5rem] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center overflow-hidden h-full min-h-[350px]">
-        <div className="w-full h-full aspect-square max-h-[380px] relative">
-          <RadarChart
-            baselineScores={data.baseline_scores}
-            measuredScores={data.scores}
-          />
+    <div className="flex gap-8 h-full w-full items-stretch">
+      {/* ===== 左カラム：タイトル + サブタイトル + 解析コメント ===== */}
+      <div className="w-1/2 flex flex-col relative">
+        {/* タイトルステッカー */}
+        <div
+          className="self-center border-4 border-black rounded-2xl px-5 py-4 bg-white"
+          style={{
+            boxShadow: '3px 3px 0 #636262',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <h2
+            className="font-black leading-tight m-0 text-center"
+            style={{ fontSize: 'clamp(1.4rem, 3vw, 2.2rem)' }}
+          >
+            <span
+              style={{
+                color: '#f87171',
+                textShadow:
+                  '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 4px 4px 0 rgba(0,0,0,0.25)',
+              }}
+            >
+              {feedback.title}
+            </span>
+          </h2>
+        </div>
+
+        {/* サブタイトル（BE未実装時は非表示） */}
+        {feedback.subtitle && (
+          <p
+            className="text-center font-black mt-3 text-sm sm:text-base"
+            style={{ color: '#555' }}
+          >
+            {feedback.subtitle}
+          </p>
+        )}
+
+        {/* 解析コメントボックス */}
+        <div
+          className="flex-1 mt-4 rounded-r-xl"
+          style={{
+            background: '#FFFCE8',
+            borderLeft: '10px solid #f87171',
+            padding: '16px 20px',
+            boxShadow: '4px 4px 0 rgba(0,0,0,0.05)',
+          }}
+        >
+          <div
+            className="font-black mb-2"
+            style={{ fontSize: 14, color: '#f87171' }}
+          >
+            解析コメント
+          </div>
+          <div
+            className="font-bold leading-relaxed"
+            style={{ fontSize: 'clamp(0.85rem, 1.5vw, 1.05rem)', color: '#333', lineHeight: 1.8 }}
+          >
+            {renderComment(feedback.description)}
+          </div>
         </div>
       </div>
 
-      {/* 右側：フィードバックのカード */}
-      <div className="relative h-full">
-        {/* CHECK THIS OUT! ステッカー */}
-        <div className="absolute -top-5 -left-4 z-20 bg-[#e63946] text-white font-black px-5 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform -rotate-3 text-sm lg:text-base">
-          CHECK THIS OUT!
+      {/* ===== 右カラム：5 軸両極スライダー ===== */}
+      <div
+        className="w-1/2 flex flex-col"
+        style={{
+          borderLeft: '3px dashed #e2e8f0',
+          paddingLeft: 24,
+        }}
+      >
+        {/* ヘッダー行 */}
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-black text-gray-400 leading-tight">
+            あなたの５軸ポジション（本能＝実測）
+          </p>
+          <p className="text-xs font-black flex items-center gap-1" style={{ color: '#777' }}>
+            あなたのMBTIの目安{' '}
+            <span className="text-red-500 text-xs">▼</span>
+          </p>
         </div>
 
-        {/* 黄色のカード本体 */}
-        <div className="bg-[#fffbeb] border-4 border-black rounded-[2.5rem] p-8 lg:p-10 shadow-[10px_10px_0px_0px_rgba(13,148,136,1)] h-full flex flex-col justify-center relative z-10 min-h-[350px]">
-          <h2 className="text-2xl lg:text-3xl font-black text-black mb-6 leading-tight">
-            <span className="text-[#8b5cf6] block text-xl lg:text-2xl mb-1">
-              理性と本能のギャップ:
-            </span>
-            <span className="text-6xl lg:text-7xl">{gapRate}</span>
-          </h2>
-
-          <div className="text-base lg:text-lg font-bold leading-relaxed text-gray-800 space-y-4">
-            <p>
-              あなたは
-              <Highlight color="bg-blue-100 text-blue-700">
-                『{feedback.gap_point}』
-              </Highlight>
-              を自認していますが、実際の行動は
-              <Highlight color="bg-pink-100 text-pink-700">直感</Highlight>
-              にドーンと振れています！
-            </p>
-
-            <p className="whitespace-pre-line">{feedback.description}</p>
-          </div>
+        {/* スライダー群 */}
+        <div className="flex flex-col justify-between flex-1 gap-1">
+          {AXES.map((axis) => (
+            <BipolarSlider
+              key={axis}
+              axis={axis}
+              score={scores[axis]}
+              baselineScore={baseline_scores[axis]}
+            />
+          ))}
         </div>
       </div>
     </div>
