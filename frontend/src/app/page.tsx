@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import HowToPlayModal from '@/features/top/components/HowToPlayModal';
+import { howToPlaySlides } from '@/features/top/components/HowToPlayModal';
 import SlideModal from '@/components/common/SlideModal';
 
 // --- まる爆発アニメーションコンポーネント ---
@@ -63,7 +63,6 @@ export default function TopPage() {
   const router = useRouter();
   const [showExplosion, setShowExplosion] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [howToPlayPage, setHowToPlayPage] = useState(1);
 
   // BGMを保持するための Ref
   const bgmRef = useRef<HTMLAudioElement | null>(null);
@@ -115,7 +114,6 @@ export default function TopPage() {
   };
 
   const openHowToPlay = () => {
-    setHowToPlayPage(1);
     setShowHowToPlay(true);
   };
 
@@ -170,16 +168,14 @@ export default function TopPage() {
         </div>
 
     
+        {/* SlideModal に children 配列を渡す（SlideModal が children 配列を受け取る実装の前提） */}
         <SlideModal
           open={showHowToPlay}
-          onComplete={() => setShowHowToPlay(false)}
-          onClose={closeHowToPlay}
-          completeLabel="閉じる"
+          onComplete={closeHowToPlay}
+          completeLabel="完了！"
           ariaLabel="あそびかた 説明"
         >
-          <>
-            {/* 遊び方は後で記述 */}
-          </>
+          {howToPlaySlides}
         </SlideModal>
       </div>
     </div>
