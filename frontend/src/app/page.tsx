@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import HowToPlayModal from '@/features/top/components/HowToPlayModal';
+import SlideModal from '@/components/common/SlideModal';
 
 // --- まる爆発アニメーションコンポーネント ---
 const SparklesExplosion = () => {
@@ -168,13 +169,18 @@ export default function TopPage() {
           {showExplosion && <SparklesExplosion />}
         </div>
 
-        {showHowToPlay && (
-          <HowToPlayModal
-            page={howToPlayPage}
-            setPage={setHowToPlayPage}
-            onClose={closeHowToPlay}
-          />
-        )}
+    
+        <SlideModal
+          open={showHowToPlay}
+          onComplete={() => setShowHowToPlay(false)}
+          onClose={closeHowToPlay}
+          completeLabel="閉じる"
+          ariaLabel="あそびかた 説明"
+        >
+          <>
+            {/* 遊び方は後で記述 */}
+          </>
+        </SlideModal>
       </div>
     </div>
   );
