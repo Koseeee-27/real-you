@@ -44,6 +44,15 @@ const CONIC_BG = `
   )
 `.trim();
 
+/** ゲーム色 → CSS クラス名のマッピング */
+const COLOR_TO_BTN_CLASS: Record<string, string> = {
+  '#ef4444': 'btn-red',
+  '#f97316': 'btn-orange',
+  '#22c55e': 'btn-green',
+  '#3b82f6': 'btn-blue',
+  '#4d85ff': 'btn-blue',
+};
+
 type ResultReportProps = {
   data: ResultResponse;
 };
@@ -131,13 +140,25 @@ export default function ResultReport({ data }: ResultReportProps) {
   return (
     /* 外側：コニックグラデーション背景 */
     <div
-      className="min-h-screen w-full flex flex-col items-center justify-center p-3 sm:p-5 font-sans"
-      style={{ background: CONIC_BG }}
+      className="slide-container"
+      style={{
+        background: CONIC_BG,
+        minHeight: '100vh',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px 35px',
+        position: 'relative',
+      }}
     >
       {/* アメコミ調ドットオーバーレイ */}
       <div
-        className="fixed inset-0 pointer-events-none"
         style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
           backgroundImage:
             'radial-gradient(rgba(0,0,0,0.03) 2px, transparent 2px)',
           backgroundSize: '16px 16px',
@@ -147,43 +168,46 @@ export default function ResultReport({ data }: ResultReportProps) {
 
       {/* メインカード */}
       <div
-        className="relative z-10 w-full flex flex-col"
-        style={{ maxWidth: 1100 }}
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          width: '100%',
+          maxWidth: 1100,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
       >
         {/* ===== ホワイトカード ===== */}
-        {/* 概要: 高さ auto（コンテンツに合わせる） / 詳細: 固定高さ（内部スクロール） */}
         <div
-          className="bg-white border-[6.5px] border-black rounded-[28px] flex flex-col"
-          style={{
-            ...(mode === 'detail'
-              ? { height: 'calc(100vh - 130px)', overflow: 'hidden' }
-              : {}),
-            boxShadow: '12px 12px 0 rgba(0,0,0,0.15)',
-            padding: '24px 32px',
-          }}
+          className="main-card"
+          style={
+            mode === 'detail'
+              ? { height: 'calc(100vh - 130px)', overflow: 'hidden', flexDirection: 'column' }
+              : { flexDirection: 'column' }
+          }
         >
           {/* 詳細モード：ゲームタブナビ */}
           {mode === 'detail' && (
-            <nav className="flex justify-center gap-3 mb-6 flex-wrap">
+            <nav className="game-nav-reconstructed" style={{ marginTop: 0, marginBottom: 12 }}>
               {gameTabs.map(({ gameId, meta }) => {
                 const isActive = activeGameId === gameId;
                 const Icon = meta.icon;
+                const btnColorClass =
+                  COLOR_TO_BTN_CLASS[meta.color] ?? 'btn-blue';
                 return (
                   <button
                     key={gameId}
                     type="button"
                     onClick={() => handleGameTab(gameId)}
-                    className="flex items-center gap-2 px-5 py-1.5 rounded-full font-black text-sm border-[3px] border-black transition-all"
-                    style={{
-                      background: isActive ? meta.color : '#fff',
-                      color: isActive ? '#fff' : '#000',
-                      boxShadow: isActive
-                        ? '1.5px 1.5px 0 #000'
-                        : '3px 3px 0 #000',
-                      transform: isActive ? 'translate(1px,1px)' : undefined,
-                    }}
+                    className={`game-tab-btn${isActive ? ` active ${btnColorClass}` : ''}`}
                   >
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon
+                      style={{
+                        width: 14,
+                        height: 14,
+                        color: isActive ? '#fff' : meta.color,
+                      }}
+                    />
                     {meta.label}
                   </button>
                 );
@@ -191,8 +215,14 @@ export default function ResultReport({ data }: ResultReportProps) {
             </nav>
           )}
 
-          {/* コンテンツ：詳細モードは flex-1 min-h-0 で残り高さを占有してスクロールさせる */}
-          <div className={mode === 'detail' ? 'flex-1 min-h-0' : undefined}>
+          {/* コンテンツ */}
+          <div
+            style={
+              mode === 'detail'
+                ? { flex: 1, minHeight: 0 }
+                : undefined
+            }
+          >
             {mode === 'overview' && <OverviewTab data={data} />}
             {mode === 'detail' && activeDetail && (
               <GameDetailTab
@@ -206,27 +236,23 @@ export default function ResultReport({ data }: ResultReportProps) {
         </div>
 
         {/* ===== フッターボタン ===== */}
-        <div className="flex justify-center gap-5 mt-4 flex-wrap">
+        <div className="footer-actions-reconstructed">
           {mode === 'overview' ? (
             /* 総合結果モードのフッター */
             <>
               <button
                 type="button"
                 onClick={handleRetake}
-                className="flex items-center gap-2 h-12 px-8 bg-white border-[4.5px] border-black rounded-full font-black text-sm shadow-[4px_4px_0_#000] hover:translate-y-0.5 hover:shadow-none transition-all"
+                className="btn-action-new"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw style={{ width: 16, height: 16 }} />
                 もう一度診断
               </button>
 
               <button
                 type="button"
                 onClick={handleGoDetail}
-                className="flex items-center gap-2 h-12 px-8 border-[4.5px] border-black rounded-full font-black text-sm shadow-[4px_4px_0_#000] hover:translate-y-0.5 hover:shadow-none transition-all text-white"
-                style={{
-                  background:
-                    'linear-gradient(135deg, #f87171 0%, #ef4444 100%)',
-                }}
+                className="btn-action-new btn-orange-grad"
               >
                 詳細を見る →
               </button>
@@ -237,7 +263,7 @@ export default function ResultReport({ data }: ResultReportProps) {
               <button
                 type="button"
                 onClick={handleGoOverview}
-                className="flex items-center gap-2 h-12 px-8 bg-white border-[4.5px] border-black rounded-full font-black text-sm shadow-[4px_4px_0_#000] hover:translate-y-0.5 hover:shadow-none transition-all"
+                className="btn-action-new"
               >
                 ← 戻る
               </button>

@@ -21,56 +21,20 @@ function renderComment(text: string): React.ReactNode {
   return parts.map((part, i) => {
     if (NUM_RE.test(part)) {
       return (
-        <span
-          key={i}
-          className="font-black"
-          style={{
-            fontSize: '1.25em',
-            color: '#db2777',
-            background: '#fdf2f8',
-            padding: '1px 4px',
-            borderRadius: 3,
-            display: 'inline-block',
-            lineHeight: 1.2,
-          }}
-        >
+        <span key={i} className="highlight-magenta">
           {part}
         </span>
       );
     }
     if (QUOTE_RE.test(part)) {
       return (
-        <span
-          key={i}
-          className="font-black"
-          style={{
-            fontSize: '1.25em',
-            color: '#4d85ff',
-            background: '#eff6ff',
-            padding: '1px 4px',
-            borderRadius: 3,
-            display: 'inline-block',
-            lineHeight: 1.2,
-          }}
-        >
+        <span key={i} className="highlight-blue">
           {part}
         </span>
       );
     }
     return part;
   });
-}
-
-/** スクロール誘導区切り線 */
-function ScrollIndicator({ label }: { label: string }) {
-  return (
-    <div
-      className="flex items-center justify-center gap-2 font-black text-xs text-slate-500 my-4 pt-3"
-      style={{ borderTop: '2px dashed #e2e8f0' }}
-    >
-      ↓ {label} ↓
-    </div>
-  );
 }
 
 export default function GameDetailTab({
@@ -80,200 +44,117 @@ export default function GameDetailTab({
   const meta = GAME_META[detail.game_id];
 
   return (
-    <div
-      className="h-full overflow-y-auto pr-2"
-      style={{
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#FFD700 #f1f1f1',
-      }}
-    >
-      {/* ======================================================
-          Section A: スクショ + ゲーム紹介
-         ====================================================== */}
-      <div className="flex gap-5 w-full items-start">
-        {/* スクショプレースホルダー */}
-        <div
-          className="flex flex-col items-center justify-center flex-shrink-0 rounded-2xl border-4 border-black"
-          style={{
-            width: '42%',
-            minHeight: 200,
-            background: '#cbd5e1',
-          }}
-        >
-          <Camera className="w-8 h-8 text-slate-500 mb-2" />
-          <span
-            className="text-xs font-black text-black bg-white/80 px-3 py-1 rounded border border-black"
-          >
-            プレイ画面（静止画）
-          </span>
-          {meta && (
-            <span className="text-xs font-bold text-slate-500 mt-2 px-3 text-center">
-              {detail.title}
-            </span>
-          )}
-        </div>
-
-        {/* ゲーム紹介 */}
-        {meta && (
-          <div className="flex flex-col gap-3 flex-1">
-            <div
-              className="border-4 border-black rounded-2xl p-4"
-              style={{ boxShadow: '6px 6px 0 rgba(0,0,0,0.1)' }}
-            >
-              {/* ゲームタイトル */}
-              <h3
-                className="font-black text-black pb-2 mb-3 inline-block"
+    <div className="detail-layout-reconstructed">
+      <div className="scrollable-card-body">
+        {/* ======================================================
+            Section A: スクショ + ゲーム紹介
+           ====================================================== */}
+        <div className="game-header-flex">
+          {/* スクショプレースホルダー */}
+          <div className="screenshot-placeholder-box">
+            <Camera className="sc-icon-camera" />
+            <span className="sc-text-main">プレイ画面（静止画）</span>
+            {meta && (
+              <span
                 style={{
-                  fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)',
-                  borderBottom: `3px solid ${tabColor}`,
+                  fontSize: 9,
+                  fontWeight: 800,
+                  color: '#475569',
+                  marginTop: 4,
+                  textAlign: 'center',
+                  padding: '0 8px',
                 }}
               >
                 {detail.title}
-              </h3>
+              </span>
+            )}
+          </div>
 
-              {/* 説明文 */}
-              <p
-                className="font-bold leading-relaxed text-gray-700"
-                style={{ fontSize: 'clamp(0.75rem, 1.4vw, 0.95rem)' }}
-              >
-                {meta.description}
-              </p>
+          {/* ゲーム紹介 */}
+          {meta && (
+            <div className="intro-explanation-section" style={{ flex: 1 }}>
+              <div className="intro-explanation-section-row">
+                <div className="intro-title-row">{detail.title}</div>
+                <div className="intro-body-paragraph">{meta.description}</div>
+                <div
+                  className="measure-traits-badge-box"
+                  style={{ color: tabColor }}
+                >
+                  測る性格：{meta.measuredTraits}
+                </div>
+              </div>
 
-              {/* 測る性格 */}
-              <div
-                className="mt-3 rounded-lg border-2 border-black px-3 py-2 font-black text-sm"
-                style={{ background: '#fffce8', color: tabColor }}
-              >
-                測る性格：{meta.measuredTraits}
+              {/* スクロール誘導 */}
+              <div className="scroll-indicator-row">
+                ↓ 下にスクロールしてゲームで得た性格を確認 ↓
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      <ScrollIndicator label="下にスクロールしてゲームで得た性格を確認" />
+        {/* ======================================================
+            Section B: 性格スライダー + 解析コメント
+           ====================================================== */}
+        <div className="game-sliders-headline">
+          このゲームで見えた「あなたの性格」
+        </div>
 
-      {/* ======================================================
-          Section B: 性格スライダー + 解析コメント
-         ====================================================== */}
-      <div className="flex gap-5 w-full items-start">
-        {/* 左: 両極スライダー群 */}
-        <div className="flex-1 min-w-0">
-          <div
-            className="w-full text-center font-black text-sm rounded border-2 border-black py-1 mb-4"
-            style={{ background: '#f3f4f6' }}
-          >
-            このゲームで見えた「あなたの性格」
-          </div>
-          <div className="flex flex-col gap-3">
-            {(detail.feature_scores ?? []).map((fs) => (
+        <div className="game-specific-sliders-section">
+          {/* 左半分: feature_scores スライダー群 */}
+          <div className="total-left-panel-detail" style={{ width: '50%' }}>
+            {detail.feature_scores.map((fs) => (
               <BipolarSlider
                 key={fs.axis}
                 axis={fs.axis}
                 score={fs.score}
-                // 詳細画面は baseline ▼ マーカーなし
+                /* 詳細画面は baseline ▼ マーカーなし */
               />
             ))}
           </div>
+
+          {/* 右半分: 解析コメントボックス */}
+          <div className="comment-container-detail">
+            <div className="comment-header-tag-detail">解析コメント</div>
+            <div className="comment-body-text">
+              {detail.analysis_comment.map((line, i) => (
+                <p key={i} style={{ margin: '0 0 4px' }}>
+                  {renderComment(line)}
+                </p>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* 右: 解析コメントボックス */}
-        <div
-          className="w-5/12 flex-shrink-0 rounded-2xl"
-          style={{
-            background: '#fffce8',
-            borderLeft: '10px solid #f87171',
-            padding: '14px 16px',
-            boxShadow: '4px 4px 0 rgba(0,0,0,0.05)',
-          }}
-        >
-          <div
-            className="font-black mb-2"
-            style={{ fontSize: 14, color: '#f87171' }}
-          >
-            解析コメント
-          </div>
-          <div
-            className="font-bold leading-relaxed text-gray-800 space-y-2"
-            style={{ fontSize: 'clamp(0.78rem, 1.3vw, 0.92rem)', lineHeight: 1.75 }}
-          >
-            {(detail.analysis_comment ?? []).map((line, i) => (
-              <p key={i}>{renderComment(line)}</p>
+        {/* スクロール誘導境界 */}
+        <div className="scroll-indicator-row">
+          ↓ 下にスクロールして実計測の行動エビデンスを確認 ↓
+        </div>
+
+        {/* ======================================================
+            Section C: top_deviation_metrics 2×2 グリッド
+           ====================================================== */}
+        <div className="evidence-list-container">
+          <div className="game-sliders-headline">その他に測っていた行動データ</div>
+
+          <div className="data-grid">
+            {detail.top_deviation_metrics.map((m, i) => (
+              <div key={i} className="data-item">
+                <div>
+                  <div className="data-title">{m.label}</div>
+                  <div className="data-value">{m.user}</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>
+                    平均：{m.average}
+                  </div>
+                </div>
+                <div className="why-text">{m.praise}</div>
+              </div>
             ))}
           </div>
         </div>
+
+        {/* 下部余白 */}
+        <div style={{ height: 16 }} />
       </div>
-
-      <ScrollIndicator label="下にスクロールして実計測の行動エビデンスを確認" />
-
-      {/* ======================================================
-          Section C: top_deviation_metrics 2×2 グリッド
-         ====================================================== */}
-      <div
-        className="rounded-2xl p-5 relative overflow-hidden"
-        style={{
-          background: '#fffce8',
-          border: '2.5px solid #fbf3bd',
-          boxShadow: '2px 2px 0 #fffce8',
-        }}
-      >
-        {/* ドット背景オーバーレイ */}
-        <div
-          className="absolute inset-0 pointer-events-none rounded-2xl"
-          style={{
-            backgroundImage:
-              'radial-gradient(rgba(0,0,0,0.04) 2.5px, transparent 2.5px)',
-            backgroundSize: '18px 18px',
-          }}
-        />
-
-        <div
-          className="relative font-black text-sm text-center rounded border-2 border-black py-1 mb-4"
-          style={{ background: '#f3f4f6' }}
-        >
-          その他に測っていた行動データ
-        </div>
-
-        {/* 2×2 グリッド */}
-        <div className="relative grid grid-cols-2 gap-4">
-          {(detail.top_deviation_metrics ?? []).map((m, i) => (
-            <div
-              key={i}
-              className="bg-white rounded-2xl p-4 border-2 border-black flex flex-col justify-between"
-            >
-              <div>
-                <div className="font-black text-black text-sm mb-1">
-                  {m.label}
-                </div>
-                <div
-                  className="font-black"
-                  style={{ fontSize: 'clamp(1rem, 2vw, 1.4rem)', color: '#f87171' }}
-                >
-                  {/* user 値をわかりやすく表示 */}
-                  あなた：{m.user}
-                </div>
-                <div className="text-xs text-gray-400 font-bold">
-                  平均：{m.average}
-                </div>
-              </div>
-              {/* praise テキスト */}
-              <div
-                className="mt-3 text-xs font-bold rounded-lg p-2"
-                style={{
-                  background: '#fffce8',
-                  border: '1px dashed #f87171',
-                  color: '#334155',
-                }}
-              >
-                {m.praise}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 下部の余白 */}
-      <div className="h-4" />
     </div>
   );
 }

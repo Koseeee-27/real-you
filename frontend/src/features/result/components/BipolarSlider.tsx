@@ -41,117 +41,47 @@ export default function BipolarSlider({
   const leftPct = isRight ? 100 - score : score;
   const rightPct = isRight ? score : 100 - score;
 
+  // カラーフィルのスタイル（score < 50 → 左起点オレンジ, score ≥ 50 → 右起点ブルー）
+  const fillStyle: React.CSSProperties = isRight
+    ? { background: '#4d85ff', left: `${score}%`, right: 0 }
+    : { background: '#f87171', left: 0, width: `${score}%` };
+
   return (
-    <div className="w-full mb-1">
-      <div className="flex items-center justify-between gap-3 w-full">
+    <div className="mbti-slider-row-new">
+      <div className="mbti-slider-track-new">
         {/* 左バッジ */}
-        <div
-          className="flex flex-col items-center flex-shrink-0"
-          style={{ width: 84 }}
-        >
-          <span
-            className="text-sm font-black px-2 py-1 rounded border-2 w-full text-center leading-tight"
-            style={
-              !isRight
-                ? {
-                    background: '#f87171',
-                    color: '#fff',
-                    borderColor: '#000',
-                    boxShadow: '2px 2px 0 #000',
-                  }
-                : {
-                    background: '#fff',
-                    color: '#cbd5e1',
-                    borderColor: '#cbd5e1',
-                  }
-            }
-          >
+        <div className="badge-pct-container">
+          <span className={`mbti-badge-new ${!isRight ? 'btn-orange' : 'btn-white'}`}>
             {poles.left}
           </span>
-          <span
-            className="text-xs font-black mt-1"
-            style={{ color: !isRight ? '#f87171' : '#94a3b8' }}
-          >
+          <span className={`badge-pct-under ${!isRight ? 'active-orange' : ''}`}>
             {leftPct}%
           </span>
         </div>
 
         {/* トラック */}
-        <div className="relative flex-1" style={{ paddingTop: 22 }}>
-          {/* ▼ ベースラインマーカー（baseline_scores） */}
+        <div className="slider-wrapper">
+          <div className="slider-line-track">
+            <div className="slider-color-fill" style={fillStyle} />
+            <div className="slider-pin-point" style={{ left: `${score}%` }} />
+          </div>
+
+          {/* ▼ ベースラインマーカー（baselineScore が渡されたときのみ） */}
           {baselineScore !== undefined && (
-            <div
-              className="absolute text-xs text-red-500 leading-none"
-              style={{
-                left: `${baselineScore}%`,
-                top: 4,
-                transform: 'translateX(-50%)',
-              }}
-            >
-              ▼
+            <div className="average-marker-wrapper">
+              <div className="average-marker" style={{ left: `${baselineScore}%` }}>
+                ▼
+              </div>
             </div>
           )}
-
-          {/* スライダーバー */}
-          <div
-            className="relative rounded-full border-2 border-black overflow-hidden"
-            style={{ height: 17, background: '#e2e8f0' }}
-          >
-            {/* カラーフィル */}
-            <div
-              className="absolute top-0 h-full"
-              style={{
-                background: isRight ? '#4d85ff' : '#f87171',
-                zIndex: 2,
-                ...(isRight
-                  ? { left: `${score}%`, right: 0 }
-                  : { left: 0, width: `${score}%` }),
-              }}
-            />
-            {/* ピン（縦線） */}
-            <div
-              className="absolute"
-              style={{
-                left: `${score}%`,
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 2,
-                height: 18,
-                background: '#000',
-                zIndex: 4,
-              }}
-            />
-          </div>
         </div>
 
         {/* 右バッジ */}
-        <div
-          className="flex flex-col items-center flex-shrink-0"
-          style={{ width: 84 }}
-        >
-          <span
-            className="text-sm font-black px-2 py-1 rounded border-2 w-full text-center leading-tight"
-            style={
-              isRight
-                ? {
-                    background: '#4d85ff',
-                    color: '#fff',
-                    borderColor: '#000',
-                    boxShadow: '2px 2px 0 #000',
-                  }
-                : {
-                    background: '#fff',
-                    color: '#cbd5e1',
-                    borderColor: '#cbd5e1',
-                  }
-            }
-          >
+        <div className="badge-pct-container">
+          <span className={`mbti-badge-new ${isRight ? 'btn-blue' : 'btn-white'}`}>
             {poles.right}
           </span>
-          <span
-            className="text-xs font-black mt-1"
-            style={{ color: isRight ? '#4d85ff' : '#94a3b8' }}
-          >
+          <span className={`badge-pct-under ${isRight ? 'active-blue' : ''}`}>
             {rightPct}%
           </span>
         </div>
