@@ -173,6 +173,12 @@ export default function TopPage() {
             page={howToPlayPage}
             setPage={setHowToPlayPage}
             onClose={closeHowToPlay}
+            classNames={{
+              footer: "flex justify-between px-8",
+              backButton: "bg-white border-[4px] border-black px-10 py-3 text-lg font-bold",
+              nextButton: "bg-[#4DA3FF] text-white border-[4px] border-black px-10 py-3 text-lg font-bold",
+              completeButton: "bg-[#6EDC6E] text-white border-[4px] border-black px-10 py-3 text-lg font-bold",
+            }}
           />
         )}
       </div>

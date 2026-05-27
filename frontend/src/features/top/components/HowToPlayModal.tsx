@@ -1,15 +1,19 @@
 'use client';
 
+import { SlideModalClassNames } from '@/components/common/SlideModal';
 import { useEffect, useRef } from 'react';
+import { cn } from '@/lib/cn';
 
 export default function HowtoPlayModal({
   page,
   setPage,
   onClose,
+  classNames = {},
 }: {
   page: number;
   setPage: (fn: (p: number) => number) => void;
   onClose: () => void;
+  classNames?: SlideModalClassNames;
 }) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
@@ -47,86 +51,130 @@ export default function HowtoPlayModal({
   return (
     <dialog
       ref={dialogRef}
-      className="rounded-[24px] border-[6px] border-black bg-white max-w-xl w-[90vw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden justify-center p-0 animate-[fadeIn_0.35s_ease-out]"
+      className={cn(
+        'rounded-[24px] border-[6px] border-black bg-white max-w-xl w-[90vw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden p-0 flex flex-col',
+        classNames.overlay
+      )}
       onClose={onClose}
     >
-      {/* ポップアップ本体 */}
-      <div
-        className="relative w-full h-[460px] bg-white p-5 animate-[fadeInUp_0.35s_ease-out] flex flex-col"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="absolute top-3 right-3 inline-flex rounded-full border border-zinc-900 px-3 py-1.5 text-sm font-bold text-zinc-900 transition hover:bg-zinc-100"
-          onClick={() => dialogRef.current?.close()}
-        >
-          ✕
-        </button>
-
-        {/* 進行状況バー */}
-        <div className="mb-3">
-          <div className="mb-2 flex items-center justify-between text-sm font-bold text-zinc-700">
-            <span>
-              {page} / {howToPlaySteps.length}
-            </span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-zinc-200">
+      {/* 黄色枠 */}
+      <div className="min-h-[44px] border-b-[3px] border-black bg-[#f1cf44] flex items-center justify-center">
+        {/* 進行状況ドット */}
+        <div className={cn("flex justify-center gap-3", classNames.header)}>
+          {Array.from({ length: howToPlaySteps.length }).map((_, i) => (
             <div
-              className="h-full rounded-full bg-black transition-all duration-300"
-              style={{
-                width: `${(page / howToPlaySteps.length) * 100}%`,
-              }}
+              key={i}
+              className={`
+                h-3 w-3 rounded-full transition-all duration-300
+                ${page === i + 1 ? "bg-black scale-110" : "bg-zinc-300"}
+              `}
             />
-          </div>
-        </div>
-
-        {/* メインコンテンツ */}
-        <div className="flex flex-col h-[300px]">
-          <h2
-            id="how-to-play-title"
-            className="mb-4 text-3xl font-bold leading-relaxed text-center"
-          >
-            {howToPlaySteps[page - 1].title}
-          </h2>
-
-          <div className="mt-8">
-            <p className="mb-4 text-base font-semibold text-zinc-600 leading-relaxed">
-              {howToPlaySteps[page - 1].subtitle}
-            </p>
-
-            <ul className="min-h-[60px] space-y-3 text-base leading-relaxed text-[#111] list-disc pl-5">
-              {howToPlaySteps[page - 1].bullets.map((line, index) => (
-                <li key={index}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* ナビゲーションボタン */}
-        <div className="mt-5 flex min-h-[64px] items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="inline-flex rounded-full border border-zinc-900 px-8 py-3 text-base font-bold transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-zinc-100"
-          >
-            前へ
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (page < howToPlaySteps.length) {
-                setPage((p) => p + 1);
-              } else {
-                dialogRef.current?.close();
-              }
-            }}
-            className="inline-flex rounded-full bg-black px-8 py-3 text-base font-bold text-white transition hover:bg-zinc-900"
-          >
-            {page < howToPlaySteps.length ? '次へ' : '完了'}
-          </button>
+          ))}
         </div>
       </div>
+
+      {/* ポップアップ本体 */}
+      <div
+        className={cn(
+          'relative w-full bg-white px-0 pt-5 pb-0 flex flex-col flex-1min-h-[440px] sm:min-h-[420px] lg:min-h-[400px]',
+          classNames.card
+        )}
+        onClick={(event) => event.stopPropagation()}
+      >
+        
+
+      {/* メインコンテンツ */}
+      <div className={cn("flex flex-col w-full items-center justify-center text-center flex-1", classNames.body)}>
+        {page === 1 && (
+          <div className="flex flex-col items-center mt-4">
+            <h2 className="mb-4 text-6xl font-bold leading-relaxed">
+              {howToPlaySteps[0].title}
+            </h2>
+
+            <p className="mb-10 text-base leading-relaxed">
+              {howToPlaySteps[0].subtitle}
+            </p>
+
+            <div className="space-y-2 text-base leading-relaxed text-[#111]">
+              {howToPlaySteps[0].bullets.map((line, index) => (
+                <p key={index}>{line}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {page === 2 && (
+          <div className="flex flex-col items-center mt-4">
+            <h2 className="mb-4 text-5xl font-bold leading-relaxed">
+              {howToPlaySteps[1].title}
+            </h2>
+
+            <p className="mb-7 text-2xl leading-relaxed">
+              {howToPlaySteps[1].subtitle}
+            </p>
+
+            <div className="space-y-2 text-base leading-relaxed text-[#111] text-left text-gray-500">
+              {howToPlaySteps[1].bullets.map((line, index) => (
+                <p key={index}>{line}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {page === 3 && (
+          <div className="flex flex-col items-center justify-center text-center">
+            <h2 className="text-3xl font-bold leading-relaxed">
+              {howToPlaySteps[2].title}
+            </h2>
+          </div>
+        )}
+      </div>
+
+      {/* 黄色帯（下） */}
+      <div className="min-h-[64px] border-t-[3px] border-black bg-[#f1cf44] 
+                      flex items-center justify-between px-5">
+      {/* 戻るボタン */}
+        <button
+          type="button"
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className={cn(
+            // ベースデザイン（SlideModal と同じ）NEO_FOOTER_BUTTON_BASEが読み込めなかったので直接
+            'rounded-xl border-[3px] border-black py-2 text-sm font-black shadow-[3px_3px_0_0_#000] transition-transform hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000] sm:py-3 sm:text-base',
+            // 色
+            'bg-white text-black px-6 sm:px-8',
+            classNames.backButton
+          )}
+        >
+          ← 戻る
+        </button>
+
+        {/* 次へ/完了ボタン */}
+        <button
+          type="button"
+          onClick={() => {
+            if (page < howToPlaySteps.length) {
+              setPage((p) => p + 1);
+            } else {
+              dialogRef.current?.close();
+            }
+          }}
+          className={cn(
+          // ベースデザイン（SlideModal と同じ）
+            'rounded-xl border-[3px] border-black py-2 text-sm font-black shadow-[3px_3px_0_0_#000] transition-transform hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-y-0.5 active:shadow-[1px_1px_0_0_#000] sm:py-3 sm:text-base',
+          // 色（次へ or 完了）
+            page < howToPlaySteps.length
+              ? 'bg-[#2d5be3] text-white px-6 sm:px-8'
+              : 'bg-[#57d071] text-white px-6 sm:px-8',
+            page < howToPlaySteps.length
+              ? classNames.nextButton
+              : classNames.completeButton
+          )}
+        >
+          {page < howToPlaySteps.length ? '次へ →' : '完了！'}
+        </button>
+      </div>
+    </div>
     </dialog>
   );
 }
