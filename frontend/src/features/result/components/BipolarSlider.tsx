@@ -37,14 +37,16 @@ export default function BipolarSlider({
   const poles = AXIS_POLES[axis] ?? { left: axis, right: axis };
   const isRight = score >= 50;
 
-  // 各側の表示パーセント
-  const leftPct = isRight ? 100 - score : score;
-  const rightPct = isRight ? score : 100 - score;
+  // 各側の表示パーセント（左右対称: 常に leftPct=100-score, rightPct=score）
+  const leftPct = 100 - score;
+  const rightPct = score;
 
-  // カラーフィルのスタイル（score < 50 → 左起点オレンジ, score ≥ 50 → 右起点ブルー）
+  // フィルとピンは常に (100-score)% の位置を境界とする
+  const boundary = 100 - score;
+
   const fillStyle: React.CSSProperties = isRight
-    ? { background: '#4d85ff', left: `${score}%`, right: 0 }
-    : { background: '#f87171', left: 0, width: `${score}%` };
+    ? { background: '#4d85ff', left: `${boundary}%`, right: 0 }
+    : { background: '#f87171', left: 0, width: `${boundary}%` };
 
   return (
     <div className="mbti-slider-row-new">
@@ -63,7 +65,7 @@ export default function BipolarSlider({
         <div className="slider-wrapper">
           <div className="slider-line-track">
             <div className="slider-color-fill" style={fillStyle} />
-            <div className="slider-pin-point" style={{ left: `${score}%` }} />
+            <div className="slider-pin-point" style={{ left: `${boundary}%` }} />
           </div>
 
           {/* ▼ ベースラインマーカー（baselineScore が渡されたときのみ） */}

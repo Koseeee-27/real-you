@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap');
 @import 'tailwindcss';
 
 /* 共通ページ背景: 黄色ベース + 白の水玉模様 */
@@ -36,7 +37,6 @@
    結果画面（ResultReport / OverviewTab / GameDetailTab /
    BipolarSlider）用 CSS  ← index.html mockup から移植
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap');
 
 .slide-container {
   font-family: 'M PLUS Rounded 1c', sans-serif;
@@ -59,7 +59,7 @@
   display: flex;
   width: 100%;
   gap: 35px;
-  align-items: center;
+  align-items: flex-start;
   height: 100%;
 }
 
@@ -74,24 +74,27 @@
 
 .total-left-panel-detail {
   flex: 1;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
 }
 
-.type-intro-label {
-  left: 50%;
-  font-size: 20px;
-  font-weight: 900;
-  color: #555;
-  justify-content: center;
+/* タイトル＋サブタイトルを一体で絶対配置するラッパー */
+.title-subtitle-block {
   position: absolute;
-  display: inline-block;
+  left: 105%;
+  transform: translateX(-50%);
+  top: 30px;
+  margin-top: -100px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
   white-space: nowrap;
-  margin-top: 50px;
+  z-index: 20;
 }
 
 .type-main-title-sticker {
-  position: absolute;
-  left: 50%;
-  top: 30px;
   background: #fff;
   border: 5px solid #000;
   border-radius: 18px;
@@ -100,8 +103,15 @@
   width: fit-content;
   white-space: nowrap;
   box-shadow: 3px 3px 0px #636262;
-  margin-top: -100px;
-  justify-content: center;
+}
+
+.type-intro-label {
+  font-size: 20px;
+  font-weight: 900;
+  color: #555;
+  margin-top: 8px;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .type-main-title {
@@ -137,15 +147,13 @@
 }
 
 .comment-container-detail {
-  margin-top: 30px;
   background: #fffce8;
   padding: 16px 20px;
   position: relative;
   box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.05);
   border-left: 10px solid #f87171;
-  width: 50%;
-  min-height: 50px;
-  height: auto;
+  flex: 1;
+  min-height: 240px;
   border-radius: 20px;
 }
 
@@ -157,10 +165,10 @@
 }
 
 .comment-header-tag-detail {
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 900;
   color: #f87171;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .comment-body-text {
@@ -188,16 +196,39 @@
   font-weight: 900;
 }
 
+/* 詳細画面のコメントは固定高さ内に収まるよう小さめに */
+.comment-container-detail .comment-body-text {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.comment-container-detail .comment-body-text span.highlight-blue {
+  font-size: 20px;
+}
+
+.comment-container-detail .comment-body-text span.highlight-magenta {
+  font-size: 20px;
+}
+
 .total-right-panel {
   width: 50%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  height: 50%;
-  border-left: 3px dashed #e2e8f0;
+  justify-content: flex-start;
+  gap: 8px;
   padding-left: 25px;
-  padding-top: 0px;
+  padding-top: 35px;
   padding-bottom: 10px;
+  position: relative;
+}
+
+.total-right-panel::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 100px;
+  bottom: 0;
+  border-left: 3px dashed #e2e8f0;
 }
 
 .five-axis-headline {
@@ -507,7 +538,7 @@
   display: flex;
   flex-direction: row;
   gap: 30px;
-  align-items: flex-start;
+  align-items: stretch;
   width: 100%;
 }
 

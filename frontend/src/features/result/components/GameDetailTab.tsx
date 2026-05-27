@@ -101,7 +101,7 @@ export default function GameDetailTab({
 
         <div className="game-specific-sliders-section">
           {/* 左半分: feature_scores スライダー群 */}
-          <div className="total-left-panel-detail" style={{ width: '50%' }}>
+          <div className="total-left-panel-detail">
             {detail.feature_scores.map((fs) => (
               <BipolarSlider
                 key={fs.axis}

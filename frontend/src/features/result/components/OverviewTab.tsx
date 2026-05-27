@@ -56,17 +56,17 @@ export default function OverviewTab({ data }: OverviewTabProps) {
     <div className="total-layout-reconstructed">
       {/* ===== 左カラム：タイトル + サブタイトル + 解析コメント ===== */}
       <div className="total-left-panel">
-        {/* タイトルステッカー */}
-        <div className="type-main-title-sticker">
-          <h2 className="type-main-title">
-            <span className="orange-highlight">{feedback.title}</span>
-          </h2>
+        {/* タイトルステッカー ＋ サブタイトルを一体のポップアウトブロックとして配置 */}
+        <div className="title-subtitle-block">
+          <div className="type-main-title-sticker">
+            <h2 className="type-main-title">
+              <span className="orange-highlight">{feedback.title}</span>
+            </h2>
+          </div>
+          {feedback.subtitle && (
+            <div className="type-intro-label">{feedback.subtitle}</div>
+          )}
         </div>
-
-        {/* サブタイトル（BE未実装時は非表示） */}
-        {feedback.subtitle && (
-          <div className="type-intro-label">{feedback.subtitle}</div>
-        )}
 
         {/* 解析コメントボックス */}
         <div className="comment-container-new">
