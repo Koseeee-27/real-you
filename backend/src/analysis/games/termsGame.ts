@@ -142,11 +142,13 @@ function computeHawkesProcess(data: TermsGameData) {
  * - `popupStats.timeToClose`: 目標到達時間
  */
 function computeFittsLaw(data: TermsGameData) {
+    //データ欠損時は中立の比率11を返す。
+    if (!data.popupStats) return 11;
     // popupStats は高速スクロール時などに欠損する可能性があるため、フォールバック値を設定
-    const jitter = Math.max(0, data.popupStats?.mouseJitter ?? 200);
-    const timeToClose = Math.max(1, data.popupStats?.timeToClose ?? 2000);
-    const clickCount = Math.max(1, Math.trunc(data.popupStats?.clickCount ?? 5));
-    
+    const jitter = Math.max(0, data.popupStats.mouseJitter);
+    const timeToClose = Math.max(1, data.popupStats.timeToClose);
+    const clickCount = Math.max(1, Math.trunc(data.popupStats.clickCount));
+
     // 基本のジッターにミスクリック1回あたり50pxのペナルティを合成し、実効的な運動ノイズとする
     const effectiveJitter = jitter + Math.max(0, clickCount - 1) * 50;
     
@@ -175,18 +177,19 @@ function computeHickHyman(data: TermsGameData) {
     let dynamicEntropy = 0;
     
     // 操作ごとの反応時間（RT）を合算。放置・離席とみられる10秒以上の間隔はノイズとしてカットする
-        for (let i = 1; i < checkboxEvents.length; i++) {
-        const dt = checkboxEvents[i].timestamp - checkboxEvents[i - 1].timestamp;
+        checkboxEvents.forEach((event, i) => {
+        const dt = i === 0 ? event.timestamp : event.timestamp - checkboxEvents[i - 1].timestamp;
+    
         if (dt > 0 && dt < 10000) {
-            totalRT += dt;
-            validEvents++;
+        totalRT += dt;
+        validEvents++;
         }
         
         // 状態遷移の複雑さをエントロピーの重みとして加算（ONへの変更や、状態の反転は負荷が高いとみなす）
         const stateComplexity = checkboxEvents[i].newState.checked ? 1.2 : 0.8;
         const actionComplexity = checkboxEvents[i].newState.changed ? 1.5 : 1.0;
         dynamicEntropy += stateComplexity * actionComplexity;
-    }
+    });
     
     // 各条項の最終的な変更フラグを取得（undefined を排除して安全に判定）
     const rcChanged = data.checkboxStates?.readConfirm?.changed ? 1 : 0;
@@ -222,6 +225,7 @@ function computeMFPT(data: TermsGameData) {
     
     let totalRecoverySteps = 0;
     let pathDeviation = 0;
+    let panicMisclickCount = 0; // 追加: 1秒以内の反射的な誤操作をカウント
     
     // エラーからのリカバリー経路を評価
     if (errorEvents.length > 0 && errorEvents[0]) {
@@ -230,15 +234,26 @@ function computeMFPT(data: TermsGameData) {
         
         // エラー発生位置が遠い（2000px以上）場合、戻るためのスクロールをリカバリーの初期コストとして加算
         const errorPosPenalty = errorEvents[0].scrollPositionAtError > 2000 ? 1 : 0; 
-        
         totalRecoverySteps += errorPosPenalty;
-        totalRecoverySteps += postErrorClicks.filter((c) => c.timestamp > firstErrorTime).length;
         
+        //二重カウント防止のため、エラー発生後のクリックでチェックボックス以外の操作をリカバリー手順として加算
+        totalRecoverySteps += postErrorClicks.filter(
+            (c) => c.timestamp > firstErrorTime && c.type !== 'checkbox'
+        ).length;
+
         checkboxEvents.filter((c) => c.afterError && c.timestamp > firstErrorTime).forEach((c) => {
             totalRecoverySteps++;
             if (c.target === 'readConfirm' && targetReason.includes('read_confirm')) {
-                // 正しいターゲットだが、誤ってOFFにしてしまった場合は逆行行為として重いペナルティ
-                if (!c.newState.checked) pathDeviation += 2;
+                if (!c.newState.checked) {
+                    const timeSinceError = c.timestamp - firstErrorTime;
+                    if (timeSinceError < 1000) {
+                        // 1秒以内の操作は「論理的逸脱」ではなく「焦りによるミスクリック」として処理
+                        panicMisclickCount++;
+                    } else {
+                        // 熟考後のOFF操作は明確な「論理的逸脱」としてペナルティ
+                        pathDeviation += 2;
+                    }
+                }
             } else {
                 // エラー原因に無関係なターゲットの操作（迷走）
                 pathDeviation += 1;
@@ -260,7 +275,7 @@ function computeMFPT(data: TermsGameData) {
     const goalReached = rcChecked === 1 ? 1 : 0;
     const reachedBottomBonus = data.reachedBottom ? 1 : 0;
 
-    return { totalRecoverySteps, pathDeviation, statusQuoCompliance, finalAbsorbed, goalReached, reachedBottomBonus };
+    return { totalRecoverySteps, pathDeviation, statusQuoCompliance, finalAbsorbed, goalReached, reachedBottomBonus, panicMisclickCount }
 }
 
 /**
@@ -295,7 +310,8 @@ function analyze(data: TermsGameData | undefined): TermsGameAnalyzeResult {
     const caution = Math.round(sDDMCaution * 0.7 + sLevyCaution * 0.3);
 
     // 冷静さ: エラー後のパニック連打の少なさと、ポップアップ操作の的確さから評価
-    const sHawkesCalmness = linearInv(hawkesIntensity, 0, 5); 
+    const effectiveHawkesIntensity = hawkesIntensity + (mfpt.panicMisclickCount * 2.0);
+    const sHawkesCalmness = linearInv(effectiveHawkesIntensity, 0, 5);
     const sFittsCalmness = linear(fittsRatio, 2, 20);
     const calmness = Math.round(sHawkesCalmness * 0.6 + sFittsCalmness * 0.4);
 
