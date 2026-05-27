@@ -5,36 +5,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import type { GameId, ResultResponse } from '../types';
 import { GAME_META } from '../data/gameMeta';
-import { MOCK_RESULT } from '../data/mockResult';
 import GameDetailTab from './GameDetailTab';
 import OverviewTab from './OverviewTab';
 import SharePanel from './SharePanel';
-
-/**
- * BEがまだ返さない拡張フィールド（subtitle / analysis_comment / top_deviation_metrics）を
- * MOCK_RESULT からフォールバック補完する。
- * feat/result-screen-be が develop にマージされ generated.ts が再生成されたら
- * この関数は不要になるため削除すること。
- */
-function mergeWithMockData(data: ResultResponse): ResultResponse {
-  return {
-    ...data,
-    feedback: {
-      ...data.feedback,
-      subtitle: data.feedback.subtitle ?? MOCK_RESULT.feedback.subtitle,
-    },
-    details: data.details.map((detail) => {
-      const mockDetail = MOCK_RESULT.details.find(
-        (d) => d.game_id === detail.game_id
-      );
-      return {
-        ...detail,
-        analysis_comment: detail.analysis_comment ?? mockDetail?.analysis_comment ?? [],
-        top_deviation_metrics: detail.top_deviation_metrics ?? mockDetail?.top_deviation_metrics ?? [],
-      };
-    }),
-  };
-}
 
 type Mode = 'overview' | 'detail';
 
@@ -75,10 +48,7 @@ type ResultReportProps = {
   data: ResultResponse;
 };
 
-export default function ResultReport({ data: rawData }: ResultReportProps) {
-  // BEがまだ返さないフィールドをモックで補完する
-  const data = mergeWithMockData(rawData);
-
+export default function ResultReport({ data }: ResultReportProps) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>('overview');
   const [activeGameId, setActiveGameId] = useState<GameId | null>(
@@ -180,13 +150,6 @@ export default function ResultReport({ data: rawData }: ResultReportProps) {
         className="relative z-10 w-full flex flex-col"
         style={{ maxWidth: 1100 }}
       >
-        {/* ===== ヘッダー（非表示 / 必要なら復活） ===== */}
-        {/* <div className="flex justify-center mb-4">
-          <div className="bg-white border-[5.5px] border-black px-10 py-2 rounded-full font-black text-xl shadow-[5px_5px_0_#000]">
-            行動解析REPORT
-          </div>
-        </div> */}
-
         {/* ===== ホワイトカード ===== */}
         {/* 概要: 高さ auto（コンテンツに合わせる） / 詳細: 固定高さ（内部スクロール） */}
         <div

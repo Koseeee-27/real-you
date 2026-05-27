@@ -17,42 +17,14 @@ export type DiagnosisScores = components['schemas']['BaselineScores'];
 // 5 軸ギャップ（実測 - 自己申告。負値を取りうる）
 export type GapScores = components['schemas']['GapScores'];
 
-// ========================================
-// ローカル型拡張（feat/result-screen-be が develop にマージされ
-// `npm run gen:api-types` が通るまでの暫定定義）
-// マージ・再生成後はここを削除して generated.ts の型に差し戻す。
-// ========================================
+// 診断フィードバック（見出し・subtitle・説明・指摘点）
+export type DiagnosisFeedback = components['schemas']['DiagnosisFeedback'];
 
-// 診断フィードバック（最大ギャップ軸に基づく見出し・説明・指摘点）
-// NOTE: subtitle は feat/result-screen-be で追加されたフィールド
-export type DiagnosisFeedback = components['schemas']['DiagnosisFeedback'] & {
-  subtitle: string;
-};
+// ゲームごとの詳細情報（feature_scores / metrics / analysis_comment / top_deviation_metrics）
+export type GameDetail = components['schemas']['GameDetail'];
 
-// ゲームごとの偏差上位指標（top_deviation_metrics の要素型）
-export type TopDeviationMetric = {
-  label: string;
-  user: number;
-  average: number;
-  deviation: number;
-  praise: string;
-};
-
-// ゲーム単位の詳細情報（タイトル / feature_scores / metrics）
-// NOTE: analysis_comment / top_deviation_metrics は feat/result-screen-be で追加
-export type GameDetail = components['schemas']['GameDetail'] & {
-  analysis_comment: string[];
-  top_deviation_metrics: TopDeviationMetric[];
-};
-
-// 診断結果レスポンス（feedback / details を拡張型で上書き）
-export type ResultResponse = Omit<
-  components['schemas']['ResultResponse'],
-  'feedback' | 'details'
-> & {
-  feedback: DiagnosisFeedback;
-  details: GameDetail[];
-};
+// 診断結果レスポンス
+export type ResultResponse = components['schemas']['ResultResponse'];
 
 // ========================================
 // 派生型（GameDetail から導出）
@@ -61,6 +33,9 @@ export type ResultResponse = Omit<
 // 各ゲームの feature_scores / metrics は GameDetail のインライン定義から導出する
 export type FeatureScore = GameDetail['feature_scores'][number];
 export type Metric = GameDetail['metrics'][number];
+
+// top_deviation_metrics の要素型（generated.ts から導出）
+export type TopDeviationMetric = GameDetail['top_deviation_metrics'][number];
 
 // 各ゲーム終了後の行動を日本語テキストで振り返ったサマリー
 export type PhaseSummaries = components['schemas']['PhaseSummaries'];

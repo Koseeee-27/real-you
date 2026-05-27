@@ -174,11 +174,15 @@ export const diagnosisFeedbackSchema = registry.register(
     z
         .object({
             title: z.string().openapi({
-                description: '診断タイプの見出し（最大ギャップ軸に基づく）',
+                description: '診断タイプのあだ名（例: 影の参謀）',
                 example: resultsResponseExample.feedback.title,
             }),
+            subtitle: z.string().openapi({
+                description: '診断タイプのサブタイトル（例: 黙って全部見てから動く、縁の下の策士）',
+                example: resultsResponseExample.feedback.subtitle,
+            }),
             description: z.string().openapi({
-                description: '診断タイプの説明文',
+                description: '診断タイプの説明文（ゲームメトリクスのプレースホルダーを埋めたもの）',
                 example: resultsResponseExample.feedback.description,
             }),
             gap_point: z.string().openapi({
@@ -195,7 +199,8 @@ export const diagnosisFeedbackSchema = registry.register(
 /**
  * 各ゲーム終了後の行動要約（配列形式）。
  *
- * 各要素は `{ game_id, summary }` で、`game_id` は gameBreakdown と同じ識別子。
+ * 各要素は `{ game_id, summary, highlights }` で、`game_id` は gameBreakdown と同じ識別子。
+ * `highlights` はゲーム内の具体的な行動データを人間が読める形で示す比較カード配列。
  * 配列化の理由は gameBreakdown と同じ（将来のゲーム追加・差し替え対応 / Phase 1）。
  */
 export const phaseSummariesSchema = registry.register(
@@ -207,6 +212,23 @@ export const phaseSummariesSchema = registry.register(
                 summary: z.string().openapi({
                     description: '当該ゲームの行動を日本語テキストで振り返ったサマリー',
                 }),
+                highlights: z
+                    .array(
+                        z.object({
+                            text: z.string().openapi({
+                                description: '具体的な行動の説明',
+                            }),
+                            comparison: z.string().openapi({
+                                description: '平均との比較',
+                            }),
+                            reason: z.string().openapi({
+                                description: 'なぜ測るか（軸との紐付け）',
+                            }),
+                        }),
+                    )
+                    .openapi({
+                        description: 'ゲーム内の具体的な行動を平均と比較するカード配列',
+                    }),
             }),
         )
         // 配列長 = 登録ゲーム数 + `game_id` ユニーク強制（PR #104 レビュー対応）。
@@ -281,7 +303,38 @@ export const gameDetailSchema = registry.register(
                     }),
                 )
                 .openapi({
-                    description: 'ユーザー値と平均値を並べた比較指標の配列',
+                    description: 'ユーザー値と平均値を並べた比較指標の配列（全件）',
+                }),
+            analysis_comment: z.array(z.string()).openapi({
+                description:
+                    '軸スコアの根拠を複数文で説明する解析コメント。' +
+                    '「どの行動がどの軸の判定につながったか」をゲームごとに生成する。' +
+                    'グラフ横の解析コメント欄での表示を想定（1文 = 1要素）',
+            }),
+            top_deviation_metrics: z
+                .array(
+                    z.object({
+                        label: z.string().openapi({
+                            description: '指標の表示ラベル（metrics と同じ値）',
+                        }),
+                        user: z.number().openapi({
+                            description: 'ユーザーの実測値',
+                        }),
+                        average: z.number().openapi({
+                            description: '比較対象の平均値',
+                        }),
+                        deviation: z.number().openapi({
+                            description: '相対乖離度（|user - average| / |average|）。大きいほど平均と離れている',
+                        }),
+                        praise: z.string().openapi({
+                            description: 'メトリクスの値方向（平均より上/下）に応じた褒め言葉',
+                        }),
+                    }),
+                )
+                .openapi({
+                    description:
+                        '平均との乖離が大きい順に上位4件のメトリクス。行動データカード表示用。' +
+                        '各カードに褒め言葉（praise）付き',
                 }),
         })
         .openapi({
