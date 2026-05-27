@@ -113,7 +113,7 @@ export default function BaselineSurvey() {
         setStatus('success');
 
         setTimeout(() => {
-          router.push('/games/helpdesk');
+          router.push('/games/sorter');
         }, 2000);
       } catch (err: unknown) {
         // 業務エラーコードが「最初からやり直し」系の場合は restart。
