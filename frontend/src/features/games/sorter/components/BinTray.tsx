@@ -49,7 +49,9 @@ export default function BinTray({
 }: BinTrayProps) {
   return (
     // bin をやや大きく見せるため最大幅を広げる（盤面の隙間解消に合わせ bin を強調）。
-    <div className="mx-auto grid w-full max-w-3xl grid-cols-3 gap-4 sm:gap-6">
+    // bin 同士の横間隔（gap）を広げて余白を確保する。D&D の許容範囲との関係は
+    // sorterConstants.ts の BIN_DROP_MARGIN_PX のコメントを参照。
+    <div className="mx-auto grid w-full max-w-3xl grid-cols-3 gap-8 sm:gap-12">
       {PACKAGE_TYPES.map((binType) => {
         const showFeedback = lastFeedback?.binType === binType;
         // D&D 中、ポインタがこの bin の上に重なっているか（ドロップ可能の合図）
