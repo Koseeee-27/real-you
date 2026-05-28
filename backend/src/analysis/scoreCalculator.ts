@@ -1,11 +1,11 @@
-import type { GameId } from '../schemas/results';
-import { BaselineScores } from '../types';
-import { aggregateScores } from './aggregator';
-import { generateFeedback } from './feedbackGenerator';
-import { GAME_MODULES, NORMAL_FLOW } from './registry';
-import { safeScore } from './scoreUtils';
-import type { SorterGameAnalyzeResult } from './games/sorterGame';
-import type { TermsGameAnalyzeResult } from './games/termsGame';
+import type { GameId } from "../schemas/results";
+import { BaselineScores } from "../types";
+import { aggregateScores } from "./aggregator";
+import { generateFeedback } from "./feedbackGenerator";
+import { GAME_MODULES, NORMAL_FLOW } from "./registry";
+import { safeScore } from "./scoreUtils";
+import type { SorterGameAnalyzeResult } from "./games/sorterGame";
+import type { TermsGameAnalyzeResult } from "./games/termsGame";
 
 /**
  * 結果レスポンスを組み立てる薄い統合層（Issue #102 で縮小）。
@@ -52,28 +52,44 @@ export type GameDataByGameId = Readonly<Partial<Record<GameId, unknown>>>;
 /**
  * 5 軸スコアからベースラインとの差分を計算する。負値はベースライン下回り。
  */
-function computeGaps(scores: BaselineScores, baseline: BaselineScores): BaselineScores {
-    return {
-        caution: scores.caution - baseline.caution,
-        calmness: scores.calmness - baseline.calmness,
-        logic: scores.logic - baseline.logic,
-        cooperativeness: scores.cooperativeness - baseline.cooperativeness,
-        positivity: scores.positivity - baseline.positivity,
-    };
+function computeGaps(
+  scores: BaselineScores,
+  baseline: BaselineScores,
+): BaselineScores {
+  return {
+    caution: scores.caution - baseline.caution,
+    calmness: scores.calmness - baseline.calmness,
+    logic: scores.logic - baseline.logic,
+    cooperativeness: scores.cooperativeness - baseline.cooperativeness,
+    positivity: scores.positivity - baseline.positivity,
+  };
 }
 
 /**
- * gaps の絶対値平均から自己認識精度（0-100 の整数）を算出する。
- * `safeScore` は 0-100 への clamp と Math.round を行う既存ユーティリティ。
+ * RMSE（二乗平均平方根誤差）から自己認識精度（0-100 の整数）を算出する。
+ *
+ * 旧式（単純平均絶対値）との違い:
+ * - 1 軸だけ大きく乖離している場合に旧式より低い値が出る → グラフの視覚的印象と一致
+ * - 均等乖離（全軸同じ差）では旧式と同じ値になる
+ *
+ * 計算式: 100 - sqrt( mean(gap_i²) )
+ *   max RMSE = 100（全軸で |gap| = 100）→ accuracy = 0
+ *   min RMSE = 0  （全軸で |gap| = 0）  → accuracy = 100
+ *
+ * NOTE: analysis_results にキャッシュ済みの古いスコアは自動更新されない。
+ *       再計算させるには DB の analysis_results テーブルの該当行を削除すること。
  */
 function computeAccuracyScore(gaps: BaselineScores): number {
-    const totalAbsGap =
-        Math.abs(gaps.caution) +
-        Math.abs(gaps.calmness) +
-        Math.abs(gaps.logic) +
-        Math.abs(gaps.cooperativeness) +
-        Math.abs(gaps.positivity);
-    return safeScore(100 - totalAbsGap / 5);
+  const values = [
+    gaps.caution,
+    gaps.calmness,
+    gaps.logic,
+    gaps.cooperativeness,
+    gaps.positivity,
+  ];
+  const mse = values.reduce((sum, g) => sum + g * g, 0) / values.length;
+  const rmse = Math.sqrt(mse);
+  return safeScore(100 - rmse);
 }
 
 /**
@@ -85,61 +101,67 @@ function computeAccuracyScore(gaps: BaselineScores): number {
  * セマンティクスに影響しないが、API レスポンスの安定化のため固定順で出力する。
  */
 export function generateAnalysisResult(
-    userId: string,
-    selfMbti: string | undefined,
-    dataByGameId: GameDataByGameId,
-    baseline_scores: BaselineScores,
+  userId: string,
+  selfMbti: string | undefined,
+  dataByGameId: GameDataByGameId,
+  baseline_scores: BaselineScores,
 ) {
-    // analyzeResult を gameId ごとに保持して feedbackGenerator と highlights の両方で再利用する
-    const analyzeResultByGameId: Partial<Record<GameId, ReturnType<typeof GAME_MODULES[GameId]['analyze']>>> = {};
+  // analyzeResult を gameId ごとに保持して feedbackGenerator と highlights の両方で再利用する
+  const analyzeResultByGameId: Partial<
+    Record<GameId, ReturnType<(typeof GAME_MODULES)[GameId]["analyze"]>>
+  > = {};
 
-    const moduleOutputs = NORMAL_FLOW.map((gameId) => {
-        const gameModule = GAME_MODULES[gameId];
-        const data = dataByGameId[gameId];
-        const analyzeResult = gameModule.analyze(data);
-        analyzeResultByGameId[gameId] = analyzeResult;
-        return {
-            breakdown: { game_id: gameId, scores: analyzeResult.scores },
-            summary: {
-                game_id: gameId,
-                summary: gameModule.buildSummary(data),
-                highlights: gameModule.buildHighlights(data, analyzeResult),
-            },
-            detail: gameModule.buildDetails(data, analyzeResult),
-        };
-    });
-
-    const game_breakdown = moduleOutputs.map((m) => m.breakdown);
-    const phase_summaries = moduleOutputs.map((m) => m.summary);
-    const details = moduleOutputs.map((m) => m.detail);
-
-    const scores = aggregateScores(game_breakdown);
-    const gaps = computeGaps(scores, baseline_scores);
-    const accuracy_score = computeAccuracyScore(gaps);
-
-    // 各ゲームの analyzeResult からメトリクスを取り出して feedbackGenerator に渡す
-    // NOTE: group_chat_game / helpdesk_game 由来のメトリクスは現時点で feedbackGenerator が
-    // 参照しないため抽出していない。将来パターンを拡張する際はここでの抽出ロジックも追加すること。
-    const termsResult = analyzeResultByGameId['terms_game'] as TermsGameAnalyzeResult | undefined;
-    const sorterResult = analyzeResultByGameId['sorter_game'] as SorterGameAnalyzeResult | undefined;
-
-    const feedback = generateFeedback(scores, gaps, accuracy_score, {
-        totalTime: termsResult?.totalTime,
-        panicCount: sorterResult?.panicCount,
-        adaptTime: sorterResult?.adaptTime,
-        avgHesitation: sorterResult?.avgHesitation,
-    });
-
+  const moduleOutputs = NORMAL_FLOW.map((gameId) => {
+    const gameModule = GAME_MODULES[gameId];
+    const data = dataByGameId[gameId];
+    const analyzeResult = gameModule.analyze(data);
+    analyzeResultByGameId[gameId] = analyzeResult;
     return {
-        user_id: userId,
-        self_mbti: selfMbti,
-        scores,
-        baseline_scores,
-        gaps,
-        game_breakdown,
-        accuracy_score,
-        feedback,
-        phase_summaries,
-        details,
+      breakdown: { game_id: gameId, scores: analyzeResult.scores },
+      summary: {
+        game_id: gameId,
+        summary: gameModule.buildSummary(data),
+        highlights: gameModule.buildHighlights(data, analyzeResult),
+      },
+      detail: gameModule.buildDetails(data, analyzeResult),
     };
+  });
+
+  const game_breakdown = moduleOutputs.map((m) => m.breakdown);
+  const phase_summaries = moduleOutputs.map((m) => m.summary);
+  const details = moduleOutputs.map((m) => m.detail);
+
+  const scores = aggregateScores(game_breakdown);
+  const gaps = computeGaps(scores, baseline_scores);
+  const accuracy_score = computeAccuracyScore(gaps);
+
+  // 各ゲームの analyzeResult からメトリクスを取り出して feedbackGenerator に渡す
+  // NOTE: group_chat_game / helpdesk_game 由来のメトリクスは現時点で feedbackGenerator が
+  // 参照しないため抽出していない。将来パターンを拡張する際はここでの抽出ロジックも追加すること。
+  const termsResult = analyzeResultByGameId["terms_game"] as
+    | TermsGameAnalyzeResult
+    | undefined;
+  const sorterResult = analyzeResultByGameId["sorter_game"] as
+    | SorterGameAnalyzeResult
+    | undefined;
+
+  const feedback = generateFeedback(scores, gaps, accuracy_score, {
+    totalTime: termsResult?.totalTime,
+    panicCount: sorterResult?.panicCount,
+    adaptTime: sorterResult?.adaptTime,
+    avgHesitation: sorterResult?.avgHesitation,
+  });
+
+  return {
+    user_id: userId,
+    self_mbti: selfMbti,
+    scores,
+    baseline_scores,
+    gaps,
+    game_breakdown,
+    accuracy_score,
+    feedback,
+    phase_summaries,
+    details,
+  };
 }

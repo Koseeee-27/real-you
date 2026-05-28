@@ -622,6 +622,8 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  /* 全カード高さを揃える: 4件 (2×2) で行ごとの高さ差をなくす */
+  min-height: 160px;
 }
 
 .data-title {
