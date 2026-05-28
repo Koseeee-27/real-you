@@ -174,6 +174,10 @@ export default function TopPage() {
           onComplete={closeHowToPlay}
           completeLabel="完了！"
           ariaLabel="あそびかた 説明"
+          classNames={{
+            // 背景画像をカード内に収める（切れないように contain 指定、真ん中に）
+            card: "relative bg-white overflow-hidden before:content-[''] before:absolute before:inset-0 before:bg-[url('/images/fukidashi.png')] before:bg-[length:850px_auto] before:bg-[position:50%_40%] before:bg-no-repeat before:pointer-events-none before:mx-auto before:grayscale before:brightness-90 before:opacity-40 before:[mask-image:radial-gradient(ellipse_at_center,_rgba(0,0,0,1)_70%,_rgba(0,0,0,0)_100%)] before:[-webkit-mask-image:radial-gradient(ellipse_at_center,_rgba(0,0,0,1)_70%,_rgba(0,0,0,0)_100%)] [&>*]:relative [&>*]:z-10",
+          }}
         >
           {howToPlaySlides}
         </SlideModal>

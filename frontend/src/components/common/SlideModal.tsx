@@ -41,6 +41,8 @@ export interface SlideModalClassNames {
   header?: string;
   /** スライド本体の領域（高さの調整など） */
   body?: string;
+  /** 各スライド本体（アニメーション付き） */
+  slide?: string;
   /** フッター */
   footer?: string;
   /** 「戻る」ボタン */
