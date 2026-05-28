@@ -182,6 +182,7 @@ export default function GroupChatGameFlow() {
     currentTurn,
     currentTurnIndex,
     totalTurns,
+    isTurnResolving,
     typingSpeaker,
     startGame: rawStartGame,
     selectOption: rawSelectOption,
@@ -235,7 +236,8 @@ export default function GroupChatGameFlow() {
             onHistoryScroll={handleHistoryScroll}
           />
 
-          {gamePhase === 'turn-active' && currentTurn ? (
+          {/* 回答確定中（早押し時の同期A挙手ビート進行中）は ChoicePad を閉じる */}
+          {gamePhase === 'turn-active' && currentTurn && !isTurnResolving ? (
             <ChoicePad
               turn={currentTurn}
               remainingTimeMs={remainingTimeMs}

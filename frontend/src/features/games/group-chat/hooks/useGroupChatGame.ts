@@ -106,6 +106,12 @@ export function useGroupChatGame(options: {
   const [remainingTimeMs, setRemainingTimeMs] = useState<number>(
     () => TURNS[0]?.timerMs ?? 0
   );
+  /**
+   * 回答確定済みだが、まだ次ターンへ進んでいない「確定中」状態。
+   * ターン1の早押し時に同期Aの挙手ビートを差し込む間 true になり、その間は
+   * ChoicePad を隠して選択肢の誤操作・SE 誤発火・固まったタイマーバー表示を防ぐ。
+   */
+  const [isTurnResolving, setIsTurnResolving] = useState(false);
   const [isTypingIndicatorVisible, setIsTypingIndicatorVisible] =
     useState(false);
   const [typingSpeakerId, setTypingSpeakerId] = useState<Exclude<
@@ -408,6 +414,8 @@ export function useGroupChatGame(options: {
         // 確定フラグだけ先に立て、タイマーと既存の時間ベース挙手予約(2.5s/5.0s)を止める。
         // 結果記録/遷移はビート終了後に finalizeTurn で行う。
         turnResolvedRef.current = true;
+        // ビート進行中は選択肢を閉じる（誤操作・SE誤発火・固まったタイマー表示の防止）
+        setIsTurnResolving(true);
         if (timerIdRef.current) {
           clearInterval(timerIdRef.current);
           timerIdRef.current = null;
@@ -490,7 +498,11 @@ export function useGroupChatGame(options: {
   // 予約したばかりの timeout まで消してしまい、メッセージ・入力中が表示されない。
   useEffect(() => {
     if (gamePhase !== 'turn-cutin') return;
-    const id = setTimeout(() => setGamePhase('turn-active'), CUTIN_DURATION_MS);
+    const id = setTimeout(() => {
+      // 次ターン開始時に「確定中」を解除して ChoicePad を再表示できるようにする
+      setIsTurnResolving(false);
+      setGamePhase('turn-active');
+    }, CUTIN_DURATION_MS);
     return () => clearTimeout(id);
   }, [gamePhase]);
 
@@ -681,6 +693,7 @@ export function useGroupChatGame(options: {
     inputDeviceDetectedRef.current = false;
     inputDeviceTypeRef.current = 'keyboard';
     resetTurnMetrics();
+    setIsTurnResolving(false);
     setChatMessages([]);
     setCurrentTurnIndex(0);
     setRemainingTimeMs(TURNS[0]?.timerMs ?? 0);
@@ -704,6 +717,7 @@ export function useGroupChatGame(options: {
     currentTurnIndex,
     totalTurns: TOTAL_TURNS,
     isTypingIndicatorVisible,
+    isTurnResolving,
     typingSpeaker,
     startGame,
     selectOption,
