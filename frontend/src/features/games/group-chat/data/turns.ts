@@ -129,12 +129,6 @@ export interface ChoiceOption {
   /** 内部意図 ID（1,2=協調系 / 3,4=独自系）。表示順とは独立 */
   selectedOptionId: OptionIntentId;
   text: string;
-  /**
-   * `true` の場合、この選択肢を選んでも user メッセージとしてチャットに表示しない。
-   * 「（黙って様子を見る）」などの「無反応」を意図する選択肢に付与する。
-   * BE には `selectedOptionId` のみ送るため、このフラグは FE の表示制御専用。
-   */
-  isSilent?: boolean;
 }
 
 export interface TurnDefinition {
@@ -163,7 +157,6 @@ export const TURNS: TurnDefinition[] = [
       {
         selectedOptionId: 2,
         text: '（黙って様子を見る）',
-        isSilent: true,
       }, // 協調: 同期Aに譲る／場を読む（無反応）
     ],
     timerMs: TURN_TIMER_MS[1],
@@ -182,7 +175,6 @@ export const TURNS: TurnDefinition[] = [
       {
         selectedOptionId: 3,
         text: '（黙って様子を見る）',
-        isSilent: true,
       }, // 独自: 流れに乗らない／同調しない（無反応）
     ],
     timerMs: TURN_TIMER_MS[2],
@@ -204,7 +196,6 @@ export const TURNS: TurnDefinition[] = [
       {
         selectedOptionId: 3,
         text: '（黙って様子を見る）',
-        isSilent: true,
       }, // 独自: 指名を無視（無反応）
     ],
     timerMs: TURN_TIMER_MS[3],

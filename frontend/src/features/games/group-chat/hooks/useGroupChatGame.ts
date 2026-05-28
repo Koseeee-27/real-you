@@ -396,13 +396,17 @@ export function useGroupChatGame(options: {
           computeTurn1HoverChanged();
       }
 
-      // 無言系の選択肢（isSilent: true、例:「黙って様子を見る」）は chat に
-      // 表示しない。BE には selectedOptionId を送るので分析には影響しない。
+      // 選択した選択肢のテキストを user メッセージとして chat に表示する。
+      //「（黙って様子を見る）」のような無反応系の選択肢も、プレイヤーに「反応した」ことが
+      // 伝わるよう表示する（無表示だと反応の有無が分かりにくいため）。なお BE には
+      // selectedOptionId のみ送るので、表示の有無は分析に影響しない。上司の反応分岐
+      //（TURN2_BOSS_BRANCH）は selectedOptionId 基準のため「無反応扱い」の挙動は変わらない。
       const choice = turn.choices.find(
         (c) => c.selectedOptionId === selectedOptionId
       );
-      const userMessage: ChatMessage | null =
-        choice && !choice.isSilent ? { type: 'user', text: choice.text } : null;
+      const userMessage: ChatMessage | null = choice
+        ? { type: 'user', text: choice.text }
+        : null;
 
       // ターン1で、同期Aの先回り発言がまだ出ていないうちに答えた（早押し）場合:
       // 「同期Aの挙手 → 自分の発言」の順を必ず保つため、自分の発言の表示とターン遷移を
@@ -429,7 +433,7 @@ export function useGroupChatGame(options: {
         setTypingSpeakerId('colleague-a');
         setIsTypingIndicatorVisible(true);
 
-        // 無言系の選択肢では自分の発言を出さないので、その分の待ち時間も入れない
+        // 自分の発言を表示する分の待ち時間（choice 不在の防御で userMessage が null の場合のみ 0）
         const userMessageDelay = userMessage ? T1_CATCHUP_USER_MESSAGE_MS : 0;
 
         // 同期A「私やりましょうか！」
@@ -441,7 +445,7 @@ export function useGroupChatGame(options: {
             toChatBotMessage(T1_PREEMPT_MESSAGE),
           ]);
         }, T1_CATCHUP_TYPING_MS);
-        // 自分の発言（無言系の選択肢では出さない）
+        // 自分の発言（「（黙って様子を見る）」等も含めて表示する）
         if (userMessage) {
           trackTimeout(() => {
             setChatMessages((prev) => [...prev, userMessage]);
