@@ -6,6 +6,32 @@ export const alt = 'Real You 行動解析REPORT';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
+async function loadFont(): Promise<ArrayBuffer | null> {
+  try {
+    const css = await fetch(
+      'https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@900&display=swap',
+      {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      },
+    ).then((r) => r.text());
+    const url = css.match(/url\((https:\/\/fonts\.gstatic\.com[^)]+)\)/)?.[1];
+    if (!url) return null;
+    return fetch(url).then((r) => r.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+function getTitleFontSize(title: string): number {
+  if (title.length > 10) return 60;
+  if (title.length > 8) return 72;
+  if (title.length > 6) return 80;
+  return 88;
+}
+
 export default async function OgImage({
   params,
 }: {
@@ -24,6 +50,9 @@ export default async function OgImage({
     // フォールバック
   }
 
+  const [fontData] = await Promise.all([loadFont()]);
+  const fontSize = getTitleFontSize(title);
+
   return new ImageResponse(
     (
       <div
@@ -35,7 +64,7 @@ export default async function OgImage({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: 'sans-serif',
+          fontFamily: "'M PLUS Rounded 1c', sans-serif",
           position: 'relative',
         }}
       >
@@ -91,7 +120,7 @@ export default async function OgImage({
           >
             <div
               style={{
-                fontSize: 88,
+                fontSize,
                 fontWeight: 900,
                 color: '#f87171',
                 lineHeight: 1.1,
@@ -130,6 +159,21 @@ export default async function OgImage({
         </div>
       </div>
     ),
-    { width: 1200, height: 630 }
+    {
+      width: 1200,
+      height: 630,
+      ...(fontData
+        ? {
+            fonts: [
+              {
+                name: 'M PLUS Rounded 1c',
+                data: fontData,
+                weight: 900,
+                style: 'normal',
+              },
+            ],
+          }
+        : {}),
+    },
   );
 }

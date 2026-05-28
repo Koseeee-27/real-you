@@ -53,16 +53,16 @@ export type GameDataByGameId = Readonly<Partial<Record<GameId, unknown>>>;
  * 5 軸スコアからベースラインとの差分を計算する。負値はベースライン下回り。
  */
 function computeGaps(
-  scores: BaselineScores,
-  baseline: BaselineScores,
+    scores: BaselineScores,
+    baseline: BaselineScores,
 ): BaselineScores {
-  return {
-    caution: scores.caution - baseline.caution,
-    calmness: scores.calmness - baseline.calmness,
-    logic: scores.logic - baseline.logic,
-    cooperativeness: scores.cooperativeness - baseline.cooperativeness,
-    positivity: scores.positivity - baseline.positivity,
-  };
+    return {
+        caution: scores.caution - baseline.caution,
+        calmness: scores.calmness - baseline.calmness,
+        logic: scores.logic - baseline.logic,
+        cooperativeness: scores.cooperativeness - baseline.cooperativeness,
+        positivity: scores.positivity - baseline.positivity,
+    };
 }
 
 /**
@@ -80,16 +80,16 @@ function computeGaps(
  *       再計算させるには DB の analysis_results テーブルの該当行を削除すること。
  */
 function computeAccuracyScore(gaps: BaselineScores): number {
-  const values = [
-    gaps.caution,
-    gaps.calmness,
-    gaps.logic,
-    gaps.cooperativeness,
-    gaps.positivity,
-  ];
-  const mse = values.reduce((sum, g) => sum + g * g, 0) / values.length;
-  const rmse = Math.sqrt(mse);
-  return safeScore(100 - rmse);
+    const values = [
+        gaps.caution,
+        gaps.calmness,
+        gaps.logic,
+        gaps.cooperativeness,
+        gaps.positivity,
+    ];
+    const mse = values.reduce((sum, g) => sum + g * g, 0) / values.length;
+    const rmse = Math.sqrt(mse);
+    return safeScore(100 - rmse);
 }
 
 /**
@@ -101,67 +101,67 @@ function computeAccuracyScore(gaps: BaselineScores): number {
  * セマンティクスに影響しないが、API レスポンスの安定化のため固定順で出力する。
  */
 export function generateAnalysisResult(
-  userId: string,
-  selfMbti: string | undefined,
-  dataByGameId: GameDataByGameId,
-  baseline_scores: BaselineScores,
+    userId: string,
+    selfMbti: string | undefined,
+    dataByGameId: GameDataByGameId,
+    baseline_scores: BaselineScores,
 ) {
-  // analyzeResult を gameId ごとに保持して feedbackGenerator と highlights の両方で再利用する
-  const analyzeResultByGameId: Partial<
-    Record<GameId, ReturnType<(typeof GAME_MODULES)[GameId]["analyze"]>>
-  > = {};
+    // analyzeResult を gameId ごとに保持して feedbackGenerator と highlights の両方で再利用する
+    const analyzeResultByGameId: Partial<
+        Record<GameId, ReturnType<(typeof GAME_MODULES)[GameId]["analyze"]>>
+    > = {};
 
-  const moduleOutputs = NORMAL_FLOW.map((gameId) => {
-    const gameModule = GAME_MODULES[gameId];
-    const data = dataByGameId[gameId];
-    const analyzeResult = gameModule.analyze(data);
-    analyzeResultByGameId[gameId] = analyzeResult;
+    const moduleOutputs = NORMAL_FLOW.map((gameId) => {
+        const gameModule = GAME_MODULES[gameId];
+        const data = dataByGameId[gameId];
+        const analyzeResult = gameModule.analyze(data);
+        analyzeResultByGameId[gameId] = analyzeResult;
+        return {
+            breakdown: { game_id: gameId, scores: analyzeResult.scores },
+            summary: {
+                game_id: gameId,
+                summary: gameModule.buildSummary(data),
+                highlights: gameModule.buildHighlights(data, analyzeResult),
+            },
+            detail: gameModule.buildDetails(data, analyzeResult),
+        };
+    });
+
+    const game_breakdown = moduleOutputs.map((m) => m.breakdown);
+    const phase_summaries = moduleOutputs.map((m) => m.summary);
+    const details = moduleOutputs.map((m) => m.detail);
+
+    const scores = aggregateScores(game_breakdown);
+    const gaps = computeGaps(scores, baseline_scores);
+    const accuracy_score = computeAccuracyScore(gaps);
+
+    // 各ゲームの analyzeResult からメトリクスを取り出して feedbackGenerator に渡す
+    // NOTE: group_chat_game / helpdesk_game 由来のメトリクスは現時点で feedbackGenerator が
+    // 参照しないため抽出していない。将来パターンを拡張する際はここでの抽出ロジックも追加すること。
+    const termsResult = analyzeResultByGameId["terms_game"] as
+        | TermsGameAnalyzeResult
+        | undefined;
+    const sorterResult = analyzeResultByGameId["sorter_game"] as
+        | SorterGameAnalyzeResult
+        | undefined;
+
+    const feedback = generateFeedback(scores, gaps, accuracy_score, {
+        totalTime: termsResult?.totalTime,
+        panicCount: sorterResult?.panicCount,
+        adaptTime: sorterResult?.adaptTime,
+        avgHesitation: sorterResult?.avgHesitation,
+    });
+
     return {
-      breakdown: { game_id: gameId, scores: analyzeResult.scores },
-      summary: {
-        game_id: gameId,
-        summary: gameModule.buildSummary(data),
-        highlights: gameModule.buildHighlights(data, analyzeResult),
-      },
-      detail: gameModule.buildDetails(data, analyzeResult),
+        user_id: userId,
+        self_mbti: selfMbti,
+        scores,
+        baseline_scores,
+        gaps,
+        game_breakdown,
+        accuracy_score,
+        feedback,
+        phase_summaries,
+        details,
     };
-  });
-
-  const game_breakdown = moduleOutputs.map((m) => m.breakdown);
-  const phase_summaries = moduleOutputs.map((m) => m.summary);
-  const details = moduleOutputs.map((m) => m.detail);
-
-  const scores = aggregateScores(game_breakdown);
-  const gaps = computeGaps(scores, baseline_scores);
-  const accuracy_score = computeAccuracyScore(gaps);
-
-  // 各ゲームの analyzeResult からメトリクスを取り出して feedbackGenerator に渡す
-  // NOTE: group_chat_game / helpdesk_game 由来のメトリクスは現時点で feedbackGenerator が
-  // 参照しないため抽出していない。将来パターンを拡張する際はここでの抽出ロジックも追加すること。
-  const termsResult = analyzeResultByGameId["terms_game"] as
-    | TermsGameAnalyzeResult
-    | undefined;
-  const sorterResult = analyzeResultByGameId["sorter_game"] as
-    | SorterGameAnalyzeResult
-    | undefined;
-
-  const feedback = generateFeedback(scores, gaps, accuracy_score, {
-    totalTime: termsResult?.totalTime,
-    panicCount: sorterResult?.panicCount,
-    adaptTime: sorterResult?.adaptTime,
-    avgHesitation: sorterResult?.avgHesitation,
-  });
-
-  return {
-    user_id: userId,
-    self_mbti: selfMbti,
-    scores,
-    baseline_scores,
-    gaps,
-    game_breakdown,
-    accuracy_score,
-    feedback,
-    phase_summaries,
-    details,
-  };
 }

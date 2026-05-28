@@ -1,18 +1,26 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import { unstable_cache } from 'next/cache';
 import { getResult } from '@/lib/api';
 import { SITE_URL } from '@/constants/site';
+
+export const revalidate = 3600;
 
 type Props = {
   params: Promise<{ userId: string }>;
 };
 
+const getCachedResult = (userId: string) =>
+  unstable_cache(() => getResult(userId), ['share-result', userId], {
+    revalidate: 3600,
+  })();
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { userId } = await params;
 
   try {
-    const result = await getResult(userId);
+    const result = await getCachedResult(userId);
     const title = result.feedback.title;
     const ogImageUrl = `${SITE_URL}/share/${userId}/opengraph-image`;
 
@@ -47,7 +55,7 @@ export default async function SharePage({ params }: Props) {
   let subtitle: string | null = null;
 
   try {
-    const result = await getResult(userId);
+    const result = await getCachedResult(userId);
     title = result.feedback.title;
     subtitle = result.feedback.subtitle ?? null;
   } catch {
