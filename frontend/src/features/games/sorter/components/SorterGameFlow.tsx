@@ -61,10 +61,14 @@ export default function SorterGameFlow() {
   const [pendingData, setPendingData] = useState<SorterGameData | null>(null);
   const retryCountRef = useRef(0);
 
-  // BGM 管理（通常 / 速度2倍 / 機械停止 の3系統。speed-up・freeze の発火に応じて切り替える）
+  // BGM 管理。オンボーディング〜カウントダウン中は共通 BGM、プレイ中は通常/速度2倍/停止の
+  // ゲーム BGM を流す。「いま鳴らすべき BGM」は下の reconciler effect が phase / isFrozen /
+  // isSpeedUp から一元決定し、activeBgmRef が現在再生中の要素を指す。
+  const commonBgmRef = useRef<HTMLAudioElement | null>(null);
   const normalBgmRef = useRef<HTMLAudioElement | null>(null);
   const speedUpBgmRef = useRef<HTMLAudioElement | null>(null);
   const freezeBgmRef = useRef<HTMLAudioElement | null>(null);
+  const activeBgmRef = useRef<HTMLAudioElement | null>(null);
 
   // ベルトコンテナの実測幅。PackageItem の U 字経路アニメに渡す
   const beltContainerRef = useRef<HTMLDivElement | null>(null);
@@ -116,42 +120,41 @@ export default function SorterGameFlow() {
     audio.play().catch(() => {});
   }
 
-  // BGM の初期化と再生管理
+  // BGM の初期化と自動再生制限の解除。
   //
-  // 通常 BGM (`bgmNormal`) / 速度2倍 BGM (`bgmSpeedUp`) / 停止 BGM (`bgmFreeze`) を用意する。
-  // パスが空文字列（未決定）の側は `new Audio()` を生成せず、コンソールに 404 を出さない。
-  // speed-up / freeze 発火時の切り替えはそれぞれ別 effect（下記）で行う。
+  // 共通 BGM (`bgmCommon`) と、ゲーム BGM の通常 (`bgmNormal`) / 速度2倍 (`bgmSpeedUp`) /
+  // 停止 (`bgmFreeze`) を用意する。パスが空文字列の側は `new Audio()` を生成せず 404 を出さない。
+  // 「どの BGM を鳴らすか」は下の reconciler effect が phase / isFrozen / isSpeedUp から決める。
+  // ここでは生成と、autoplay 制限の解除（最初のクリックで現在の active BGM を再生し直す）だけ行う。
   useEffect(() => {
-    const createBgm = (src: string): HTMLAudioElement => {
+    const createBgm = (src: string, volume = 0.3): HTMLAudioElement => {
       const audio = new Audio(src);
       audio.loop = true;
-      audio.volume = 0.3;
+      audio.volume = volume;
       return audio;
     };
 
-    const { bgmNormal, bgmSpeedUp, bgmFreeze } = SORTER_AUDIO_PATHS;
+    const { bgmCommon, bgmNormal, bgmSpeedUp, bgmFreeze } = SORTER_AUDIO_PATHS;
+    // 共通 BGM はトップページ等と音量を揃える（0.4）
+    if (bgmCommon) commonBgmRef.current = createBgm(bgmCommon, 0.4);
     if (bgmNormal) normalBgmRef.current = createBgm(bgmNormal);
     if (bgmSpeedUp) speedUpBgmRef.current = createBgm(bgmSpeedUp);
     if (bgmFreeze) freezeBgmRef.current = createBgm(bgmFreeze);
 
-    // 通常 BGM を初回再生（ブラウザの自動再生制限を最初のクリックで解除）。
-    // 自動再生解除はこの通常 BGM の開始に紐づく。speed-up / freeze はゲーム進行中
-    // （プレイヤーが盤面をクリックした後）に発火するため、その時点では既に autoplay 制限は解除済み。
-    const normal = normalBgmRef.current;
-    const playBGM = () => {
-      normal?.play().catch(() => {});
-      window.removeEventListener('click', playBGM);
+    // 自動再生制限の解除: マウント直後の play() は弾かれることがあるため、最初のクリックで
+    // 「いま鳴らすべき BGM」(activeBgmRef、初期はオンボーディングの共通 BGM) を再生し直す。
+    const unlockPlay = () => {
+      activeBgmRef.current?.play().catch(() => {});
+      window.removeEventListener('click', unlockPlay);
     };
-    if (normal) {
-      window.addEventListener('click', playBGM);
-      playBGM();
-    }
+    window.addEventListener('click', unlockPlay);
 
     return () => {
+      commonBgmRef.current?.pause();
       normalBgmRef.current?.pause();
       speedUpBgmRef.current?.pause();
       freezeBgmRef.current?.pause();
-      window.removeEventListener('click', playBGM);
+      window.removeEventListener('click', unlockPlay);
     };
   }, []);
 
@@ -213,6 +216,7 @@ export default function SorterGameFlow() {
 
   // BGM を全系統まとめて停止する
   function stopAllBgm() {
+    commonBgmRef.current?.pause();
     normalBgmRef.current?.pause();
     speedUpBgmRef.current?.pause();
     freezeBgmRef.current?.pause();
@@ -274,37 +278,34 @@ export default function SorterGameFlow() {
     handleOnboardingStart,
   } = useSorterGame({ onComplete: handleComplete });
 
-  // 速度2倍イベント発火時に BGM を通常→2倍速へハードカットで切り替える。
-  // `isSpeedUp` は一方向フラグ（false→true、以降ゲーム終了まで true）。
-  // 2倍速 BGM が未設定（空文字列）なら通常 BGM を継続する（graceful degrade）。
+  // 「いま鳴らすべき BGM」を phase / isFrozen / isSpeedUp から一元的に決めて1系統だけ再生する。
+  // 優先順位:
+  //   - オンボーディング〜カウントダウン中 … 共通 BGM（トップページ等と同じ）
+  //   - プレイ中の機械停止（isFrozen）      … 停止 BGM
+  //   - プレイ中の速度2倍（isSpeedUp）      … 2倍速 BGM
+  //   - プレイ中のそれ以外                  … 通常 BGM
+  //   - 終了（ended）                       … 無音（結果表示中は BGM を流さない）
+  // 切替は「前の要素を pause → 対象を play」。play は対象の現在位置から再生するため、
+  // 停止明けに base（通常/2倍速）へ戻るときは一時停止位置から自然に再開する。一方、初回再生となる
+  // 共通→通常 / 通常→2倍速 / base→停止 は要素の currentTime が 0 のままなので頭から鳴る。
+  // 対象が未設定（空文字列で Audio 未生成）なら null となり、その間は無音（graceful degrade）。
   useEffect(() => {
-    if (!isSpeedUp) return;
-    const speedUp = speedUpBgmRef.current;
-    if (!speedUp) return;
-    normalBgmRef.current?.pause();
-    speedUp.currentTime = 0;
-    speedUp.play().catch(() => {});
-  }, [isSpeedUp]);
+    const resolveTargetBgm = (): HTMLAudioElement | null => {
+      if (phase === 'onboarding' || phase === 'countdown') {
+        return commonBgmRef.current;
+      }
+      if (phase === 'ended') return null;
+      if (isFrozen) return freezeBgmRef.current;
+      if (isSpeedUp) return speedUpBgmRef.current;
+      return normalBgmRef.current;
+    };
 
-  // 機械停止（frozen）中だけ BGM を停止用へ切り替える。
-  // base BGM（速度2倍中なら 2倍速 / それ以外は通常）を一時停止し、停止 BGM を頭から再生。
-  // 停止明け（isFrozen=false）で停止 BGM を止め、base BGM を一時停止位置から再開する（currentTime は維持）。
-  // 停止 BGM が未設定（空文字列）なら何もしない（base を継続。graceful degrade）。
-  // base の選択に isSpeedUp を使うため依存配列に含める。speed-up 切替時にも再評価されるが、
-  // その際 else 分岐の base.play() は既再生中の no-op になるだけで害はない。
-  useEffect(() => {
-    const freeze = freezeBgmRef.current;
-    if (!freeze) return;
-    const base = isSpeedUp ? speedUpBgmRef.current : normalBgmRef.current;
-    if (isFrozen) {
-      base?.pause();
-      freeze.currentTime = 0;
-      freeze.play().catch(() => {});
-    } else {
-      freeze.pause();
-      base?.play().catch(() => {});
-    }
-  }, [isFrozen, isSpeedUp]);
+    const target = resolveTargetBgm();
+    if (activeBgmRef.current === target) return;
+    activeBgmRef.current?.pause();
+    activeBgmRef.current = target;
+    target?.play().catch(() => {});
+  }, [phase, isFrozen, isSpeedUp]);
 
   /**
    * belt レイヤーを前面化（z-30）すべきか。
