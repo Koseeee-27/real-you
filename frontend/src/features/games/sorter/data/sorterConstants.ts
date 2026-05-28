@@ -120,6 +120,14 @@ export const EVENT_ANCHORS: ReadonlyArray<{
 /** ルール変更通知バナーの表示時間（ms）。表示後に自動で消える（プレイは阻害しない） */
 export const RULE_CHANGE_NOTICE_DURATION_MS = 3_000;
 
+/**
+ * ルール変更で正解が動いた荷物（特急）を誤投入した直後、正しい入れ先 bin（重量物）を
+ * ハイライト +「こっちへ！」でガイド表示する時間（ms）。一定時間後に自動で消える。
+ * ルール変更に気づかず旧 bin に入れ続ける理不尽さを軽減するためのリアクティブなガイド
+ * （初回ミスは記録され、適応時間 ruleChangeAdaptMs などの診断シグナルは保たれる）。
+ */
+export const RULE_GUIDE_DURATION_MS = 3_000;
+
 /** 機械停止: 予告（赤バナー shake、まだ操作可）の時間（ms） */
 export const FROZEN_WARNING_DURATION_MS = 2_000;
 /** 機械停止: 停止（クリック無効化 + panicClick 計測、ベルト・荷物は流れ続ける）の時間（ms） */
@@ -166,8 +174,14 @@ export const BELT_HEIGHT_PX = 420;
  * 荷物サイズを変える場合はこの制約を満たすこと。
  */
 export const BELT_LANE_HEIGHT_PX = 150;
-/** U 字の折り返し部分の幅（px） */
-export const BELT_TURN_WIDTH_PX = 80;
+/**
+ * U 字の折り返し（右の縦ベルト）部分の幅（px）。
+ * 縦ベルトを下る荷物がはみ出して浮かないよう、荷物画像（PackageItem.tsx の
+ * PACKAGE_IMAGE_SIZE_PX = 110px）が左右マージン付きで収まる幅にする
+ * （BELT_TURN_WIDTH_PX ≥ PACKAGE_IMAGE_SIZE_PX）。荷物は縦ベルトの中央に載るよう
+ * PackageItem 側で turnX（折り返し X 座標）を算出する。
+ */
+export const BELT_TURN_WIDTH_PX = 140;
 
 /** ベルトのシマシマパターン 1 周分（秒、通常速度）。荷物アニメと別系統 */
 export const BELT_FLOW_DURATION_SEC = 1.2;

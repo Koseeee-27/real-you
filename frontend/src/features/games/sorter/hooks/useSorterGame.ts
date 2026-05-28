@@ -18,6 +18,7 @@ import {
   RECOVERY_DURATION_MS,
   RULE_CHANGE_NOTICE_DURATION_MS,
   RULE_CHANGED_CORRECT_BIN,
+  RULE_GUIDE_DURATION_MS,
   SCORE_CORRECT,
   SCORE_WRONG_PENALTY,
   SPAWN_INTERVAL_MS,
@@ -160,6 +161,13 @@ export function useSorterGame(options: {
   const [isSpeedUp, setIsSpeedUp] = useState(false);
   /** 速度上昇予告バナーの表示フラグ（発火直後 SPEED_UP_BANNER_DURATION_MS 表示） */
   const [showSpeedUpBanner, setShowSpeedUpBanner] = useState(false);
+  /**
+   * ルール変更で正解が動いた荷物（特急）を誤投入した直後に、正しい入れ先 bin（重量物）を
+   * ハイライト +「こっちへ！」でガイド表示する種別。RULE_GUIDE_DURATION_MS 後に null へ戻す。
+   */
+  const [ruleGuideBinType, setRuleGuideBinType] = useState<PackageType | null>(
+    null
+  );
 
   // =========================================================
   // 計測データ（再 render 不要なので ref で管理）
@@ -187,6 +195,13 @@ export function useSorterGame(options: {
   const ruleChangeAdaptMsRef = useRef<number | null>(null);
   /** ルール変更後の初正解判定フラグ（true = まだ未適応） */
   const firstCorrectAfterRuleChangeRef = useRef(true);
+
+  /**
+   * 誤投入ガイドの世代トークン。誤投入のたびにインクリメントし、自動消去の trackTimeout は
+   * 自分が起動した世代と一致するときだけ消す。これにより連続ミス時に、前のミスのタイマーが
+   * 後のミスのガイドを早く消してしまうのを防ぐ（lastFeedback の `at` と同趣旨）。
+   */
+  const ruleGuideTokenRef = useRef(0);
 
   /** displayScore の最新値を ref で保持（ハンドラ内で setState 前の累計に加算する用） */
   const displayScoreRef = useRef(0);
@@ -314,6 +329,10 @@ export function useSorterGame(options: {
       events: [...eventsRef.current],
     };
 
+    // 終了時に誤投入ガイドの state を確実に消す（自動消去タイマーを一括 clear するため、
+    // 残っていると state が固着しうる。結果オーバーレイの下に取り残さない）。
+    setRuleGuideBinType(null);
+
     setOutcome(result);
     setPhase('ended');
     onCompleteRef.current(data);
@@ -354,6 +373,10 @@ export function useSorterGame(options: {
       setFreezeStage('frozen');
       setSelectedPackageId(null);
       selectedAtRef.current = null;
+      // 停止突入時は誤投入ガイドも消す。token も進めて、保留中の自動消去タイマーや
+      // 停止明けにガイドが点滅復活しないよう無効化する（表示側でも frozen 中はマスク済み）。
+      ruleGuideTokenRef.current += 1;
+      setRuleGuideBinType(null);
 
       trackTimeout(() => {
         // 復旧
@@ -602,6 +625,23 @@ export function useSorterGame(options: {
       firstCorrectAfterRuleChangeRef.current = false;
     }
 
+    // 誤投入ガイドの出し入れ（ルール変更で正解が動いた荷物 = 特急 のときのみ）。
+    // 誤投入時は正しい入れ先 bin（重量物）を RULE_GUIDE_DURATION_MS ハイライトし、
+    // ルール変更に気づかず旧 bin に入れ続ける理不尽さを軽減する。正しく入れ直せたら即解除。
+    // token で「最新の誤投入が起動したタイマーだけが消せる」ようにし、連続ミスで早く消えないようにする。
+    if (touchesChangedRule) {
+      if (correct) {
+        ruleGuideTokenRef.current += 1;
+        setRuleGuideBinType(null);
+      } else {
+        const token = (ruleGuideTokenRef.current += 1);
+        setRuleGuideBinType(correctBin);
+        trackTimeout(() => {
+          if (ruleGuideTokenRef.current === token) setRuleGuideBinType(null);
+        }, RULE_GUIDE_DURATION_MS);
+      }
+    }
+
     // hesitation 蓄積
     hesitationSumRef.current += hesitationMs;
     hesitationSamplesRef.current += 1;
@@ -804,6 +844,7 @@ export function useSorterGame(options: {
     showRuleChangeNotice,
     showSpeedUpBanner,
     freezeStage,
+    ruleGuideBinType,
     // 派生値
     isRuleChanged,
     isFrozen,

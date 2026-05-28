@@ -26,6 +26,12 @@ interface BinTrayProps {
    * 一致する bin を拡大 + グロー枠でハイライトし「ここでドロップできる」を視覚的に示す。
    */
   hoveredBinType: PackageType | null;
+  /**
+   * ルール変更で正解が動いた荷物を誤投入した直後にガイド表示する「正しい入れ先」bin 種別。
+   * 一致する bin をハイライト（hoveredBinType と同じ強調機構）し、上に「こっちへ！」バブルを
+   * 出して正解を示す。一定時間後に親が null へ戻す。
+   */
+  guideBinType: PackageType | null;
 }
 
 /**
@@ -46,6 +52,7 @@ export default function BinTray({
   onBinClick,
   lastFeedback,
   hoveredBinType,
+  guideBinType,
 }: BinTrayProps) {
   return (
     // bin をやや大きく見せるため最大幅を広げる（盤面の隙間解消に合わせ bin を強調）。
@@ -56,6 +63,10 @@ export default function BinTray({
         const showFeedback = lastFeedback?.binType === binType;
         // D&D 中、ポインタがこの bin の上に重なっているか（ドロップ可能の合図）
         const isDropTarget = hoveredBinType === binType;
+        // ルール変更の誤投入後、この bin が「正しい入れ先」としてガイド表示中か
+        const isGuideTarget = guideBinType === binType;
+        // グロー / 拡大パルスは「ドロップ可能」「正解ガイド」どちらでも出す（同じ強調機構を流用）
+        const isHighlighted = isDropTarget || isGuideTarget;
         return (
           <div key={binType} className="relative flex flex-col items-center">
             <motion.button
@@ -65,9 +76,9 @@ export default function BinTray({
               // document.elementFromPoint から `data-bin-type` を辿って仕分け先を特定する。
               data-bin-type={binType}
               className={`relative w-full max-h-60 ${
-                // ホバー（ドロップ可能）中はグロー / scale を framer-motion で継続パルスさせるため
-                // CSS の transition / hover scale は付けない（競合と二重補間を避ける）。
-                isDropTarget
+                // 強調（ドロップ可能 / 正解ガイド）中はグロー / scale を framer-motion で継続
+                // パルスさせるため、CSS の transition / hover scale は付けない（競合と二重補間を避ける）。
+                isHighlighted
                   ? ''
                   : 'transition-transform duration-150 hover:scale-105'
               } active:scale-95`}
@@ -78,7 +89,7 @@ export default function BinTray({
               // drop-shadow・scale 1）へ補間し、framer-motion がグローを確実にフェードアウトさせる
               // （drop-shadow ↔ 'none' は数値補間できず残留するため、同種値で補間する）。
               animate={
-                isDropTarget
+                isHighlighted
                   ? {
                       scale: [1.06, 1.12],
                       filter: [
@@ -96,7 +107,7 @@ export default function BinTray({
                     }
               }
               transition={
-                isDropTarget
+                isHighlighted
                   ? {
                       duration: 0.6,
                       repeat: Infinity,
@@ -106,7 +117,11 @@ export default function BinTray({
                   : { duration: 0.2 }
               }
               aria-label={`${PACKAGE_LABELS[binType]}の仕分け先${
-                isDropTarget ? '・ここにドロップ' : ''
+                isDropTarget
+                  ? '・ここにドロップ'
+                  : isGuideTarget
+                    ? '・こちらが正しい入れ先'
+                    : ''
               }`}
             >
               {/* bin 画像（文字・シンボル焼き込み済み）。下部に並ぶ大きな画像で LCP 候補に近いため priority 付き */}
@@ -189,6 +204,39 @@ export default function BinTray({
                   {lastFeedback.correct
                     ? `+${lastFeedback.scoreChange}`
                     : `${lastFeedback.scoreChange}`}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/*
+              ルール変更の誤投入後ガイド。「正しい入れ先」bin の上に「こっちへ！」バブルを
+              出し、ルール変更に気づかず旧 bin に入れ続ける理不尽さを軽減する。bin 本体は
+              isHighlighted で緑グロー + 拡大パルス（D&D ホバーと同じ強調機構を流用）。
+              継続バウンス（y の repeat: Infinity）を持つため、exit には独自 transition を
+              必ず指定する（親の repeat を継承して exit が完了せず、opacity:0 のゾンビ要素として
+              残るのを防ぐ — frontend.md の framer-motion 注意点に従う）。
+            */}
+            <AnimatePresence>
+              {isGuideTarget && (
+                <motion.div
+                  key="rule-guide"
+                  aria-hidden
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1, y: [0, -6, 0] }}
+                  exit={{
+                    opacity: 0,
+                    scale: 0.8,
+                    transition: { duration: 0.2 },
+                  }}
+                  transition={{
+                    opacity: { duration: 0.2 },
+                    scale: { duration: 0.2 },
+                    y: { duration: 0.8, repeat: Infinity, ease: 'easeInOut' },
+                  }}
+                  className="pointer-events-none absolute -top-3 left-1/2 z-30 -translate-x-1/2 -translate-y-full rounded-lg border-[3px] border-black px-3 py-1 text-sm font-black tracking-widest whitespace-nowrap text-white shadow-[3px_3px_0_0_#000] sm:text-base"
+                  style={{ backgroundColor: SORTER_UI_COLORS.success }}
+                >
+                  こっちへ！
                 </motion.div>
               )}
             </AnimatePresence>

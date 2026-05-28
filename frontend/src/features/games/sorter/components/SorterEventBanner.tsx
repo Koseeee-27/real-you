@@ -116,13 +116,13 @@ export default function SorterEventBanner({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -50, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-4 left-1/2 z-20 -translate-x-1/2 rounded-2xl border-[5px] border-black px-6 py-3 text-center shadow-[5px_5px_0_0_#000]"
+            className="absolute top-4 left-1/2 z-20 -translate-x-1/2 rounded-2xl border-[6px] border-black px-8 py-4 text-center shadow-[6px_6px_0_0_#000]"
             style={{ backgroundColor: SORTER_UI_COLORS.danger }}
           >
-            <p className="text-lg font-black tracking-widest text-white sm:text-xl">
+            <p className="text-xl font-black tracking-widest text-white sm:text-2xl">
               ルール変更！
             </p>
-            <p className="text-xs font-bold text-white sm:text-sm">
+            <p className="text-sm font-bold text-white sm:text-base">
               {RULE_CHANGE_NOTICE_TEXT}
             </p>
           </motion.div>
