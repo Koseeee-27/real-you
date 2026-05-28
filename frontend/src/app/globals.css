@@ -622,8 +622,9 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  /* 全カード高さを揃える: 4件 (2×2) で行ごとの高さ差をなくす */
-  min-height: 160px;
+  /* 全カード高さを完全統一（min-height では伸びて崩れるため固定値） */
+  height: 175px;
+  overflow: hidden;
 }
 
 .data-title {
@@ -646,6 +647,11 @@
   border-radius: 10px;
   margin-top: 10px;
   color: #334155;
+  /* 行数が多いテキストを2行でクリップし、カード高さを一定に保つ */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .footer-actions-reconstructed {
