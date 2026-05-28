@@ -95,7 +95,7 @@
 }
 
 .type-main-title-sticker {
-  background: #fff;
+  background: #fef08a;
   border: 5px solid #000;
   border-radius: 18px;
   padding: 20px 24px;
@@ -309,7 +309,7 @@
 }
 
 .badge-pct-under.active-orange {
-  color: #f87171;
+  color: #f97316;
 }
 
 .badge-pct-under.active-blue {
@@ -328,7 +328,7 @@
 }
 
 .mbti-badge-new.btn-orange {
-  background: #f87171;
+  background: #f97316;
   color: #fff;
   box-shadow: 2px 2px 0px #000;
 }
