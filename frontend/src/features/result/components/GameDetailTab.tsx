@@ -1,6 +1,7 @@
 'use client';
 
 import { Camera } from 'lucide-react';
+import Image from 'next/image';
 import type { GameDetail } from '../types';
 import { GAME_META } from '../data/gameMeta';
 import BipolarSlider from './BipolarSlider';
@@ -50,23 +51,21 @@ export default function GameDetailTab({
             Section A: スクショ + ゲーム紹介
            ====================================================== */}
         <div className="game-header-flex">
-          {/* スクショプレースホルダー */}
+          {/* ゲーム画像 / プレースホルダー */}
           <div className="screenshot-placeholder-box">
-            <Camera className="sc-icon-camera" />
-            <span className="sc-text-main">プレイ画面（静止画）</span>
-            {meta && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 800,
-                  color: '#475569',
-                  marginTop: 4,
-                  textAlign: 'center',
-                  padding: '0 8px',
-                }}
-              >
-                {detail.title}
-              </span>
+            {meta?.imageSrc ? (
+              <Image
+                src={meta.imageSrc}
+                alt={detail.title}
+                fill
+                sizes="(max-width: 1100px) 50vw, 550px"
+                style={{ objectFit: 'cover' }}
+              />
+            ) : (
+              <div className="screenshot-placeholder-inner">
+                <Camera className="sc-icon-camera" />
+                <span className="sc-text-main">プレイ画面（静止画）</span>
+              </div>
             )}
           </div>
 

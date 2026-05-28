@@ -30,6 +30,8 @@ export type GameMeta = {
   description: string;
   /** 詳細画面：このゲームで測定した性格軸（例: 慎重さ・論理性・冷静さ） */
   measuredTraits: string;
+  /** 詳細画面：ゲームのスクリーンショット画像パス（未設定の場合はプレースホルダーを表示） */
+  imageSrc?: string;
 };
 
 export const GAME_META: Record<GameId, GameMeta> = {
@@ -40,6 +42,7 @@ export const GAME_META: Record<GameId, GameMeta> = {
     description:
       'サービスの利用規約に見せかけた行動計測ゲームです。長い規約をどれだけ読むか／読まずに即同意するかで、素の行動が表れます。',
     measuredTraits: '慎重さ・論理性・冷静さ・協調性・積極性',
+    imageSrc: '/images/game/terms_game.png',
   },
   helpdesk_game: {
     label: 'AIバトル',
@@ -56,6 +59,7 @@ export const GAME_META: Record<GameId, GameMeta> = {
     description:
       'ベルトコンベアから流れる荷物を制限時間内に正しい場所へ仕分けするゲーム。突然のルール変更やシステム障害への対応から、プレッシャー下での素の判断が表れます。',
     measuredTraits: '慎重さ・冷静さ・論理性・積極性',
+    imageSrc: '/images/game/sorter_game.png',
   },
   group_chat_game: {
     label: '空気読み',
@@ -64,5 +68,6 @@ export const GAME_META: Record<GameId, GameMeta> = {
     description:
       '開発チームのグループチャットで、3つの場面に返答するゲーム。誰かが動き出したとき・同調圧力がかかったとき・名指しされたときの反応から、無意識の対人行動が表れます。',
     measuredTraits: '協調性・積極性・慎重さ',
+    imageSrc: '/images/game/group_chat_game.png',
   },
 };

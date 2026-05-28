@@ -460,16 +460,23 @@
   border: 3px solid #000;
   border-radius: 14px;
   width: 50%;
-  height: auto;
   min-height: 160px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: block;
   position: relative;
   margin-bottom: 12px;
   flex-shrink: 0;
   flex-grow: 0;
+  align-self: stretch;
+  overflow: hidden;
+}
+
+.screenshot-placeholder-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .sc-icon-camera {
