@@ -8,7 +8,8 @@ type OverviewTabProps = {
 };
 
 // ハイライト正規表現（BEが埋め込む数値 + 単位 / 『テキスト』引用）
-const COMBINED_RE = /(『[^』]+』|「[^」]+」|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
+const COMBINED_RE =
+  /(『[^』]+』|「[^」]+」|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
 const NUM_RE = /^\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分)$/;
 const QUOTE_RE = /^(?:『[^』]+』|「[^」]+」)$/;
 

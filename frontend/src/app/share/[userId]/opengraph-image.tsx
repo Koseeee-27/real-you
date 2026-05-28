@@ -15,7 +15,7 @@ async function loadFont(): Promise<ArrayBuffer | null> {
           'User-Agent':
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
-      },
+      }
     ).then((r) => r.text());
     const url = css.match(/url\((https:\/\/fonts\.gstatic\.com[^)]+)\)/)?.[1];
     if (!url) return null;
@@ -54,111 +54,109 @@ export default async function OgImage({
   const fontSize = getTitleFontSize(title);
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: 1200,
+        height: 630,
+        background: '#fef08a',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: "'M PLUS Rounded 1c', sans-serif",
+        position: 'relative',
+      }}
+    >
+      {/* 水玉背景風 */}
       <div
         style={{
-          width: 1200,
-          height: 630,
-          background: '#fef08a',
+          position: 'absolute',
+          inset: 0,
+          backgroundImage:
+            'radial-gradient(circle, rgba(255,255,255,0.6) 8px, transparent 8px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
+
+      {/* カード */}
+      <div
+        style={{
+          background: '#fff',
+          border: '8px solid #000',
+          borderRadius: 36,
+          padding: '40px 60px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: "'M PLUS Rounded 1c', sans-serif",
+          gap: 20,
+          boxShadow: '12px 12px 0px rgba(0,0,0,0.15)',
           position: 'relative',
+          maxWidth: 900,
+          width: '85%',
         }}
       >
-        {/* 水玉背景風 */}
+        {/* ラベル */}
         <div
           style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage:
-              'radial-gradient(circle, rgba(255,255,255,0.6) 8px, transparent 8px)',
-            backgroundSize: '40px 40px',
-          }}
-        />
-
-        {/* カード */}
-        <div
-          style={{
-            background: '#fff',
-            border: '8px solid #000',
-            borderRadius: 36,
-            padding: '40px 60px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 20,
-            boxShadow: '12px 12px 0px rgba(0,0,0,0.15)',
-            position: 'relative',
-            maxWidth: 900,
-            width: '85%',
+            fontSize: 22,
+            fontWeight: 900,
+            color: '#666',
+            letterSpacing: '0.06em',
           }}
         >
-          {/* ラベル */}
+          ゲームが導き出した、この人の本当の姿は...
+        </div>
+
+        {/* タイトル */}
+        <div
+          style={{
+            background: '#fef08a',
+            border: '6px solid #000',
+            borderRadius: 20,
+            padding: '12px 40px',
+            boxShadow: '4px 4px 0px #636262',
+          }}
+        >
           <div
             style={{
-              fontSize: 22,
+              fontSize,
               fontWeight: 900,
-              color: '#666',
-              letterSpacing: '0.06em',
+              color: '#f87171',
+              lineHeight: 1.1,
+              textShadow:
+                '-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000',
             }}
           >
-            ゲームが導き出した、この人の本当の姿は...
-          </div>
-
-          {/* タイトル */}
-          <div
-            style={{
-              background: '#fef08a',
-              border: '6px solid #000',
-              borderRadius: 20,
-              padding: '12px 40px',
-              boxShadow: '4px 4px 0px #636262',
-            }}
-          >
-            <div
-              style={{
-                fontSize,
-                fontWeight: 900,
-                color: '#f87171',
-                lineHeight: 1.1,
-                textShadow:
-                  '-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000',
-              }}
-            >
-              {title}
-            </div>
-          </div>
-
-          {subtitle && (
-            <div
-              style={{
-                fontSize: 26,
-                fontWeight: 900,
-                color: '#555',
-              }}
-            >
-              {subtitle}
-            </div>
-          )}
-
-          {/* 下部 */}
-          <div
-            style={{
-              fontSize: 20,
-              fontWeight: 900,
-              color: '#888',
-              marginTop: 8,
-              letterSpacing: '0.04em',
-            }}
-          >
-            Real You — 行動解析REPORT
+            {title}
           </div>
         </div>
+
+        {subtitle && (
+          <div
+            style={{
+              fontSize: 26,
+              fontWeight: 900,
+              color: '#555',
+            }}
+          >
+            {subtitle}
+          </div>
+        )}
+
+        {/* 下部 */}
+        <div
+          style={{
+            fontSize: 20,
+            fontWeight: 900,
+            color: '#888',
+            marginTop: 8,
+            letterSpacing: '0.04em',
+          }}
+        >
+          Real You — 行動解析REPORT
+        </div>
       </div>
-    ),
+    </div>,
     {
       width: 1200,
       height: 630,
@@ -174,6 +172,6 @@ export default async function OgImage({
             ],
           }
         : {}),
-    },
+    }
   );
 }
