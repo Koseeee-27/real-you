@@ -7,10 +7,14 @@ import type {
   TermsGameData,
   PopupStats,
   ScrollEvent,
+  TermsErrorEvent,
+  TermsPostErrorClick,
+  TermsCheckboxEvent,
 } from '@/features/games/types';
 import { termsGameDataAtom } from '@/stores/games';
 import PopupAd from './PopupAd';
 import PopupTerms from './PopupTerms';
+import ErrorDialog from './ErrorDialog';
 import LoadingScreen from '@/components/common/LoadingScreen';
 // TODO: バックエンド接続時にコメントアウトを解除する
 // import { submitGame } from '@/lib/api';
@@ -21,6 +25,11 @@ const POPUP_DELAY_MS = 15_000;
 const SCROLL_THROTTLE_MS = 200;
 // 「最下部まで到達した」と判定するスクロール割合（90%）
 const REACHED_BOTTOM_THRESHOLD = 0.9;
+// 第5条「読みました」未チェックで同意を試みた際のエラー理由。
+// BE 分析（termsGame.ts）が完全一致で判定するため固定値（仕様書「データ構造」準拠）。
+const ERROR_REASON_MISSING_READ_CONFIRM = 'missing_read_confirm';
+// エラー差し戻しダイアログの表示メッセージ
+const ERROR_DIALOG_MESSAGE = '未確認の必須項目があります';
 
 export default function TermsGameFlow() {
   const router = useRouter();
@@ -37,6 +46,8 @@ export default function TermsGameFlow() {
   const [showPopup, setShowPopup] = useState(false);
   // 利用規約モーダル表示状態（初期で表示）
   const [showTermsModal] = useState(true);
+  // エラー差し戻しダイアログの表示状態（二段構え同意プロセスの2段目）
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
   // ゲーム完了フラグ（trueで完了画面を表示→次のゲームへ遷移）
   const [isCompleted, setIsCompleted] = useState(false);
 
@@ -68,6 +79,14 @@ export default function TermsGameFlow() {
     mailMagazine: false,
     thirdPartyShare: false,
   });
+  // エラーが一度でも発火したか。afterError 判定と postErrorClicks 記録の起点
+  const hasErrorOccurredRef = useRef(false);
+  // エラー発火イベントのログ
+  const errorEventsRef = useRef<TermsErrorEvent[]>([]);
+  // エラー後のクリックストリーム（連打検出用）
+  const postErrorClicksRef = useRef<TermsPostErrorClick[]>([]);
+  // チェックボックス操作のタイムスタンプログ（afterError フラグ付き）
+  const checkboxEventsRef = useRef<TermsCheckboxEvent[]>([]);
 
   useEffect(() => {
     const bgm = new Audio('/sounds/start-bgm.mp3');
@@ -126,6 +145,19 @@ export default function TermsGameFlow() {
     }
   }, []);
 
+  // ゲーム開始からの経過時間（ms）。各種イベントログの timestamp に使う
+  const getElapsedMs = useCallback(() => Date.now() - startTimeRef.current, []);
+
+  // エラー発火後のクリックのみ記録する（postErrorClicks は Hawkes 連鎖の対象＝
+  // errorEvents 以降のクリックを見るため、エラー前のクリックは記録しない）
+  const recordPostErrorClick = useCallback(
+    (type: TermsPostErrorClick['type']) => {
+      if (!hasErrorOccurredRef.current) return;
+      postErrorClicksRef.current.push({ timestamp: getElapsedMs(), type });
+    },
+    [getElapsedMs]
+  );
+
   const handleCheckboxChange = useCallback(
     (
       key: 'readConfirm' | 'mailMagazine' | 'thirdPartyShare',
@@ -136,8 +168,18 @@ export default function TermsGameFlow() {
       se.play().catch(() => {});
       checkboxChangedRef.current[key] = true;
       setCheckboxStates((prev) => ({ ...prev, [key]: checked }));
+
+      const afterError = hasErrorOccurredRef.current;
+      checkboxEventsRef.current.push({
+        timestamp: getElapsedMs(),
+        target: key,
+        newState: { checked, changed: true },
+        afterError,
+      });
+      // エラー後のチェックボックス操作はクリックストリームにも記録する
+      if (afterError) recordPostErrorClick('checkbox');
     },
-    []
+    [getElapsedMs, recordPostErrorClick]
   );
 
   const handleHiddenInputChange = useCallback((value: string) => {
@@ -170,7 +212,7 @@ export default function TermsGameFlow() {
 
   const buildTermsGameData = useCallback(
     (action: 'agree' | 'disagree'): TermsGameData => {
-      const totalTime = Math.round((Date.now() - startTimeRef.current) / 1000);
+      const totalTime = Math.round(getElapsedMs() / 1000);
 
       return {
         totalTime,
@@ -195,15 +237,43 @@ export default function TermsGameFlow() {
         // null の場合はフィールド自体を未送信にする（JSON.stringify が undefined を省略）。
         popupStats: popupStatsRef.current ?? undefined,
         agreeButtonHoverTimeMs: getAgreeButtonHoverTimeMs(),
+        // 空配列のときはフィールドを省略する（popupStats と同方針: データがあるときのみ送る）。
+        errorEvents:
+          errorEventsRef.current.length > 0
+            ? errorEventsRef.current
+            : undefined,
+        postErrorClicks:
+          postErrorClicksRef.current.length > 0
+            ? postErrorClicksRef.current
+            : undefined,
+        checkboxEvents:
+          checkboxEventsRef.current.length > 0
+            ? checkboxEventsRef.current
+            : undefined,
       };
     },
-    [hiddenInputValue, checkboxStates, getAgreeButtonHoverTimeMs]
+    [hiddenInputValue, checkboxStates, getAgreeButtonHoverTimeMs, getElapsedMs]
   );
 
   const handleAction = useCallback(
     (action: 'agree' | 'disagree') => {
       const se = new Audio('/sounds/general-button-se.mp3');
       se.play().catch(() => {});
+
+      // 二段構えの2段目: 同意時に第5条「読みました」が未チェックならエラー差し戻し。
+      if (action === 'agree' && !checkboxStates.readConfirm) {
+        // 2回目以降の無効な同意クリックは連打として記録する
+        // （初回はこの時点で hasError=false のため recordPostErrorClick は記録しない）。
+        recordPostErrorClick('agree');
+        errorEventsRef.current.push({
+          timestamp: getElapsedMs(),
+          reason: ERROR_REASON_MISSING_READ_CONFIRM,
+          scrollPositionAtError: scrollContainerRef.current?.scrollTop ?? 0,
+        });
+        hasErrorOccurredRef.current = true;
+        setShowErrorDialog(true);
+        return;
+      }
 
       const data = buildTermsGameData(action);
       setTermsGameData(data);
@@ -218,7 +288,14 @@ export default function TermsGameFlow() {
         router.push('/diagnosis');
       }, 2000);
     },
-    [buildTermsGameData, setTermsGameData, router]
+    [
+      checkboxStates.readConfirm,
+      recordPostErrorClick,
+      getElapsedMs,
+      buildTermsGameData,
+      setTermsGameData,
+      router,
+    ]
   );
 
   if (isCompleted) {
@@ -243,6 +320,18 @@ export default function TermsGameFlow() {
           onScroll={handleScroll}
           onAction={handleAction}
           onAgreeHoverStart={handleAgreeHoverStart}
+        />
+      )}
+
+      {showErrorDialog && (
+        <ErrorDialog
+          message={ERROR_DIALOG_MESSAGE}
+          onConfirm={() => {
+            recordPostErrorClick('errorDialog');
+            setShowErrorDialog(false);
+          }}
+          onDialogClick={() => recordPostErrorClick('errorDialog')}
+          onOverlayClick={() => recordPostErrorClick('other')}
         />
       )}
     </div>
