@@ -9,6 +9,7 @@ import {
   BELT_HEIGHT_PX,
   BELT_LANE_HEIGHT_PX,
   BELT_TURN_WIDTH_PX,
+  BIN_DROP_MARGIN_PX,
   PACKAGE_IMAGE_PATHS,
   PACKAGE_LABELS,
   PACKAGE_TYPES,
@@ -94,18 +95,55 @@ const BOTTOM_LANE_Y =
  */
 const DRAG_THRESHOLD_PX = 6;
 
-/**
- * pointerup 位置から仕分け先（bin）の種別を判定する。
- * BinTray の各 bin に付与した `data-bin-type` 属性を document.elementFromPoint から辿る。
- * bin の上でなければ null（取り消し）。属性値が PackageType でない場合も null にする。
- */
-function resolveDropBin(clientX: number, clientY: number): PackageType | null {
-  const el = document.elementFromPoint(clientX, clientY);
-  const binEl = el?.closest<HTMLElement>('[data-bin-type]');
-  const value = binEl?.dataset.binType;
+/** `data-bin-type` 属性値を PackageType に絞り込む（不正値は null）。 */
+function asPackageType(value: string | undefined): PackageType | null {
   return value != null && (PACKAGE_TYPES as readonly string[]).includes(value)
     ? (value as PackageType)
     : null;
+}
+
+/**
+ * pointerup 位置から仕分け先（bin）の種別を判定する。
+ *
+ * 1. まずポインタ直下の要素から `data-bin-type` を辿り、bin の上ならその種別を返す。
+ * 2. 直下が bin でなければ、各 bin の見た目の矩形を `BIN_DROP_MARGIN_PX` ぶん上下左右に
+ *    広げた範囲で当たり判定し、入っていれば最も中心が近い bin を返す（許容範囲を広げ、
+ *    bin の外周ぎりぎりや bin 間の余白で離してもドロップを成立させる）。
+ * 3. どの bin の許容範囲にも入らなければ null（取り消し）。
+ */
+function resolveDropBin(clientX: number, clientY: number): PackageType | null {
+  // 1. ポインタ直下の bin を厳密判定（従来通り）。
+  const direct = asPackageType(
+    document
+      .elementFromPoint(clientX, clientY)
+      ?.closest<HTMLElement>('[data-bin-type]')?.dataset.binType
+  );
+  if (direct != null) return direct;
+
+  // 2. 直下に bin がなければ、矩形 + マージンで最も中心が近い bin を探す。
+  let nearest: PackageType | null = null;
+  let nearestDist = Infinity;
+  document.querySelectorAll<HTMLElement>('[data-bin-type]').forEach((binEl) => {
+    const type = asPackageType(binEl.dataset.binType);
+    if (type == null) return;
+    const rect = binEl.getBoundingClientRect();
+    if (
+      clientX < rect.left - BIN_DROP_MARGIN_PX ||
+      clientX > rect.right + BIN_DROP_MARGIN_PX ||
+      clientY < rect.top - BIN_DROP_MARGIN_PX ||
+      clientY > rect.bottom + BIN_DROP_MARGIN_PX
+    ) {
+      return;
+    }
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = Math.hypot(clientX - cx, clientY - cy);
+    if (dist < nearestDist) {
+      nearestDist = dist;
+      nearest = type;
+    }
+  });
+  return nearest;
 }
 
 /**
@@ -361,6 +399,30 @@ export default function PackageItem({
     }
   }
 
+  // pointer capture が外れた瞬間のフォールバック（取り残し防止）。
+  // D&D 中は pointermove ごとの setDragOffset / onHoverBinChange、2 秒ごとの spawn などで
+  // 再 render が多発する。その過程で setPointerCapture が外れると、以降の pointerup/cancel が
+  // この button に届かず（カーソル直下の bin 等に飛ぶ）、追従中の荷物がドロップ位置に
+  // 取り残される。lostpointercapture を拾い、dragging 中なら取り消し扱いでフローへ戻すことで、
+  // capture 失効に依存せず確実に「仕分けされるか流れに戻るか」へ収束させる。
+  // 正常完了時は handlePointerUp が先に gestureRef を null にするため、その後に発火する
+  // lostpointercapture（capture 解放に伴うもの）は早期 return する。
+  function handleLostPointerCapture(
+    e: React.PointerEvent<HTMLButtonElement>
+  ): void {
+    const g = gestureRef.current;
+    if (!g || g.pointerId !== e.pointerId) return;
+    gestureRef.current = null;
+    if (g.dragging) {
+      isDraggingRef.current = false;
+      onDragStateChange(pkg.id, false);
+      onHoverBinChange(null);
+      setDragOffset(null);
+      controlsRef.current?.play();
+      onDrop(pkg.id, null);
+    }
+  }
+
   const isDragging = dragOffset != null;
 
   return (
@@ -371,6 +433,7 @@ export default function PackageItem({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
+      onLostPointerCapture={handleLostPointerCapture}
       className="absolute flex items-center justify-center border-none bg-transparent p-0 select-none"
       style={{
         // button = 当たり判定サイズ（画像 + 透明パディング）。押しやすさのため画像より大きい。
