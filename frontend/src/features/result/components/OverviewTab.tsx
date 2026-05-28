@@ -58,6 +58,9 @@ export default function OverviewTab({ data }: OverviewTabProps) {
       <div className="total-left-panel">
         {/* タイトルステッカー ＋ サブタイトルを一体のポップアウトブロックとして配置 */}
         <div className="title-subtitle-block">
+          <div className="type-preface-label">
+            ゲームが導き出した、あなたの本当の姿は...
+          </div>
           <div className="type-main-title-sticker">
             <h2 className="type-main-title">
               <span className="orange-highlight">{feedback.title}</span>

@@ -105,6 +105,15 @@
   box-shadow: 3px 3px 0px #636262;
 }
 
+.type-preface-label {
+  font-size: 13px;
+  font-weight: 900;
+  color: #888;
+  text-align: center;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
 .type-intro-label {
   font-size: 20px;
   font-weight: 900;
