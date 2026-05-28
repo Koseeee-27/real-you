@@ -120,6 +120,14 @@ export const EVENT_ANCHORS: ReadonlyArray<{
 /** ルール変更通知バナーの表示時間（ms）。表示後に自動で消える（プレイは阻害しない） */
 export const RULE_CHANGE_NOTICE_DURATION_MS = 3_000;
 
+/**
+ * ルール変更で正解が動いた荷物（特急）を誤投入した直後、正しい入れ先 bin（重量物）を
+ * ハイライト +「こっちへ！」でガイド表示する時間（ms）。一定時間後に自動で消える。
+ * ルール変更に気づかず旧 bin に入れ続ける理不尽さを軽減するためのリアクティブなガイド
+ * （初回ミスは記録され、適応時間 ruleChangeAdaptMs などの診断シグナルは保たれる）。
+ */
+export const RULE_GUIDE_DURATION_MS = 3_000;
+
 /** 機械停止: 予告（赤バナー shake、まだ操作可）の時間（ms） */
 export const FROZEN_WARNING_DURATION_MS = 2_000;
 /** 機械停止: 停止（クリック無効化 + panicClick 計測、ベルト・荷物は流れ続ける）の時間（ms） */

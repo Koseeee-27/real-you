@@ -267,6 +267,7 @@ export default function SorterGameFlow() {
     showRuleChangeNotice,
     showSpeedUpBanner,
     freezeStage,
+    ruleGuideBinType,
     isRuleChanged,
     isFrozen,
     isSpeedUp,
@@ -466,6 +467,8 @@ export default function SorterGameFlow() {
             lastFeedback={lastFeedback}
             // 機械停止中はドロップ操作が無効なのでハイライトも出さない
             hoveredBinType={isFrozen ? null : hoveredBinType}
+            // 機械停止中は bin が操作不能なので誤投入ガイドも出さない
+            guideBinType={isFrozen ? null : ruleGuideBinType}
           />
         </div>
 
