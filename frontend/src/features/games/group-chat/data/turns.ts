@@ -57,10 +57,10 @@ export const INTRO_CHARACTERS: IntroCharacter[] = [
 
 export const ONBOARDING_TITLE = '空気読みチャットゲーム';
 
-/** オンボーディング: タイトル右に併記する短いタグライン（ゲームのコア体験を1語で示す） */
-export const GAME_TAGLINE = '空気を読んで返信！';
+/** オンボーディング: タイトル直下に置く1行の操作指示（仕分けゲームの「〜しよう！」と同トーン） */
+export const ONBOARDING_INSTRUCTION = '空気を読んで返信しよう！';
 
-/** オンボーディング: サブタイトル（プレイヤーの役割説明） */
+/** オンボーディング: プレイヤーの役割説明（状況説明の黄色枠の先頭に置く） */
 export const PLAYER_INTRO_TEXT = 'あなたは開発チームのメンバーの一人です';
 
 /** オンボーディング: 状況説明（タイトル下に表示する場面のナレーション） */
