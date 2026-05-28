@@ -145,7 +145,7 @@ export default function GameDetailTab({
                   <div className="data-title">{m.label}</div>
                   <div className="data-value">{m.user}</div>
                   <div
-                    style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}
+                    style={{ fontSize: 13, color: '#475569', fontWeight: 700 }}
                   >
                     平均：{m.average}
                   </div>

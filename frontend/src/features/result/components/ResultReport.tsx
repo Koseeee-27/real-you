@@ -230,7 +230,7 @@ export default function ResultReport({ data }: ResultReportProps) {
                 ← 戻る
               </button>
 
-              <SharePanel title={data.feedback.title} />
+              <SharePanel title={data.feedback.title} userId={data.user_id} />
             </>
           )}
         </div>

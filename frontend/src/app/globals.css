@@ -181,14 +181,14 @@
 }
 
 .comment-body-text {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 800;
   color: #333;
   line-height: 1.8;
 }
 
 .comment-body-text span.highlight-blue {
-  font-size: 40px;
+  font-size: 30px;
   color: #4d85ff;
   background: #eff6ff;
   padding: 1px 4px;
@@ -197,7 +197,7 @@
 }
 
 .comment-body-text span.highlight-magenta {
-  font-size: 40px;
+  font-size: 30px;
   color: #db2777;
   background: #fdf2f8;
   padding: 1px 4px;
@@ -339,13 +339,11 @@
 .mbti-badge-new.btn-orange {
   background: #f97316;
   color: #fff;
-  box-shadow: 2px 2px 0px #000;
 }
 
 .mbti-badge-new.btn-blue {
   background: #4d85ff;
   color: #fff;
-  box-shadow: 2px 2px 0px #000;
 }
 
 .mbti-badge-new.btn-white {
@@ -506,7 +504,7 @@
 }
 
 .intro-title-row {
-  font-size: 30px;
+  font-size: 22px;
   margin-top: 5px;
   font-weight: 900;
   color: #000;
@@ -517,7 +515,7 @@
 }
 
 .intro-body-paragraph {
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 800;
   color: #333;
   line-height: 1.8;
@@ -637,6 +635,7 @@
 }
 
 .data-title {
+  font-size: 14px;
   font-weight: 900;
   color: #000;
   margin-bottom: 5px;
