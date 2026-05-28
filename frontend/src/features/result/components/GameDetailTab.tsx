@@ -12,9 +12,9 @@ type GameDetailTabProps = {
 };
 
 // ハイライト正規表現（BEが埋め込む数値 + 単位 / 『テキスト』引用）
-const COMBINED_RE = /(『[^』]+』|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
+const COMBINED_RE = /(『[^』]+』|「[^」]+」|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
 const NUM_RE = /^\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分)$/;
-const QUOTE_RE = /^『[^』]+』$/;
+const QUOTE_RE = /^(?:『[^』]+』|「[^」]+」)$/;
 
 /** 解析コメントテキストを JSX に変換する */
 function renderComment(text: string): React.ReactNode {
@@ -121,11 +121,19 @@ export default function GameDetailTab({
           <div className="comment-container-detail">
             <div className="comment-header-tag-detail">解析コメント</div>
             <div className="comment-body-text">
-              {detail.analysis_comment.map((line, i) => (
-                <p key={i} style={{ margin: '0 0 10px' }}>
-                  {renderComment(line)}
-                </p>
-              ))}
+              {detail.analysis_comment.map((line, i) => {
+                const sentences = line.split('。').filter((s) => s.trim());
+                return (
+                  <p key={i} style={{ margin: '0 0 10px' }}>
+                    {sentences.map((sentence, j) => (
+                      <span key={j}>
+                        {renderComment(sentence + '。')}
+                        {j < sentences.length - 1 && <br />}
+                      </span>
+                    ))}
+                  </p>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -155,7 +163,11 @@ export default function GameDetailTab({
                     平均：{m.average}
                   </div>
                 </div>
-                <div className="why-text">{m.praise}</div>
+                <div className="why-text">
+                  {m.praise.split(/(?<=[！。])/).filter((s) => s.trim()).map((s, j, arr) => (
+                    <span key={j}>{s}{j < arr.length - 1 && <br />}</span>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

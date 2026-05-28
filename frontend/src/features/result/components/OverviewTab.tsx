@@ -9,8 +9,8 @@ type OverviewTabProps = {
 
 // ハイライト正規表現（BEが埋め込む数値 + 単位 / 『テキスト』引用）
 const HIGHLIGHT_NUM_RE = /(\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
-const HIGHLIGHT_QUOTE_RE = /(『[^』]+』)/g;
-const COMBINED_RE = /(『[^』]+』|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
+const HIGHLIGHT_QUOTE_RE = /(『[^』]+』|「[^」]+」)/g;
+const COMBINED_RE = /(『[^』]+』|「[^」]+」|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
 
 /**
  * 解析コメントテキストを JSX に変換する。
