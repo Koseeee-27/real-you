@@ -320,11 +320,16 @@ export const RULE_CHANGE_PAIRS: ReadonlyArray<{
 /**
  * BGM / SE のパス。
  *
- * - `bgm` … 仕分けゲーム専用 BGM。**現状は未確定**（後追いで決定予定）のため、
- *           空文字列にしておくと SorterGameFlow 側で `new Audio()` を生成せず、
- *           コンソールに 404 ノイズが出ない。差し替え時はファイル名を入れ直すだけ。
+ * BGM はいずれも空文字列なら SorterGameFlow 側で `new Audio()` を生成せず再生もしない
+ * （404 ノイズを出さない graceful degrade）。差し替え時はファイルを置いてパスを入れるだけ。
+ *
+ * - `bgmNormal`  … 仕分けゲーム通常時 BGM。
+ * - `bgmSpeedUp` … 速度2倍イベント発火後に切り替える BGM。空なら速度2倍でも通常 BGM を継続。
+ * - `bgmFreeze`  … 機械停止（frozen）中に流す BGM。空なら停止中も base BGM を継続。
  */
 export const SORTER_AUDIO_PATHS = {
-  bgm: '',
+  bgmNormal: '/sounds/sorter-game-bgm.mp3',
+  bgmSpeedUp: '/sounds/sorter-game-bgm-speedup.mp3',
+  bgmFreeze: '/sounds/sorter-game-bgm-freeze.mp3',
   generalSE: '/sounds/general-button-se.mp3',
 } as const;

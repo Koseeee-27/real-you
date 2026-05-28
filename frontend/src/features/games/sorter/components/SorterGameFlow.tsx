@@ -61,8 +61,10 @@ export default function SorterGameFlow() {
   const [pendingData, setPendingData] = useState<SorterGameData | null>(null);
   const retryCountRef = useRef(0);
 
-  // BGM 管理（既存ゲームと同流儀）
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
+  // BGM 管理（通常 / 速度2倍 / 機械停止 の3系統。speed-up・freeze の発火に応じて切り替える）
+  const normalBgmRef = useRef<HTMLAudioElement | null>(null);
+  const speedUpBgmRef = useRef<HTMLAudioElement | null>(null);
+  const freezeBgmRef = useRef<HTMLAudioElement | null>(null);
 
   // ベルトコンテナの実測幅。PackageItem の U 字経路アニメに渡す
   const beltContainerRef = useRef<HTMLDivElement | null>(null);
@@ -116,26 +118,39 @@ export default function SorterGameFlow() {
 
   // BGM の初期化と再生管理
   //
-  // `SORTER_AUDIO_PATHS.bgm` が空文字列（BGM 未決定）の場合は `new Audio()` を
-  // 生成せず、コンソールに 404 ノイズを残さない。BGM が決まったら定数に
-  // ファイル名を入れるだけで自動的に再生される。
+  // 通常 BGM (`bgmNormal`) / 速度2倍 BGM (`bgmSpeedUp`) / 停止 BGM (`bgmFreeze`) を用意する。
+  // パスが空文字列（未決定）の側は `new Audio()` を生成せず、コンソールに 404 を出さない。
+  // speed-up / freeze 発火時の切り替えはそれぞれ別 effect（下記）で行う。
   useEffect(() => {
-    if (!SORTER_AUDIO_PATHS.bgm) return;
+    const createBgm = (src: string): HTMLAudioElement => {
+      const audio = new Audio(src);
+      audio.loop = true;
+      audio.volume = 0.3;
+      return audio;
+    };
 
-    const bgm = new Audio(SORTER_AUDIO_PATHS.bgm);
-    bgm.loop = true;
-    bgm.volume = 0.3;
-    bgmRef.current = bgm;
+    const { bgmNormal, bgmSpeedUp, bgmFreeze } = SORTER_AUDIO_PATHS;
+    if (bgmNormal) normalBgmRef.current = createBgm(bgmNormal);
+    if (bgmSpeedUp) speedUpBgmRef.current = createBgm(bgmSpeedUp);
+    if (bgmFreeze) freezeBgmRef.current = createBgm(bgmFreeze);
 
+    // 通常 BGM を初回再生（ブラウザの自動再生制限を最初のクリックで解除）。
+    // 自動再生解除はこの通常 BGM の開始に紐づく。speed-up / freeze はゲーム進行中
+    // （プレイヤーが盤面をクリックした後）に発火するため、その時点では既に autoplay 制限は解除済み。
+    const normal = normalBgmRef.current;
     const playBGM = () => {
-      bgm.play().catch(() => {});
+      normal?.play().catch(() => {});
       window.removeEventListener('click', playBGM);
     };
-    window.addEventListener('click', playBGM);
-    playBGM();
+    if (normal) {
+      window.addEventListener('click', playBGM);
+      playBGM();
+    }
 
     return () => {
-      bgm.pause();
+      normalBgmRef.current?.pause();
+      speedUpBgmRef.current?.pause();
+      freezeBgmRef.current?.pause();
       window.removeEventListener('click', playBGM);
     };
   }, []);
@@ -196,10 +211,17 @@ export default function SorterGameFlow() {
     }
   }
 
+  // BGM を全系統まとめて停止する
+  function stopAllBgm() {
+    normalBgmRef.current?.pause();
+    speedUpBgmRef.current?.pause();
+    freezeBgmRef.current?.pause();
+  }
+
   async function handleComplete(data: SorterGameData) {
     setPendingData(data);
     setSubmitStatus('loading');
-    bgmRef.current?.pause();
+    stopAllBgm();
     await submitSorterGame(data);
   }
 
@@ -216,14 +238,14 @@ export default function SorterGameFlow() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user_id');
     }
-    bgmRef.current?.pause();
+    stopAllBgm();
     router.push('/');
   }
 
   /** 結果画面の「次のゲームへ ▶」ボタンで次ゲーム（空気読み）に手動遷移する */
   function handleProceedToNext() {
     playSE(SORTER_AUDIO_PATHS.generalSE);
-    bgmRef.current?.pause();
+    stopAllBgm();
     router.push('/games/group-chat');
   }
 
@@ -251,6 +273,38 @@ export default function SorterGameFlow() {
     handlePackageOutflow,
     handleOnboardingStart,
   } = useSorterGame({ onComplete: handleComplete });
+
+  // 速度2倍イベント発火時に BGM を通常→2倍速へハードカットで切り替える。
+  // `isSpeedUp` は一方向フラグ（false→true、以降ゲーム終了まで true）。
+  // 2倍速 BGM が未設定（空文字列）なら通常 BGM を継続する（graceful degrade）。
+  useEffect(() => {
+    if (!isSpeedUp) return;
+    const speedUp = speedUpBgmRef.current;
+    if (!speedUp) return;
+    normalBgmRef.current?.pause();
+    speedUp.currentTime = 0;
+    speedUp.play().catch(() => {});
+  }, [isSpeedUp]);
+
+  // 機械停止（frozen）中だけ BGM を停止用へ切り替える。
+  // base BGM（速度2倍中なら 2倍速 / それ以外は通常）を一時停止し、停止 BGM を頭から再生。
+  // 停止明け（isFrozen=false）で停止 BGM を止め、base BGM を一時停止位置から再開する（currentTime は維持）。
+  // 停止 BGM が未設定（空文字列）なら何もしない（base を継続。graceful degrade）。
+  // base の選択に isSpeedUp を使うため依存配列に含める。speed-up 切替時にも再評価されるが、
+  // その際 else 分岐の base.play() は既再生中の no-op になるだけで害はない。
+  useEffect(() => {
+    const freeze = freezeBgmRef.current;
+    if (!freeze) return;
+    const base = isSpeedUp ? speedUpBgmRef.current : normalBgmRef.current;
+    if (isFrozen) {
+      base?.pause();
+      freeze.currentTime = 0;
+      freeze.play().catch(() => {});
+    } else {
+      freeze.pause();
+      base?.play().catch(() => {});
+    }
+  }, [isFrozen, isSpeedUp]);
 
   /**
    * belt レイヤーを前面化（z-30）すべきか。
