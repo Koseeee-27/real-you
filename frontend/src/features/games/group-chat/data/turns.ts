@@ -84,6 +84,18 @@ export const T1_TYPING_INDICATOR_DELAY_MS = 2_500;
 export const T1_PREEMPT_REVEAL_DELAY_MS = 2_500;
 
 /**
+ * ターン1: プレイヤーが同期Aの先回り発言より先に回答した（早押し）場合に、
+ * 「同期Aの挙手 → 自分の発言」の順を保つため、回答後に挙手ビートを差し込む際の遅延。
+ * 本筋シナリオ（同期Aが引き受ける）を全パターンで成立させるための演出。
+ */
+/** 早押し時: 回答クリック後「同期A 入力中」を見せてから挙手発言が出るまでの遅延 */
+export const T1_CATCHUP_TYPING_MS = 800;
+/** 早押し時: 同期A 挙手発言の後、自分の発言が表示されるまでの遅延 */
+export const T1_CATCHUP_USER_MESSAGE_MS = 500;
+/** 早押し時: 自分の発言が表示された後、ターン2へ進むまでの遅延 */
+export const T1_CATCHUP_ADVANCE_MS = 800;
+
+/**
  * 各ターンの制限時間。
  * - T1: 14s — 同期A 先回り発言（=5.0s 地点）後に約 9.0s の判断時間を確保
  * - T2: 15s — 上司+同期A+同期B 段階表示後に約 12.8s
