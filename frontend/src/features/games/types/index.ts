@@ -17,6 +17,9 @@ export type SubmitGameResponse = components['schemas']['SubmitGameResponse'];
 export type ScrollEvent = components['schemas']['ScrollEvent'];
 export type CheckboxState = components['schemas']['CheckboxState'];
 export type PopupStats = components['schemas']['PopupStats'];
+export type TermsErrorEvent = components['schemas']['TermsErrorEvent'];
+export type TermsPostErrorClick = components['schemas']['TermsPostErrorClick'];
+export type TermsCheckboxEvent = components['schemas']['TermsCheckboxEvent'];
 export type TermsGameData = components['schemas']['TermsGameData'];
 
 // ========================================
