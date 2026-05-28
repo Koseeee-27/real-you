@@ -26,11 +26,10 @@ import { linear, linearInv, logNorm, buildTopDeviationMetrics } from '../scoreUt
  * - `scores`: Partial<BaselineScores> 相当。aggregator の入力としてそのまま使える。
  * 新ロジック導入により、評価対象を既存の3軸から5軸（cooperativeness, positivityを追加）へ拡張。
  * - 残りのフィールド: 要約・details で使う中間統計量。HCIモデルの算出結果を反映するため
- * `invalidButtonClickCount` と `randomToggleCount` を追加した。
+ * `invalidButtonClickCount`（Hawkes: 同意ボタン連打数）と `randomToggleCount`（MFPT: 経路逸脱数）を含む。
  */
 export type TermsGameAnalyzeResult = {
     scores: { caution: number; logic: number; calmness: number; cooperativeness: number; positivity: number };
-    changedCount: number;
     averageSpeed: number;
     reversalCount: number;
     /** 規約画面の滞在時間（秒）。feedbackGenerator / buildHighlights で使用 */
@@ -309,7 +308,7 @@ function analyze(data: TermsGameData | undefined): TermsGameAnalyzeResult {
     if (!data) {
         return {
             scores: { caution: 50, logic: 50, calmness: 50, cooperativeness: 50, positivity: 50 },
-            changedCount: 0, averageSpeed: 0, reversalCount: 0, totalTime: 0, invalidButtonClickCount: 0, randomToggleCount: 0,
+            averageSpeed: 0, reversalCount: 0, totalTime: 0, invalidButtonClickCount: 0, randomToggleCount: 0,
         };
     }
 
@@ -368,7 +367,6 @@ function analyze(data: TermsGameData | undefined): TermsGameAnalyzeResult {
             cooperativeness: Math.max(0, Math.min(100, cooperativeness)), 
             positivity: Math.max(0, Math.min(100, positivity)) 
         },
-        changedCount: hick.finalChanges,
         averageSpeed: ddm.averageSpeed,
         reversalCount: ddm.reversalCount,
         totalTime: data.totalTime ?? 0,
@@ -398,13 +396,7 @@ function buildSummary(data: TermsGameData | undefined): string {
     return `規約を${speedText}、わずか${timeSec}秒で同意ボタンを押しました。${trapText}`;
 }
 
-/**
- * 利用規約ゲームの行動データ + analyze 結果 → 結果画面 details 用の構造体。
- *
- * `feature_scores` / `metrics` の各値は仕様書「データ構造」→ `GameDetail` 準拠。
- * 新ロジックへの移行に伴い、表示対象のスコアを3軸から5軸へ拡張し、
- * トラップ・エラー操作のメトリクス（連打回数、無関係操作）を追加した。
- */
+/** 利用規約ゲームの行動ハイライト（結果画面の「なぜこのスコアか」カード用） */
 function buildHighlights(data: TermsGameData | undefined, result: TermsGameAnalyzeResult) {
     const totalTime = data?.totalTime ?? 0;
     const AVERAGE_READ_TIME = 15; // 秒
@@ -483,10 +475,6 @@ const TERMS_PRAISE_MAP: Record<string, { above: string; below: string }> = {
         above: '最後まで確認してから決断するリスク管理力が高い！',
         below: '迷いのない決断力がある！自信を持って動けるタイプ。',
     },
-    'チェック変更(回)': {
-        above: '細かい設定も見逃さない几帳面さが光る！契約書も安心して任せられるタイプ。',
-        below: '直感で正解を掴む嗅覚がある！シンプルに判断できるタイプ。',
-    },
     '逆行確認(回)': {
         above: '念入りに読み返す確認力が高い！ミスを未然に防ぐ慎重さの持ち主。',
         below: '一度で理解できる高い読解力がある！集中力と記憶力が優秀。',
@@ -495,12 +483,23 @@ const TERMS_PRAISE_MAP: Record<string, { above: string; below: string }> = {
         above: '細やかな反応力の持ち主！感受性が豊かで変化に敏感。',
         below: '落ち着いた操作が示す安定したメンタル！プレッシャーに強い。',
     },
-    '無駄クリック(回)': {
-        above: '念入りに確認しに行く徹底力がある！しっかり確かめてから進む安心派。',
-        below: '効率的な操作でムダのない動き！最小限のアクションで目標を達成できるタイプ。',
+    '同意ボタン連打(回)': {
+        above: '確認したいことがあると積極的に押しに行ける行動力の持ち主。',
+        below: '焦らずに落ち着いて操作できる冷静さがある！パニックに強いタイプ。',
+    },
+    '無関係操作(回)': {
+        above: '様々なアクションを試す探索精神がある！諦めずに活路を見出すタイプ。',
+        below: '迷いなく最短ルートで問題を解決できる！論理的で無駄のない思考の持ち主。',
     },
 };
 
+/**
+ * 利用規約ゲームの行動データ + analyze 結果 → 結果画面 details 用の構造体。
+ *
+ * `feature_scores` / `metrics` の各値は仕様書「データ構造」→ `GameDetail` 準拠。
+ * 新ロジックへの移行に伴い、表示対象のスコアを3軸から5軸へ拡張し、
+ * HCIモデル由来のメトリクス（同意ボタン連打・無関係操作）を追加した。
+ */
 function buildDetails(data: TermsGameData | undefined, result: TermsGameAnalyzeResult): GameDetail {
     const metrics = [
         {
@@ -522,12 +521,6 @@ function buildDetails(data: TermsGameData | undefined, result: TermsGameAnalyzeR
             category: 'mouse',
         },
         {
-            label: 'チェック変更(回)',
-            user: result.changedCount,
-            average: 3.2,
-            category: 'input',
-        },
-        {
             label: '逆行確認(回)',
             user: result.reversalCount ?? 0,
             average: 2.1,
@@ -540,10 +533,16 @@ function buildDetails(data: TermsGameData | undefined, result: TermsGameAnalyzeR
             category: 'mouse',
         },
         {
-            label: '無駄クリック(回)',
-            user: data?.popupStats?.clickCount ?? 0,
-            average: 1.5,
+            label: '同意ボタン連打(回)',
+            user: result.invalidButtonClickCount ?? 0,
+            average: 0.5,
             category: 'mouse',
+        },
+        {
+            label: '無関係操作(回)',
+            user: result.randomToggleCount ?? 0,
+            average: 0.2,
+            category: 'input',
         },
     ];
 
