@@ -46,7 +46,7 @@ export default function BipolarSlider({
 
   const fillStyle: React.CSSProperties = isRight
     ? { background: '#4d85ff', left: `${boundary}%`, right: 0 }
-    : { background: '#f87171', left: 0, width: `${boundary}%` };
+    : { background: '#f97316', left: 0, width: `${boundary}%` };
 
   return (
     <div className="mbti-slider-row-new">
