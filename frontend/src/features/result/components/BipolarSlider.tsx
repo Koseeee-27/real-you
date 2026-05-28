@@ -75,12 +75,15 @@ export default function BipolarSlider({
             />
           </div>
 
-          {/* ▼ ベースラインマーカー（baselineScore が渡されたときのみ） */}
+          {/* ▼ ベースラインマーカー（baselineScore が渡されたときのみ）
+              NOTE: ピンの座標系は `left: (100 - score)%` なので、
+              ▼ も同じ座標系に合わせるため `(100 - baselineScore)%` とする。
+              `baselineScore%` では左右が反転した誤位置になる。 */}
           {baselineScore !== undefined && (
             <div className="average-marker-wrapper">
               <div
                 className="average-marker"
-                style={{ left: `${baselineScore}%` }}
+                style={{ left: `${100 - baselineScore}%` }}
               >
                 ▼
               </div>
