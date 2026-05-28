@@ -134,7 +134,9 @@ export default function GameDetailTab({
             Section C: top_deviation_metrics 2×2 グリッド
            ====================================================== */}
         <div className="evidence-list-container">
-          <div className="game-sliders-headline">その他に測っていた行動データ</div>
+          <div className="game-sliders-headline">
+            その他に測っていた行動データ
+          </div>
 
           <div className="data-grid">
             {detail.top_deviation_metrics.map((m, i) => (
@@ -142,7 +144,9 @@ export default function GameDetailTab({
                 <div>
                   <div className="data-title">{m.label}</div>
                   <div className="data-value">{m.user}</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>
+                  <div
+                    style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}
+                  >
                     平均：{m.average}
                   </div>
                 </div>

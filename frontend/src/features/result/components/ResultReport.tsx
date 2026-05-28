@@ -182,13 +182,20 @@ export default function ResultReport({ data }: ResultReportProps) {
           className="main-card"
           style={
             mode === 'detail'
-              ? { height: 'calc(100vh - 130px)', overflow: 'hidden', flexDirection: 'column' }
+              ? {
+                  height: 'calc(100vh - 130px)',
+                  overflow: 'hidden',
+                  flexDirection: 'column',
+                }
               : { flexDirection: 'column' }
           }
         >
           {/* 詳細モード：ゲームタブナビ */}
           {mode === 'detail' && (
-            <nav className="game-nav-reconstructed" style={{ marginTop: 0, marginBottom: 12 }}>
+            <nav
+              className="game-nav-reconstructed"
+              style={{ marginTop: 0, marginBottom: 12 }}
+            >
               {gameTabs.map(({ gameId, meta }) => {
                 const isActive = activeGameId === gameId;
                 const Icon = meta.icon;
@@ -217,11 +224,7 @@ export default function ResultReport({ data }: ResultReportProps) {
 
           {/* コンテンツ */}
           <div
-            style={
-              mode === 'detail'
-                ? { flex: 1, minHeight: 0 }
-                : undefined
-            }
+            style={mode === 'detail' ? { flex: 1, minHeight: 0 } : undefined}
           >
             {mode === 'overview' && <OverviewTab data={data} />}
             {mode === 'detail' && activeDetail && (

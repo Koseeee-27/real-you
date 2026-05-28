@@ -53,10 +53,14 @@ export default function BipolarSlider({
       <div className="mbti-slider-track-new">
         {/* 左バッジ */}
         <div className="badge-pct-container">
-          <span className={`mbti-badge-new ${!isRight ? 'btn-orange' : 'btn-white'}`}>
+          <span
+            className={`mbti-badge-new ${!isRight ? 'btn-orange' : 'btn-white'}`}
+          >
             {poles.left}
           </span>
-          <span className={`badge-pct-under ${!isRight ? 'active-orange' : ''}`}>
+          <span
+            className={`badge-pct-under ${!isRight ? 'active-orange' : ''}`}
+          >
             {leftPct}%
           </span>
         </div>
@@ -65,13 +69,19 @@ export default function BipolarSlider({
         <div className="slider-wrapper">
           <div className="slider-line-track">
             <div className="slider-color-fill" style={fillStyle} />
-            <div className="slider-pin-point" style={{ left: `${boundary}%` }} />
+            <div
+              className="slider-pin-point"
+              style={{ left: `${boundary}%` }}
+            />
           </div>
 
           {/* ▼ ベースラインマーカー（baselineScore が渡されたときのみ） */}
           {baselineScore !== undefined && (
             <div className="average-marker-wrapper">
-              <div className="average-marker" style={{ left: `${baselineScore}%` }}>
+              <div
+                className="average-marker"
+                style={{ left: `${baselineScore}%` }}
+              >
                 ▼
               </div>
             </div>
@@ -80,7 +90,9 @@ export default function BipolarSlider({
 
         {/* 右バッジ */}
         <div className="badge-pct-container">
-          <span className={`mbti-badge-new ${isRight ? 'btn-blue' : 'btn-white'}`}>
+          <span
+            className={`mbti-badge-new ${isRight ? 'btn-blue' : 'btn-white'}`}
+          >
             {poles.right}
           </span>
           <span className={`badge-pct-under ${isRight ? 'active-blue' : ''}`}>

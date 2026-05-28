@@ -47,7 +47,8 @@ export default function LoadingScreen({
 }: LoadingScreenProps) {
   const [activeStep, setActiveStep] = useState(0);
   // クライアント側のみランダム選択（SSR/CSRハイドレーション不一致を防ぐ）
-  const [selectedCharacters, setSelectedCharacters] = useState(DEFAULT_CHARACTERS);
+  const [selectedCharacters, setSelectedCharacters] =
+    useState(DEFAULT_CHARACTERS);
 
   useEffect(() => {
     // startTransition でコールバック経由にして set-state-in-effect lint を回避しつつ、
@@ -55,7 +56,9 @@ export default function LoadingScreen({
     startTransition(() => {
       setSelectedCharacters(
         MBTI_GROUPS.map((group) => {
-          const randomIndex = Math.floor(Math.random() * group.characters.length);
+          const randomIndex = Math.floor(
+            Math.random() * group.characters.length
+          );
           return {
             id: group.characters[randomIndex],
             groupColor: group.color,
