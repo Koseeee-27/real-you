@@ -20,7 +20,7 @@ import LoadingScreen from '@/components/common/LoadingScreen';
 // import { submitGame } from '@/lib/api';
 
 // ポップアップ広告が表示されるまでの遅延時間（ms）
-const POPUP_DELAY_MS = 8_000;
+const POPUP_DELAY_MS = 5_000;
 // スクロールイベントの記録間隔（ms）。パフォーマンスのため間引く
 const SCROLL_THROTTLE_MS = 200;
 // 「最下部まで到達した」と判定するスクロール割合（90%）
