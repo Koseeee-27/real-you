@@ -39,7 +39,7 @@ export const GAME_META: Record<GameId, GameMeta> = {
     color: '#ef4444',
     description:
       'サービスの利用規約に見せかけた行動計測ゲームです。長い規約をどれだけ読むか／読まずに即同意するかで、素の行動が表れます。',
-    measuredTraits: '慎重さ・論理性・冷静さ',
+    measuredTraits: '慎重さ・論理性・冷静さ・協調性・積極性',
   },
   helpdesk_game: {
     label: 'AIバトル',
