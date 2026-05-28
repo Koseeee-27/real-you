@@ -75,7 +75,11 @@ export default function OverviewTab({ data }: OverviewTabProps) {
         <div className="comment-container-new">
           <div className="comment-header-tag">解析コメント</div>
           <div className="comment-body-text">
-            {renderComment(feedback.description)}
+            {feedback.description.split('\n').map((line, i) => (
+              <p key={i} style={{ margin: '0 0 6px' }}>
+                {renderComment(line)}
+              </p>
+            ))}
           </div>
         </div>
       </div>
