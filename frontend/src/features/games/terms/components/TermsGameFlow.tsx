@@ -30,6 +30,8 @@ const REACHED_BOTTOM_THRESHOLD = 0.9;
 const ERROR_REASON_MISSING_READ_CONFIRM = 'missing_read_confirm';
 // エラー差し戻しダイアログの表示メッセージ
 const ERROR_DIALOG_MESSAGE = '未確認の必須項目があります';
+// 「同意しない」押下時に同意を促す案内ダイアログのメッセージ
+const DISAGREE_DIALOG_MESSAGE = 'ご利用には規約への同意が必要です';
 
 export default function TermsGameFlow() {
   const router = useRouter();
@@ -48,6 +50,8 @@ export default function TermsGameFlow() {
   const [showTermsModal] = useState(true);
   // エラー差し戻しダイアログの表示状態（二段構え同意プロセスの2段目）
   const [showErrorDialog, setShowErrorDialog] = useState(false);
+  // 「同意しない」押下時の同意要求ダイアログの表示状態
+  const [showDisagreeDialog, setShowDisagreeDialog] = useState(false);
   // ゲーム完了フラグ（trueで完了画面を表示→次のゲームへ遷移）
   const [isCompleted, setIsCompleted] = useState(false);
 
@@ -87,6 +91,8 @@ export default function TermsGameFlow() {
   const postErrorClicksRef = useRef<TermsPostErrorClick[]>([]);
   // チェックボックス操作のタイムスタンプログ（afterError フラグ付き）
   const checkboxEventsRef = useRef<TermsCheckboxEvent[]>([]);
+  // 「同意しない」を一度でも押したか。最終的に同意で遷移しても finalAction を 'disagree' に確定させる（本音を残す）
+  const hasPressedDisagreeRef = useRef(false);
 
   useEffect(() => {
     const bgm = new Audio('/sounds/start-bgm.mp3');
@@ -260,8 +266,17 @@ export default function TermsGameFlow() {
       const se = new Audio('/sounds/general-button-se.mp3');
       se.play().catch(() => {});
 
+      // 「同意しない」: 遷移せず、押した事実を保持して同意を促す案内ダイアログを表示。
+      // 一度でも押されたら finalAction は最終的に 'disagree' に確定する（後述の遷移処理参照）。
+      if (action === 'disagree') {
+        hasPressedDisagreeRef.current = true;
+        setShowDisagreeDialog(true);
+        return;
+      }
+
       // 二段構えの2段目: 同意時に第5条「読みました」が未チェックならエラー差し戻し。
-      if (action === 'agree' && !checkboxStates.readConfirm) {
+      // （ここに来る時点で action === 'agree' は確定）
+      if (!checkboxStates.readConfirm) {
         // 2回目以降の無効な同意クリックは連打として記録する
         // （初回はこの時点で hasError=false のため recordPostErrorClick は記録しない）。
         recordPostErrorClick('agree');
@@ -275,7 +290,10 @@ export default function TermsGameFlow() {
         return;
       }
 
-      const data = buildTermsGameData(action);
+      // 遷移は「同意する」かつ第5条チェック済みのときのみ。
+      // 一度でも「同意しない」を押していれば、翻意して同意しても本音として 'disagree' を残す。
+      const finalAction = hasPressedDisagreeRef.current ? 'disagree' : 'agree';
+      const data = buildTermsGameData(finalAction);
       setTermsGameData(data);
 
       setIsCompleted(true);
@@ -332,6 +350,13 @@ export default function TermsGameFlow() {
           }}
           onDialogClick={() => recordPostErrorClick('errorDialog')}
           onOverlayClick={() => recordPostErrorClick('other')}
+        />
+      )}
+
+      {showDisagreeDialog && (
+        <ErrorDialog
+          message={DISAGREE_DIALOG_MESSAGE}
+          onConfirm={() => setShowDisagreeDialog(false)}
         />
       )}
     </div>
