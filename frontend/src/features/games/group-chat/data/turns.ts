@@ -96,15 +96,32 @@ export const T1_CATCHUP_USER_MESSAGE_MS = 500;
 export const T1_CATCHUP_ADVANCE_MS = 800;
 
 /**
- * 各ターンの制限時間。
- * - T1: 14s — 同期A 先回り発言（=5.0s 地点）後に約 9.0s の判断時間を確保
- * - T2: 15s — 上司+同期A+同期B 段階表示後に約 12.8s
+ * 制限時間の倍率。プレイヤーに考える余裕を持たせるため、基準値（TURN_TIMER_BASE_MS）を
+ * 一律に引き伸ばす。1.2〜1.5 のレンジで調整する想定（現状 1.5）。
+ * ここを変えれば全ターンの制限時間がまとめて追従する（真実の単一ソース）。
+ */
+const TIMER_SCALE = 1.5;
+
+/**
+ * 各ターンの制限時間の基準値（ms。TIMER_SCALE=1.0 のときの素の長さ）。
+ * - T1: 14s — 同期A 先回り発言（=5.0s 地点）後の判断時間を確保
+ * - T2: 15s — 上司+同期A+同期B 段階表示（〜2.2s）後の判断時間を確保
  * - T3: 7s  — 名指し返球の緊張感を出すため短め
  */
-export const TURN_TIMER_MS = {
+const TURN_TIMER_BASE_MS = {
   1: 14_000,
   2: 15_000,
   3: 7_000,
+} as const satisfies Record<1 | 2 | 3, number>;
+
+/**
+ * 各ターンの実効制限時間（ms）= 基準値 × TIMER_SCALE。
+ * 現状（×1.5）: T1=21s / T2=22.5s / T3=10.5s。
+ */
+export const TURN_TIMER_MS = {
+  1: TURN_TIMER_BASE_MS[1] * TIMER_SCALE,
+  2: TURN_TIMER_BASE_MS[2] * TIMER_SCALE,
+  3: TURN_TIMER_BASE_MS[3] * TIMER_SCALE,
 } as const satisfies Record<1 | 2 | 3, number>;
 
 // =========================================================
