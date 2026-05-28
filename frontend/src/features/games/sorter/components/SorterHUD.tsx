@@ -172,7 +172,11 @@ export default function SorterHUD({
   });
 
   return (
-    <div className="relative mx-auto h-[88px] w-full max-w-7xl">
+    // shrink-0: 縦幅が狭い環境（ブラウザのブックマークバー表示など）でも HUD を 88px から
+    // 圧縮させない。ベルト等（min-content の大きい shrink-0 要素）が flex の縮小を一方的に
+    // HUD へ押し付けると、HUD が潰れて中央のタイマー pill（HUD 内で縦中央）が下のベルトへ
+    // せり出して重なる。HUD を固定し、不足分は下側（spacer → bin）で吸収させて重なりを防ぐ。
+    <div className="relative mx-auto h-[88px] w-full max-w-7xl shrink-0">
       {/*
         === バッジエリア（左 absolute、horizontal 固定で 1 行） ===
         バッジ群は AnimatePresence で出入り。出現時は上からスライドイン + スケールイン、
