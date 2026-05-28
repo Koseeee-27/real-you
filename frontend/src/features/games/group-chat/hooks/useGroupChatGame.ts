@@ -402,9 +402,7 @@ export function useGroupChatGame(options: {
         (c) => c.selectedOptionId === selectedOptionId
       );
       const userMessage: ChatMessage | null =
-        choice && !choice.isSilent
-          ? { type: 'user', text: choice.text }
-          : null;
+        choice && !choice.isSilent ? { type: 'user', text: choice.text } : null;
 
       // ターン1で、同期Aの先回り発言がまだ出ていないうちに答えた（早押し）場合:
       // 「同期Aの挙手 → 自分の発言」の順を必ず保つため、自分の発言の表示とターン遷移を
