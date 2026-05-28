@@ -13,6 +13,9 @@ import {
   CUTIN_DURATION_MS,
   getTurn2BossLine,
   isOptionIntentId,
+  T1_CATCHUP_ADVANCE_MS,
+  T1_CATCHUP_TYPING_MS,
+  T1_CATCHUP_USER_MESSAGE_MS,
   T1_PREEMPT_MESSAGE,
   T1_PREEMPT_REVEAL_DELAY_MS,
   T1_TYPING_INDICATOR_DELAY_MS,
@@ -253,18 +256,17 @@ export function useGroupChatGame(options: {
   // =========================================================
   // ターン確定 → 次ターン or 送信へ
   // =========================================================
-  const recordTurnAndAdvance = useCallback(
+  /**
+   * ターン結果を記録して次フェーズ（次ターンのカットイン or 送信）へ進める。
+   *
+   * 二重確定ガード・タイマー停止・予約 timeout の解除は **呼び出し側の責務**とする。
+   * 通常は recordTurnAndAdvance がそれらを行ってから呼ぶが、ターン1の早押し時は
+   * 「同期Aの挙手ビートを差し込んでから確定する」ため、確定を遅延させて直接呼ぶ。
+   */
+  const finalizeTurn = useCallback(
     (selectedOptionId: number, reactionTimeMs: number, isTimeout: boolean) => {
-      if (turnResolvedRef.current) return;
       const turn = TURNS[currentTurnIndex];
       if (!turn) return;
-      turnResolvedRef.current = true;
-
-      if (timerIdRef.current) {
-        clearInterval(timerIdRef.current);
-        timerIdRef.current = null;
-      }
-      clearAllPendingTimeouts();
       setIsTypingIndicatorVisible(false);
 
       // 選択クリック由来の派生値（タイムアウト時は両方 null）。
@@ -311,7 +313,22 @@ export function useGroupChatGame(options: {
         setGamePhase('turn-cutin');
       }
     },
-    [currentTurnIndex, clearAllPendingTimeouts]
+    [currentTurnIndex]
+  );
+
+  /** 通常の確定: 二重確定ガード + タイマー停止 + 予約解除 + 結果記録/遷移 */
+  const recordTurnAndAdvance = useCallback(
+    (selectedOptionId: number, reactionTimeMs: number, isTimeout: boolean) => {
+      if (turnResolvedRef.current) return;
+      turnResolvedRef.current = true;
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
+      }
+      clearAllPendingTimeouts();
+      finalizeTurn(selectedOptionId, reactionTimeMs, isTimeout);
+    },
+    [finalizeTurn, clearAllPendingTimeouts]
   );
 
   // =========================================================
@@ -378,19 +395,66 @@ export function useGroupChatGame(options: {
       const choice = turn.choices.find(
         (c) => c.selectedOptionId === selectedOptionId
       );
-      if (choice && !choice.isSilent) {
-        setChatMessages((prev) => [
-          ...prev,
-          { type: 'user', text: choice.text },
-        ]);
+      const userMessage: ChatMessage | null =
+        choice && !choice.isSilent
+          ? { type: 'user', text: choice.text }
+          : null;
+
+      // ターン1で、同期Aの先回り発言がまだ出ていないうちに答えた（早押し）場合:
+      // 「同期Aの挙手 → 自分の発言」の順を必ず保つため、自分の発言の表示とターン遷移を
+      // 遅延させ、先に同期Aの挙手ビート（入力中 → 私やりましょうか！）を差し込む。
+      // 本筋シナリオ（同期Aが引き受ける）を全パターンで成立させるための演出。
+      if (turn.turnId === 1 && !t1PreemptShownRef.current) {
+        // 確定フラグだけ先に立て、タイマーと既存の時間ベース挙手予約(2.5s/5.0s)を止める。
+        // 結果記録/遷移はビート終了後に finalizeTurn で行う。
+        turnResolvedRef.current = true;
+        if (timerIdRef.current) {
+          clearInterval(timerIdRef.current);
+          timerIdRef.current = null;
+        }
+        clearAllPendingTimeouts();
+
+        // 同期A「入力中」をすぐ表示（クリック→自分の発言までの「間」を埋める）
+        setTypingSpeakerId('colleague-a');
+        setIsTypingIndicatorVisible(true);
+        // 同期A「私やりましょうか！」
+        trackTimeout(() => {
+          t1PreemptShownRef.current = true;
+          setIsTypingIndicatorVisible(false);
+          setChatMessages((prev) => [
+            ...prev,
+            toChatBotMessage(T1_PREEMPT_MESSAGE),
+          ]);
+        }, T1_CATCHUP_TYPING_MS);
+        // 自分の発言（無言系の選択肢では出さない）
+        if (userMessage) {
+          trackTimeout(() => {
+            setChatMessages((prev) => [...prev, userMessage]);
+          }, T1_CATCHUP_TYPING_MS + T1_CATCHUP_USER_MESSAGE_MS);
+        }
+        // ターン確定 → ターン2へ
+        trackTimeout(
+          () => finalizeTurn(selectedOptionId, reactionTimeMs, false),
+          T1_CATCHUP_TYPING_MS +
+            T1_CATCHUP_USER_MESSAGE_MS +
+            T1_CATCHUP_ADVANCE_MS
+        );
+        return;
       }
 
+      // 通常: 同期Aの挙手が既に出ている / ターン2・3。自分の発言を即表示して確定。
+      if (userMessage) {
+        setChatMessages((prev) => [...prev, userMessage]);
+      }
       recordTurnAndAdvance(selectedOptionId, reactionTimeMs, false);
     },
     [
       gamePhase,
       currentTurnIndex,
       recordTurnAndAdvance,
+      finalizeTurn,
+      trackTimeout,
+      clearAllPendingTimeouts,
       computeTurn1HoverChanged,
     ]
   );
@@ -418,11 +482,17 @@ export function useGroupChatGame(options: {
   // =========================================================
   // カットイン演出: CUTIN_DURATION_MS 後に turn-active へ
   // =========================================================
+  // この単発 timeout は共有 timeout 群（pendingTimeoutsRef / trackTimeout）に
+  // 入れず、ローカル id で自前管理する。turn-active の useLayoutEffect は
+  // コミット時（描画前）に bot メッセージ・「入力中」表示の timeout を予約するが、
+  // この effect は useEffect（描画後）でクリーンアップが走る。共有 Set を
+  // clearAllPendingTimeouts() で一括解除すると、直前のコミットで turn-active が
+  // 予約したばかりの timeout まで消してしまい、メッセージ・入力中が表示されない。
   useEffect(() => {
     if (gamePhase !== 'turn-cutin') return;
-    trackTimeout(() => setGamePhase('turn-active'), CUTIN_DURATION_MS);
-    return () => clearAllPendingTimeouts();
-  }, [gamePhase, trackTimeout, clearAllPendingTimeouts]);
+    const id = setTimeout(() => setGamePhase('turn-active'), CUTIN_DURATION_MS);
+    return () => clearTimeout(id);
+  }, [gamePhase]);
 
   // =========================================================
   // turn-active: タイマー稼働 + メッセージ順次表示 + マウス軌跡計測
