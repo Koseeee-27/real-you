@@ -177,14 +177,14 @@ function computeHickHyman(data: TermsGameData) {
     let dynamicEntropy = 0;
     
     // 操作ごとの反応時間（RT）を合算。放置・離席とみられる10秒以上の間隔はノイズとしてカットする
-        checkboxEvents.forEach((event, i) => {
+    checkboxEvents.forEach((event, i) => {
         const dt = i === 0 ? event.timestamp : event.timestamp - checkboxEvents[i - 1].timestamp;
-    
-        if (dt > 0 && dt < 10000) {
-        totalRT += dt;
-        validEvents++;
-        }
         
+        if (dt > 0 && dt < 10000) {
+            totalRT += dt;
+            validEvents++;
+        }
+            
         // 状態遷移の複雑さをエントロピーの重みとして加算（ONへの変更や、状態の反転は負荷が高いとみなす）
         const stateComplexity = checkboxEvents[i].newState.checked ? 1.2 : 0.8;
         const actionComplexity = checkboxEvents[i].newState.changed ? 1.5 : 1.0;
@@ -241,25 +241,39 @@ function computeMFPT(data: TermsGameData) {
             (c) => c.timestamp > firstErrorTime && c.type !== 'checkbox'
         ).length;
 
-        checkboxEvents.filter((c) => c.afterError && c.timestamp > firstErrorTime).forEach((c) => {
-            totalRecoverySteps++;
-            if (c.target === 'readConfirm' && targetReason.includes('read_confirm')) {
+        // エラー発生後のチェックボックス操作を評価するヘルパー
+        const analyzeCheckboxAfterError = (c: typeof checkboxEvents[number]) => {
+            // デフォルトでリカバリーステップは1と見なす
+            const result = { recoverySteps: 1, pathDeviation: 0, panicMisclick: 0 };
+
+            // targetReasonをincludeから完全一致に変更
+            if (c.target === 'readConfirm' && targetReason === 'missing_read_confirm') {
                 if (!c.newState.checked) {
                     const timeSinceError = c.timestamp - firstErrorTime;
                     if (timeSinceError < 1000) {
-                        // 1秒以内の操作は「論理的逸脱」ではなく「焦りによるミスクリック」として処理
-                        panicMisclickCount++;
+                        // 1秒以内の操作は「焦りによるミスクリック」として処理
+                        result.panicMisclick = 1;
                     } else {
                         // 熟考後のOFF操作は明確な「論理的逸脱」としてペナルティ
-                        pathDeviation += 2;
+                        result.pathDeviation = 2;
                     }
                 }
             } else {
                 // エラー原因に無関係なターゲットの操作（迷走）
-                pathDeviation += 1;
-                if (c.newState.changed) pathDeviation += 0.5;
+                result.pathDeviation = 1 + (c.newState.changed ? 0.5 : 0);
             }
-        });
+
+            return result;
+        };
+
+        checkboxEvents
+            .filter((c) => c.afterError && c.timestamp > firstErrorTime)
+            .forEach((c) => {
+                const r = analyzeCheckboxAfterError(c);
+                totalRecoverySteps += r.recoverySteps;
+                pathDeviation += r.pathDeviation;
+                panicMisclickCount += r.panicMisclick;
+            });
     }
 
     // 各条項の最終的な吸収状態（目標達成）を確認
@@ -356,7 +370,8 @@ function analyze(data: TermsGameData | undefined): TermsGameAnalyzeResult {
         averageSpeed: ddm.averageSpeed,
         reversalCount: ddm.reversalCount,
         invalidButtonClickCount,
-        randomToggleCount: mfpt.pathDeviation,
+        // UI表示ように数値を丸めて返す
+        randomToggleCount: Math.round(mfpt.pathDeviation),
     };
 }
 
