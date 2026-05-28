@@ -166,8 +166,14 @@ export const BELT_HEIGHT_PX = 420;
  * 荷物サイズを変える場合はこの制約を満たすこと。
  */
 export const BELT_LANE_HEIGHT_PX = 150;
-/** U 字の折り返し部分の幅（px） */
-export const BELT_TURN_WIDTH_PX = 80;
+/**
+ * U 字の折り返し（右の縦ベルト）部分の幅（px）。
+ * 縦ベルトを下る荷物がはみ出して浮かないよう、荷物画像（PackageItem.tsx の
+ * PACKAGE_IMAGE_SIZE_PX = 110px）が左右マージン付きで収まる幅にする
+ * （BELT_TURN_WIDTH_PX ≥ PACKAGE_IMAGE_SIZE_PX）。荷物は縦ベルトの中央に載るよう
+ * PackageItem 側で turnX（折り返し X 座標）を算出する。
+ */
+export const BELT_TURN_WIDTH_PX = 140;
 
 /** ベルトのシマシマパターン 1 周分（秒、通常速度）。荷物アニメと別系統 */
 export const BELT_FLOW_DURATION_SEC = 1.2;

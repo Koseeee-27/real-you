@@ -72,14 +72,6 @@ const PACKAGE_HIT_PADDING_PX = 14;
 const PACKAGE_HIT_SIZE_PX = PACKAGE_IMAGE_SIZE_PX + PACKAGE_HIT_PADDING_PX * 2;
 
 /**
- * 折り返し位置の X 座標を決める際の視覚的な微調整値（px）。
- * button（HIT サイズ）の左上を基準に置くと、画像中心は `buttonLeft + HIT/2` に来る。
- * `beltWidth - BELT_TURN_WIDTH_PX - PACKAGE_HIT_SIZE_PX` のままだと画像が折り返し
- * 領域の手前に寄りすぎるため、内側に少し寄せて画像をわずかに折り返しへ重ねる。
- */
-const PACKAGE_TURN_X_NUDGE_PX = 30;
-
-/**
  * 上 lane / 下 lane の中央 Y 座標（button = HIT サイズの左上基準）。
  * button 中心が lane の縦中央に来るよう HIT サイズで算出する。
  * 画像は button 内で中央寄せのため、結果として画像も lane 中央に保たれる。
@@ -259,12 +251,12 @@ export default function PackageItem({
   useEffect(() => {
     if (!scope.current || beltWidth === 0) return;
 
+    // 折り返し（縦ベルト）の中央に荷物画像を載せる。画像は button（HIT サイズ）内で
+    // 中央寄せのため、button 左端 = 縦ベルト中心 − HIT/2 とすると、画像中心が
+    // 縦ベルト中心（beltWidth − BELT_TURN_WIDTH_PX/2）に一致して左右に浮かない。
     const turnX = Math.max(
       0,
-      beltWidth -
-        BELT_TURN_WIDTH_PX -
-        PACKAGE_HIT_SIZE_PX +
-        PACKAGE_TURN_X_NUDGE_PX
+      beltWidth - BELT_TURN_WIDTH_PX / 2 - PACKAGE_HIT_SIZE_PX / 2
     );
     const controls = animate(
       scope.current,
