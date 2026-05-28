@@ -38,11 +38,11 @@ interface OnboardingSlidesProps {
  * - 強制チュートリアル用途のため `onClose` は渡さない（× / 背景クリック / ESC 不可）。
  *
  * 内容詳細:
- *   - スライド 1/2: 概要 + 2 カラム（左: 仕分け方 / 右: 操作方法）。タイトルのみ
- *     上段に置き、1 行説明は左カラム冒頭に移動。PC（lg）では操作 2 方式カードを
- *     横並びにして縦サイズを圧縮し 1 画面に収める。
+ *   - スライド 1/2: 概要 + 2 カラム（左: 仕分け方 / 右: 操作方法）。タイトルと
+ *     1 行説明を上段に置き、PC（lg）では操作 2 方式カードを横並びにして縦サイズを
+ *     圧縮し 1 画面に収める。
  *   - スライド 2/2: ルール（「目標は {TARGET_SCORE} 点！」「制限時間は
- *     {TIME_CAP_SEC} 秒！！」を話口調で強調 + 採点 1 行）
+ *     {TIME_CAP_SEC} 秒！！」を話口調で強調 + 採点 1 行 + ギミックのヒント 1 行）
  */
 export default function OnboardingSlides({
   open,
@@ -54,10 +54,10 @@ export default function OnboardingSlides({
       onComplete={onStart}
       ariaLabel="仕分けゲームのチュートリアル"
       classNames={{
-        // PC（lg）で操作 2 方式を横並びにし、サブタイトルを左カラムへ移動した結果、
-        // slide1 の縦サイズが大幅圧縮された。SlideModal 既定（440/420/400）に
-        // 近い水準で両スライドが収まる。
-        body: 'min-h-[520px] sm:min-h-[440px] lg:min-h-[400px]',
+        // PC（lg）で操作 2 方式を横並びにして slide1 の縦サイズを圧縮しつつ、
+        // 1 行説明をタイトル直下に置いた分の高さを min-h に上乗せして、主要サイズ
+        // （sm / lg）でスクロールを発生させずに両スライドを 1 画面へ収める。
+        body: 'min-h-[520px] sm:min-h-[480px] lg:min-h-[440px]',
       }}
     >
       <SlideHowToPlay />
@@ -73,13 +73,12 @@ export default function OnboardingSlides({
 /**
  * スライド 1/2: 概要 + 2 カラム（左: 仕分け方 / 右: 操作方法）。
  *
- * 上段にゲーム名のみを置き、1 行説明は左カラム冒頭に配置することで上部の
- * 縦サイズを圧縮する。下段を 2 カラム構成にして PC で 1 画面に収める。
+ * 上段にゲーム名 + 1 行説明を置く。下段を 2 カラム構成にして PC で 1 画面に収める。
  *
- * **左カラム**: 1 行説明 + 「仕分け方」見出し + 3 カテゴリーの色対応（荷物 →
+ * **左カラム**: 「仕分け方」見出し + 3 カテゴリーの色対応（荷物 →
  * 仕分け先）を 1 枚の白カード内に 3 行で並べた早見表。
  *
- * **右カラム**: 「操作方法」見出し + D&D / クリック 2 ステップの 2 方式カード。
+ * **右カラム**: 「操作方法」見出し + D&D / クリックのみの 2 方式カード。
  * 狭幅 / sm では縦積み（カード → または → カード）、PC（lg）では横並び
  * （カード | または | カード）にして縦サイズをさらに圧縮する。各操作カードの
  * 下部にはそれぞれの取消方法を併記する。
@@ -90,21 +89,21 @@ export default function OnboardingSlides({
 function SlideHowToPlay() {
   return (
     <div>
-      {/* 上段: ゲーム名のみ。1 行説明は左カラム冒頭に移動して上部の縦サイズを節約。 */}
+      {/* 上段: ゲーム名 + 1 行説明。説明はタイトル直下に置く。 */}
       <h2 className="text-center text-2xl font-black tracking-widest sm:text-3xl lg:text-4xl">
         仕分けゲーム
       </h2>
+      <p className="mt-2 text-center text-sm font-bold sm:text-base lg:text-lg">
+        流れてくる荷物を適切に仕分けよう！
+      </p>
 
       {/* 下段: 2 カラム（左: 仕分け方 / 右: 操作方法）。狭幅は縦積み、sm 以上で左右並び。
           items-stretch でカラム高さを揃え、bordered card 側を flex-1 で残り高さを
           埋めることで両カラムの黒枠カードの底辺を揃える。間に縦の区切り線を入れる。 */}
       <div className="mt-4 flex flex-col gap-4 sm:mt-5 sm:flex-row sm:items-stretch sm:gap-5 lg:gap-6">
-        {/* === 左カラム: 1 行説明 + 仕分け方（カテゴリー早見表） === */}
+        {/* === 左カラム: 仕分け方（カテゴリー早見表） === */}
         <section className="flex flex-col sm:basis-2/5">
-          <p className="text-center text-sm font-bold sm:text-base lg:text-lg">
-            流れてくる荷物を適切に仕分けよう！
-          </p>
-          <h3 className="mt-3 text-center text-base font-black tracking-widest sm:text-lg lg:text-xl">
+          <h3 className="text-center text-base font-black tracking-widest sm:text-lg lg:text-xl">
             仕分け方
           </h3>
           {/*
@@ -159,7 +158,7 @@ function SlideHowToPlay() {
           className="hidden w-px self-stretch bg-gray-300 sm:block"
         />
 
-        {/* === 右カラム: 操作方法（D&D / クリック 2 ステップ） === */}
+        {/* === 右カラム: 操作方法（D&D / クリックのみ） === */}
         <section className="flex flex-col sm:basis-3/5">
           <h3 className="text-center text-base font-black tracking-widest sm:text-lg lg:text-xl">
             操作方法（どちらでもOK！）
@@ -188,7 +187,7 @@ function SlideHowToPlay() {
                 </span>
               </div>
               {/* イラストは左カラム「仕分け方」と重複するため省略し、説明テキストのみで簡潔に。
-                  クリック 2 ステップ側と同じくらいの padding・テキスト密度で視覚的に並ぶよう調整する。 */}
+                  クリックのみ側と同じくらいの padding・テキスト密度で視覚的に並ぶよう調整する。 */}
               <p className="mt-1.5 px-2 text-center text-sm font-bold sm:mt-2 sm:px-4 sm:text-base">
                 荷物をつかんで仕分け先へドロップ
               </p>
@@ -211,7 +210,7 @@ function SlideHowToPlay() {
               </span>
             </div>
 
-            {/* 方式 B: クリック 2 ステップ。
+            {/* 方式 B: クリックのみ。
                 黒枠 + ベタ影を廃止し、link（青）系の薄背景でやさしく区別する。
                 badge の青と背景の青が呼応して「クリック方式」とひと目で分かる。 */}
             <div
@@ -223,7 +222,7 @@ function SlideHowToPlay() {
                   className="rounded-md border-[2px] border-black px-2 py-0.5 text-xs font-black tracking-wider text-white sm:text-sm"
                   style={{ backgroundColor: SORTER_UI_COLORS.link }}
                 >
-                  クリック 2 ステップ
+                  クリックのみ
                 </span>
               </div>
               <div className="mt-1.5 flex flex-col items-start justify-center gap-1 px-2 text-xs font-bold sm:mt-2 sm:px-4 sm:text-sm">
@@ -312,6 +311,14 @@ function SlideRules() {
         >
           -{SCORE_WRONG_PENALTY} 点
         </span>
+      </p>
+
+      {/* ギミックのヒント。2 倍速・機械停止・ルール変更などの具体内容は伏せ、
+          「何か起きそう」と匂わせるだけに留めてワクワク感を残す
+          （実際の演出は SorterEventBanner がゲーム中に表示する）。 */}
+      <p className="mt-6 text-center text-sm font-bold text-gray-500 sm:mt-8 sm:text-base">
+        時々<span className="mx-0.5 font-black text-black">ハプニング</span>
+        が起きるかも。
       </p>
     </div>
   );
