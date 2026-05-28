@@ -22,7 +22,10 @@ import ChoicePad from './ChoicePad';
 import GroupChatEndedOverlay from './GroupChatEndedOverlay';
 
 const SE_PATH = '/sounds/general-button-se.mp3';
-const BGM_PATH = '/sounds/group-chat-game-bgm.mp3';
+/** オンボーディング中に流す RealYou 共通 BGM（トップページ等と同じ start-bgm） */
+const COMMON_BGM_PATH = '/sounds/start-bgm.mp3';
+/** ゲーム本編（turn-cutin / turn-active）で流すゲーム BGM */
+const GAME_BGM_PATH = '/sounds/group-chat-game-bgm.mp3';
 
 type SubmitStatus = 'loading' | 'success' | 'error';
 
@@ -43,7 +46,13 @@ export default function GroupChatGameFlow() {
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('loading');
   const [errorVariant, setErrorVariant] = useState<ErrorVariant>('retry');
   const pendingDataRef = useRef<GroupChatGameData | null>(null);
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
+
+  // BGM 管理。オンボーディング中は共通 BGM、ゲーム開始（turn-cutin 以降）でゲーム BGM に
+  // 切り替える（仕分けゲームと同流儀）。「いま鳴らすべき BGM」は gamePhase から下の
+  // reconciler effect が一元決定し、activeBgmRef が現在再生中の要素を指す。
+  const commonBgmRef = useRef<HTMLAudioElement | null>(null);
+  const gameBgmRef = useRef<HTMLAudioElement | null>(null);
+  const activeBgmRef = useRef<HTMLAudioElement | null>(null);
 
   // リトライ回数は描画に直接影響しないため useRef で扱う（既存ゲームと同流儀）。
   const retryCountRef = useRef(0);
@@ -54,6 +63,12 @@ export default function GroupChatGameFlow() {
     const audio = new Audio(path);
     audio.volume = 0.5;
     audio.play().catch(() => {});
+  }, []);
+
+  /** BGM を全系統まとめて停止する（送信開始 / トップ遷移時に使う） */
+  const stopAllBgm = useCallback(() => {
+    commonBgmRef.current?.pause();
+    gameBgmRef.current?.pause();
   }, []);
 
   const scheduleRedirect = useCallback(
@@ -67,30 +82,34 @@ export default function GroupChatGameFlow() {
     [router]
   );
 
-  // BGM の初期化と再生管理
+  // BGM の初期化と自動再生制限の解除。
+  // 共通 BGM（オンボーディング）とゲーム BGM（本編）を生成する。「どちらを鳴らすか」は
+  // gamePhase から下の reconciler effect が決める。ここでは生成と、autoplay 制限の解除
+  //（最初のクリックで現在の active BGM を再生し直す）だけ行う。
   useEffect(() => {
-    const bgm = new Audio(BGM_PATH);
-    bgm.loop = true;
-    bgm.volume = 0.3;
-    bgmRef.current = bgm;
+    const common = new Audio(COMMON_BGM_PATH);
+    common.loop = true;
+    // 共通 BGM はトップページ等と音量を揃える（0.4）
+    common.volume = 0.4;
+    commonBgmRef.current = common;
 
-    // 自動再生がブロックされた場合に備え、再生に成功したときだけ
-    // click リスナーを解除する（失敗時は次のクリックで再試行できるよう残す）。
-    const playBGM = () => {
-      bgm
-        .play()
-        .then(() => {
-          window.removeEventListener('click', playBGM);
-        })
-        .catch(() => {});
+    const game = new Audio(GAME_BGM_PATH);
+    game.loop = true;
+    game.volume = 0.3;
+    gameBgmRef.current = game;
+
+    // 自動再生制限の解除: マウント直後の play() は弾かれることがあるため、最初のクリックで
+    // 「いま鳴らすべき BGM」(activeBgmRef、初期はオンボーディングの共通 BGM) を再生し直す。
+    const unlockPlay = () => {
+      activeBgmRef.current?.play().catch(() => {});
+      window.removeEventListener('click', unlockPlay);
     };
-    window.addEventListener('click', playBGM);
-    // 前の画面から継続している場合は即再生
-    playBGM();
+    window.addEventListener('click', unlockPlay);
 
     return () => {
-      bgm.pause();
-      window.removeEventListener('click', playBGM);
+      common.pause();
+      game.pause();
+      window.removeEventListener('click', unlockPlay);
     };
   }, []);
 
@@ -152,10 +171,11 @@ export default function GroupChatGameFlow() {
       pendingDataRef.current = data;
       setSubmitStatus('loading');
       // 送信開始時点で BGM を停止（成功・duplicate・error すべての経路で止める）。
-      bgmRef.current?.pause();
+      // 通常は gamePhase が submitting に移った時点で reconciler が止めるが、防御的に明示する。
+      stopAllBgm();
       await submitGroupChatGame(data);
     },
-    [submitGroupChatGame]
+    [submitGroupChatGame, stopAllBgm]
   );
 
   const handleRetry = useCallback(async () => {
@@ -171,9 +191,9 @@ export default function GroupChatGameFlow() {
     playSE(SE_PATH);
     // 古い user_id を握ったままだと同じエラーで詰むため掃除する（他画面と同流儀）。
     if (typeof window !== 'undefined') localStorage.removeItem('user_id');
-    bgmRef.current?.pause();
+    stopAllBgm();
     router.push('/');
-  }, [playSE, router]);
+  }, [playSE, router, stopAllBgm]);
 
   const {
     gamePhase,
@@ -189,6 +209,24 @@ export default function GroupChatGameFlow() {
     handleOptionHover,
     handleHistoryScroll,
   } = useGroupChatGame({ onComplete: handleComplete });
+
+  // 「いま鳴らすべき BGM」を gamePhase から一元的に決めて1系統だけ再生する。
+  //   - onboarding              … 共通 BGM（トップページ等と同じ start-bgm）
+  //   - turn-cutin / turn-active … ゲーム BGM
+  //   - submitting / completed   … 無音（結果・送信表示中は BGM を流さない）
+  // 切替は「前の要素を pause → 対象を play」。対象が未生成（null）の間は無音。
+  useEffect(() => {
+    const target =
+      gamePhase === 'onboarding'
+        ? commonBgmRef.current
+        : gamePhase === 'turn-cutin' || gamePhase === 'turn-active'
+          ? gameBgmRef.current
+          : null;
+    if (activeBgmRef.current === target) return;
+    activeBgmRef.current?.pause();
+    activeBgmRef.current = target;
+    target?.play().catch(() => {});
+  }, [gamePhase]);
 
   // SE を鳴らすようにラップ
   const startGame = useCallback(() => {

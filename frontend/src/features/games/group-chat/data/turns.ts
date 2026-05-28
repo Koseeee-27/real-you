@@ -57,10 +57,10 @@ export const INTRO_CHARACTERS: IntroCharacter[] = [
 
 export const ONBOARDING_TITLE = '空気読みチャットゲーム';
 
-/** オンボーディング: タイトル右に併記する短いタグライン（ゲームのコア体験を1語で示す） */
-export const GAME_TAGLINE = '空気を読んで返信！';
+/** オンボーディング: タイトル直下に置く1行の操作指示（仕分けゲームの「〜しよう！」と同トーン） */
+export const ONBOARDING_INSTRUCTION = '空気を読んで返信しよう！';
 
-/** オンボーディング: サブタイトル（プレイヤーの役割説明） */
+/** オンボーディング: プレイヤーの役割説明（状況説明の黄色枠の先頭に置く） */
 export const PLAYER_INTRO_TEXT = 'あなたは開発チームのメンバーの一人です';
 
 /** オンボーディング: 状況説明（タイトル下に表示する場面のナレーション） */
@@ -96,15 +96,32 @@ export const T1_CATCHUP_USER_MESSAGE_MS = 500;
 export const T1_CATCHUP_ADVANCE_MS = 800;
 
 /**
- * 各ターンの制限時間。
- * - T1: 14s — 同期A 先回り発言（=5.0s 地点）後に約 9.0s の判断時間を確保
- * - T2: 15s — 上司+同期A+同期B 段階表示後に約 12.8s
+ * 制限時間の倍率。プレイヤーに考える余裕を持たせるため、基準値（TURN_TIMER_BASE_MS）を
+ * 一律に引き伸ばす。1.2〜1.5 のレンジで調整する想定（現状 1.5）。
+ * ここを変えれば全ターンの制限時間がまとめて追従する（真実の単一ソース）。
+ */
+const TIMER_SCALE = 1.5;
+
+/**
+ * 各ターンの制限時間の基準値（ms。TIMER_SCALE=1.0 のときの素の長さ）。
+ * - T1: 14s — 同期A 先回り発言（=5.0s 地点）後の判断時間を確保
+ * - T2: 15s — 上司+同期A+同期B 段階表示（〜2.2s）後の判断時間を確保
  * - T3: 7s  — 名指し返球の緊張感を出すため短め
  */
-export const TURN_TIMER_MS = {
+const TURN_TIMER_BASE_MS = {
   1: 14_000,
   2: 15_000,
   3: 7_000,
+} as const satisfies Record<1 | 2 | 3, number>;
+
+/**
+ * 各ターンの実効制限時間（ms）= 基準値 × TIMER_SCALE。
+ * 現状（×1.5）: T1=21s / T2=22.5s / T3=10.5s。
+ */
+export const TURN_TIMER_MS = {
+  1: TURN_TIMER_BASE_MS[1] * TIMER_SCALE,
+  2: TURN_TIMER_BASE_MS[2] * TIMER_SCALE,
+  3: TURN_TIMER_BASE_MS[3] * TIMER_SCALE,
 } as const satisfies Record<1 | 2 | 3, number>;
 
 // =========================================================
@@ -129,12 +146,6 @@ export interface ChoiceOption {
   /** 内部意図 ID（1,2=協調系 / 3,4=独自系）。表示順とは独立 */
   selectedOptionId: OptionIntentId;
   text: string;
-  /**
-   * `true` の場合、この選択肢を選んでも user メッセージとしてチャットに表示しない。
-   * 「（黙って様子を見る）」などの「無反応」を意図する選択肢に付与する。
-   * BE には `selectedOptionId` のみ送るため、このフラグは FE の表示制御専用。
-   */
-  isSilent?: boolean;
 }
 
 export interface TurnDefinition {
@@ -163,7 +174,6 @@ export const TURNS: TurnDefinition[] = [
       {
         selectedOptionId: 2,
         text: '（黙って様子を見る）',
-        isSilent: true,
       }, // 協調: 同期Aに譲る／場を読む（無反応）
     ],
     timerMs: TURN_TIMER_MS[1],
@@ -182,7 +192,6 @@ export const TURNS: TurnDefinition[] = [
       {
         selectedOptionId: 3,
         text: '（黙って様子を見る）',
-        isSilent: true,
       }, // 独自: 流れに乗らない／同調しない（無反応）
     ],
     timerMs: TURN_TIMER_MS[2],
@@ -204,7 +213,6 @@ export const TURNS: TurnDefinition[] = [
       {
         selectedOptionId: 3,
         text: '（黙って様子を見る）',
-        isSilent: true,
       }, // 独自: 指名を無視（無反応）
     ],
     timerMs: TURN_TIMER_MS[3],
