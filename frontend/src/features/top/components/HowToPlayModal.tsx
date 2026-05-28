@@ -55,7 +55,7 @@ export const howToPlaySlides: JSX.Element[] = [
     <div className="mb-2 text-2xl leading-relaxed relative">
       <span className="relative z-10">
         <span className="text-blue-500 font-extrabold  [-webkit-text-stroke:1px_#000] [-webkit-text-fill-color:#ff00ff]">
-          "本当のあなた"
+          '本当のあなた'
         </span>
         が分かる、新しい性格診断アプリ。
       </span>
@@ -166,7 +166,7 @@ export const howToPlaySlides: JSX.Element[] = [
     <h2 className="text-5xl font-bold leading-relaxed">
       さあ！
       <span className="text-yellow-500 font-extrabold [-webkit-text-stroke:2px_#000] [-webkit-text-fill-color:#ff00ff]">
-        "本当の自分"
+        '本当の自分'
       </span>
       に会いに行こう！
     </h2>
