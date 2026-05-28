@@ -37,12 +37,11 @@ export const MOCK_RESULT: ResultResponse = {
   },
   // 配列形式（Phase 1 / Issue #97）。game_id は Phase 3（registry 導入）で
   // 正式定義予定の文字列 ID を先取り使用。配列順は
-  // terms_game → helpdesk_game → group_chat_game の通常フロー順
-  // （Phase 3 で `analysis/registry.ts` の `NORMAL_FLOW` 定数として正式定義予定）。
+  // terms_game → sorter_game → group_chat_game の通常フロー順
   game_breakdown: [
     { game_id: 'terms_game', scores: { caution: 20 } },
     {
-      game_id: 'helpdesk_game',
+      game_id: 'sorter_game',
       scores: { logic: 60, calmness: 80, positivity: 90 },
     },
     {
@@ -54,17 +53,17 @@ export const MOCK_RESULT: ResultResponse = {
     title: '暴走する機関車',
     subtitle: '気づいたら先頭にいる、止まり方を知らない人',
     description:
-      'あなたは自称リーダーですが、協調性が皆無です。規約は読まない！ AIには即ギレ！ でも窮地での「冷静さ」はスーパーヒーロー級です！',
+      'あなたの自己認識一致度は68%。『論理的に考えるタイプ』と思っていたかもしれません。でも規約ゲームで同意ボタンを押すまでの迷いが0.2秒でした。仕分けゲームではルール変更から2.1秒で適応し、平均の5秒を大幅に上回りました。',
     gap_point: '慎重さ',
   },
-  accuracy_score: 50,
+  accuracy_score: 68,
   phase_summaries: [
     {
       game_id: 'terms_game',
       summary: '規約を2秒で読み飛ばし、即座に同意ボタンを押しました',
       highlights: [
         {
-          text: '「同意する」ボタンを押すまで、規約を1.2秒かけてわずかに読みました。',
+          text: '「同意する」ボタンを押すまで、規約をわずか1.2秒しか見ませんでした。',
           comparison: '平均は約15秒',
           reason: '滞在時間から〈慎重さ〉がわかるため',
         },
@@ -81,29 +80,29 @@ export const MOCK_RESULT: ResultResponse = {
       ],
     },
     {
-      game_id: 'helpdesk_game',
-      summary: 'AIの理不尽な対応に0.5秒で反応し、論理的に反論しました',
+      game_id: 'sorter_game',
+      summary: 'ルール変更に2.1秒で適応し、仕分けミスは1回だけでした',
       highlights: [
         {
-          text: 'AIへの平均反応時間は0.5秒。',
-          comparison: '平均は約2.5秒',
-          reason: '反応の速さから〈積極性〉がわかるため',
+          text: '新ルールへの適応にかかった時間は2.1秒。',
+          comparison: '平均は約5秒',
+          reason: '変化適応速度から〈論理性・冷静さ〉がわかるため',
         },
         {
-          text: '発話した合計時間は12.5秒。',
-          comparison: '平均は約4.2秒',
-          reason: '発話量から〈積極性・論理性〉がわかるため',
+          text: 'システム停止中の無駄な連打は0回でした。',
+          comparison: '平均は約3回',
+          reason: 'パニック連打から〈冷静さ〉がわかるため',
         },
         {
-          text: '論理的な接続詞を2回使いました。',
-          comparison: '平均は約0.5回',
-          reason: '論理接続詞の使用から〈論理性〉がわかるため',
+          text: '総仕分け完了数は42個。',
+          comparison: '平均は31個',
+          reason: '作業スループットから〈積極性〉がわかるため',
         },
       ],
     },
     {
       game_id: 'group_chat_game',
-      summary: 'グループの空気を読んで、全員と同じ選択をしました',
+      summary: 'グループの空気を読まず、800msで自分の意見を即投稿しました',
       highlights: [
         {
           text: '同期より先に答えられた場面が多くありました。',
@@ -117,7 +116,7 @@ export const MOCK_RESULT: ResultResponse = {
         },
         {
           text: '返答までの平均時間は0.8秒。',
-          comparison: '平均は約3秒',
+          comparison: '平均は約3.5秒',
           reason: '反応速度から〈積極性〉がわかるため',
         },
       ],
@@ -196,60 +195,72 @@ export const MOCK_RESULT: ResultResponse = {
       ],
     },
     {
-      game_id: 'helpdesk_game',
-      title: 'AIカスタマーサポート',
+      game_id: 'sorter_game',
+      title: '荷物仕分けゲーム',
       feature_scores: [
+        { axis: 'calmness', name: '冷静さ', score: 80 },
+        { axis: 'logic', name: '論理性', score: 75 },
         { axis: 'positivity', name: '積極性', score: 90 },
-        { axis: 'calmness', name: '冷静さ', score: 75 },
-        { axis: 'logic', name: '論理性', score: 60 },
       ],
       metrics: [
-        { label: '反応潜時(ms)', user: 500, average: 2500, category: 'time' },
-        { label: '発話時間(秒)', user: 12.5, average: 4.2, category: 'time' },
         {
-          label: '平均音量(dB)',
-          user: -12.4,
-          average: -25.0,
-          category: 'voice',
+          label: '平均判断時間(ms)',
+          user: 600,
+          average: 1500,
+          category: 'time',
         },
-        { label: '論理的接続詞(回)', user: 2, average: 0.5, category: 'logic' },
+        {
+          label: 'ルール変更適応(秒)',
+          user: 2.1,
+          average: 5.0,
+          category: 'time',
+        },
+        {
+          label: 'システム停止連打(回)',
+          user: 0,
+          average: 3,
+          category: 'mouse',
+        },
+        { label: '仕分けミス(回)', user: 1, average: 4, category: 'input' },
+        {
+          label: '総仕分け完了数(個)',
+          user: 42,
+          average: 31,
+          category: 'input',
+        },
       ],
       analysis_comment: [
-        'AIへの平均反応時間は0.5秒と素早い対応。この即断力が「積極性」の高スコアにつながっています。',
-        '「なぜなら」「つまり」などの論理接続詞を2回使用。筋道を立てて話す行動が「論理性」の高スコアにつながっています。',
+        'ルール変更から適応まで2.1秒。平均の5秒を大幅に下回り、変化への対応力が際立っています。',
+        'システム停止時の連打は0回。プレッシャー下でも冷静さを保てており、仕分けミスも1回と精度も高水準です。',
       ],
       top_deviation_metrics: [
         {
-          label: '反応潜時(ms)',
-          user: 500,
-          average: 2500,
-          deviation: 0.8,
-          praise:
-            '即座に対応できるスピード感がある！素早い判断力で場をリードできるタイプ。',
+          label: 'ルール変更適応(秒)',
+          user: 2.1,
+          average: 5.0,
+          deviation: 0.58,
+          praise: '変化への対応が超高速！柔軟な思考力が証明されました。',
         },
         {
-          label: '発話時間(秒)',
-          user: 12.5,
-          average: 4.2,
-          deviation: 1.98,
-          praise:
-            '豊富な言葉で丁寧に伝えられる！コミュニケーション力と表現力が高い。',
+          label: '総仕分け完了数(個)',
+          user: 42,
+          average: 31,
+          deviation: 0.35,
+          praise: '平均を11個上回る圧倒的スループット！積極性が光ります。',
         },
         {
-          label: '平均音量(dB)',
-          user: -12.4,
-          average: -25.0,
-          deviation: 0.5,
-          praise:
-            '存在感のある声で自分の意見を伝えられる！自信を持って発言できるタイプ。',
+          label: '平均判断時間(ms)',
+          user: 600,
+          average: 1500,
+          deviation: 0.6,
+          praise: '判断の速さが別次元！即決力がスコアを引き上げています。',
         },
         {
-          label: '論理的接続詞(回)',
-          user: 2,
-          average: 0.5,
-          deviation: 3.0,
-          praise:
-            '筋道を立てて話す論理的思考力が高い！理由を説明しながら伝えられるタイプ。',
+          label: 'システム停止連打(回)',
+          user: 0,
+          average: 3,
+          deviation: 1.0,
+          praise: '焦りゼロの鉄の冷静さ！止まっても慌てない本物のクールさ。',
         },
       ],
     },
@@ -262,57 +273,49 @@ export const MOCK_RESULT: ResultResponse = {
       ],
       metrics: [
         { label: '同調率(%)', user: 20, average: 75, category: 'social' },
+        { label: '反応潜時(ms)', user: 800, average: 3500, category: 'time' },
+        { label: '本音ホバー(回)', user: 0, average: 2.4, category: 'mouse' },
+        { label: '譲り合い待機(ms)', user: 0, average: 2000, category: 'time' },
         {
-          label: '反応時間平均(ms)',
-          user: 800,
-          average: 3500,
-          category: 'time',
-        },
-        {
-          label: 'タイムアウト率(%)',
+          label: '過去ログ遡及(回)',
           user: 0,
-          average: 15,
-          category: 'social',
+          average: 1.2,
+          category: 'scroll',
         },
-        { label: '先回り回答(回)', user: 4, average: 1.5, category: 'social' },
       ],
       analysis_comment: [
-        '同期より先に答えられた場面が多く、「積極性」の高スコアにつながっています。',
-        '他の人の動きに影響されず自分の選択を維持しており、「協調性（同調傾向）」の低スコアに表れています。',
-        '返答までの平均時間は0.8秒と非常に速い。「慎重さ」は低めのスコアになっています。',
+        '同調率は20%。グループの空気よりも自分の判断を優先する、独自路線型のスタイルです。',
+        '返答速度は800ms。平均3500msの4倍以上の速さで、積極的な参加姿勢が数字に表れています。',
       ],
       top_deviation_metrics: [
+        {
+          label: '反応潜時(ms)',
+          user: 800,
+          average: 3500,
+          deviation: 0.77,
+          praise: '誰よりも速く動く行動派！積極性がトップクラスです。',
+        },
         {
           label: '同調率(%)',
           user: 20,
           average: 75,
           deviation: 0.73,
           praise:
-            '周りに流されず自分の意見を貫ける強さがある！独自の視点で判断できる個性派。',
+            '流されない強い自分軸を持つ個性派！自分の意見を持てています。',
         },
         {
-          label: '反応時間平均(ms)',
-          user: 800,
-          average: 3500,
-          deviation: 0.77,
-          praise:
-            '誰よりも素早く動ける行動力がある！場をリードするスピード感の持ち主。',
-        },
-        {
-          label: '先回り回答(回)',
-          user: 4,
-          average: 1.5,
-          deviation: 1.67,
-          praise:
-            '先を読んで動ける洞察力が光る！流れを読んで先手を打てる戦略家タイプ。',
-        },
-        {
-          label: 'タイムアウト率(%)',
+          label: '本音ホバー(回)',
           user: 0,
-          average: 15,
+          average: 2.4,
           deviation: 1.0,
-          praise:
-            '時間内にきっちり行動できる実行力がある！締め切りに強いタイプ。',
+          praise: '迷いなき一択選手権の優勝者！ブレない決断力が光ります。',
+        },
+        {
+          label: '譲り合い待機(ms)',
+          user: 0,
+          average: 2000,
+          deviation: 1.0,
+          praise: '遠慮なしの積極参加！リーダーシップの片鱗が見えます。',
         },
       ],
     },

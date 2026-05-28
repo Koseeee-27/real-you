@@ -1,100 +1,164 @@
 'use client';
 
-import { Users } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import type { GameDetail } from '../types';
-import FeatureScoreBar from './FeatureScoreBar';
-import MetricsBarChart from './MetricsBarChart';
+import { GAME_META } from '../data/gameMeta';
+import BipolarSlider from './BipolarSlider';
 
 type GameDetailTabProps = {
   detail: GameDetail;
-  comment: string;
   tabColor?: string;
 };
 
+// ハイライト正規表現（BEが埋め込む数値 + 単位 / 『テキスト』引用）
+const COMBINED_RE = /(『[^』]+』|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
+const NUM_RE = /^\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分)$/;
+const QUOTE_RE = /^『[^』]+』$/;
+
+/** 解析コメントテキストを JSX に変換する */
+function renderComment(text: string): React.ReactNode {
+  const parts = text.split(COMBINED_RE);
+  return parts.map((part, i) => {
+    if (NUM_RE.test(part)) {
+      return (
+        <span key={i} className="highlight-magenta">
+          {part}
+        </span>
+      );
+    }
+    if (QUOTE_RE.test(part)) {
+      return (
+        <span key={i} className="highlight-blue">
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
 export default function GameDetailTab({
   detail,
-  comment,
   tabColor = '#3b82f6',
 }: GameDetailTabProps) {
+  const meta = GAME_META[detail.game_id];
+
   return (
-    <div className="flex flex-col md:flex-row gap-6 lg:gap-8 h-full animate-in slide-in-from-right duration-500">
-      <div className="w-full md:w-1/3 flex flex-col gap-6">
-        <section className="bg-blue-50 border-2 border-blue-100 p-3 rounded-[1.5rem] shadow-sm">
-          <h3 className="mb-2 text-[10px] font-black text-blue-600 flex items-center gap-1 opacity-70">
-            <Users className="w-3 h-3" />
-            計測された特徴
-          </h3>
-          {/* space-y-3 -> space-y-1.5 にしてバーの間隔を詰めました */}
-          <div className="space-y-1.5">
+    <div className="detail-layout-reconstructed">
+      <div className="scrollable-card-body">
+        {/* ======================================================
+            Section A: スクショ + ゲーム紹介
+           ====================================================== */}
+        <div className="game-header-flex">
+          {/* スクショプレースホルダー */}
+          <div className="screenshot-placeholder-box">
+            <Camera className="sc-icon-camera" />
+            <span className="sc-text-main">プレイ画面（静止画）</span>
+            {meta && (
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 800,
+                  color: '#475569',
+                  marginTop: 4,
+                  textAlign: 'center',
+                  padding: '0 8px',
+                }}
+              >
+                {detail.title}
+              </span>
+            )}
+          </div>
+
+          {/* ゲーム紹介 */}
+          {meta && (
+            <div className="intro-explanation-section" style={{ flex: 1 }}>
+              <div className="intro-explanation-section-row">
+                <div className="intro-title-row">{detail.title}</div>
+                <div className="intro-body-paragraph">{meta.description}</div>
+                <div
+                  className="measure-traits-badge-box"
+                  style={{ color: tabColor }}
+                >
+                  測る性格：{meta.measuredTraits}
+                </div>
+              </div>
+
+              {/* スクロール誘導 */}
+              <div className="scroll-indicator-row">
+                ↓ 下にスクロールしてゲームで得た性格を確認 ↓
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ======================================================
+            Section B: 性格スライダー + 解析コメント
+           ====================================================== */}
+        <div className="game-sliders-headline">
+          このゲームで見えた「あなたの性格」
+        </div>
+
+        <div className="game-specific-sliders-section">
+          {/* 左半分: feature_scores スライダー群 */}
+          <div className="total-left-panel-detail">
             {detail.feature_scores.map((fs) => (
-              <FeatureScoreBar
+              <BipolarSlider
                 key={fs.axis}
-                name={fs.name}
+                axis={fs.axis}
                 score={fs.score}
-                // よりコンパクトなスタイルへ
-                className="bg-white/40 px-2 py-1 rounded-md border border-blue-50/50"
+                /* 詳細画面は baseline ▼ マーカーなし */
               />
             ))}
           </div>
-        </section>
 
-        <section className="relative bg-white border-4 border-black rounded-[2rem] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex-1 overflow-hidden min-h-0">
-          <div className="h-full overflow-y-auto custom-scrollbar p-5">
-            <h3 className="mb-2 text-lg font-black text-black sticky top-0 bg-white py-1 z-10 border-b-2 border-dashed border-gray-100">
-              解析コメント
-            </h3>
-            <div className="text-base font-bold leading-relaxed text-gray-800">
-              <p className="whitespace-pre-wrap">
-                {comment
-                  .split(/(\d+\.?\d*秒|\d+回ホバー|\d+回反論)/)
-                  .map((part, i) =>
-                    /(\d+\.?\d*秒|\d+回ホバー|\d+回反論)/.test(part) ? (
-                      // ハイライトの色をタブの色に合わせて動的に変更
-                      <span
-                        key={i}
-                        style={{ backgroundColor: `${tabColor}40` }}
-                        className="px-1 rounded-sm mx-0.5"
-                      >
-                        {part}
-                      </span>
-                    ) : (
-                      part
-                    )
-                  )}
-              </p>
+          {/* 右半分: 解析コメントボックス */}
+          <div className="comment-container-detail">
+            <div className="comment-header-tag-detail">解析コメント</div>
+            <div className="comment-body-text">
+              {detail.analysis_comment.map((line, i) => (
+                <p key={i} style={{ margin: '0 0 4px' }}>
+                  {renderComment(line)}
+                </p>
+              ))}
             </div>
           </div>
-        </section>
+        </div>
+
+        {/* スクロール誘導境界 */}
+        <div className="scroll-indicator-row">
+          ↓ 下にスクロールして実計測の行動エビデンスを確認 ↓
+        </div>
+
+        {/* ======================================================
+            Section C: top_deviation_metrics 2×2 グリッド
+           ====================================================== */}
+        <div className="evidence-list-container">
+          <div className="game-sliders-headline">
+            その他に測っていた行動データ
+          </div>
+
+          <div className="data-grid">
+            {detail.top_deviation_metrics.map((m, i) => (
+              <div key={i} className="data-item">
+                <div>
+                  <div className="data-title">{m.label}</div>
+                  <div className="data-value">{m.user}</div>
+                  <div
+                    style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}
+                  >
+                    平均：{m.average}
+                  </div>
+                </div>
+                <div className="why-text">{m.praise}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 下部余白 */}
+        <div style={{ height: 16 }} />
       </div>
-
-      <section className="w-full md:w-2/3 flex flex-col pt-2">
-        <h3 className="text-center font-black text-xl text-gray-400 mb-6 tracking-widest uppercase">
-          行動ログ詳細データ
-        </h3>
-
-        <div className="flex-1 min-h-87.5">
-          <MetricsBarChart
-            metrics={detail.metrics}
-            userBarColor={tabColor}
-            averageBarColor="#d1d5db"
-          />
-        </div>
-
-        {/* 凡例 */}
-        <div className="mt-6 flex justify-center gap-10 font-black text-sm">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-8 h-4 rounded-sm border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-              style={{ backgroundColor: tabColor }}
-            />
-            <span style={{ color: tabColor }}>あなた</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-4 rounded-sm bg-gray-300" />
-            <span className="text-gray-400">平均</span>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

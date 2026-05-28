@@ -1,7 +1,6 @@
-/* eslint-disable react-hooks/purity */
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { startTransition, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
@@ -36,20 +35,37 @@ const MBTI_GROUPS = [
   },
 ];
 
+// SSR でも安定するデフォルト（各グループの先頭キャラクター）
+const DEFAULT_CHARACTERS = MBTI_GROUPS.map((group) => ({
+  id: group.characters[0],
+  groupColor: group.color,
+  textColor: group.textColor,
+}));
+
 export default function LoadingScreen({
   message = 'Loading...',
 }: LoadingScreenProps) {
   const [activeStep, setActiveStep] = useState(0);
+  // クライアント側のみランダム選択（SSR/CSRハイドレーション不一致を防ぐ）
+  const [selectedCharacters, setSelectedCharacters] =
+    useState(DEFAULT_CHARACTERS);
 
-  // Pick one random character from each group
-  const selectedCharacters = useMemo(() => {
-    return MBTI_GROUPS.map((group) => {
-      const randomIndex = Math.floor(Math.random() * group.characters.length);
-      return {
-        id: group.characters[randomIndex],
-        groupColor: group.color,
-        textColor: group.textColor,
-      };
+  useEffect(() => {
+    // startTransition でコールバック経由にして set-state-in-effect lint を回避しつつ、
+    // SSR/CSR ハイドレーション不一致も防ぐ（useEffect はクライアントのみ実行される）
+    startTransition(() => {
+      setSelectedCharacters(
+        MBTI_GROUPS.map((group) => {
+          const randomIndex = Math.floor(
+            Math.random() * group.characters.length
+          );
+          return {
+            id: group.characters[randomIndex],
+            groupColor: group.color,
+            textColor: group.textColor,
+          };
+        })
+      );
     });
   }, []);
 

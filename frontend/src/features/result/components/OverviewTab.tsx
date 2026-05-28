@@ -1,87 +1,101 @@
 'use client';
 
 import type { ResultResponse } from '../types';
-import RadarChart from './RadarChart';
+import BipolarSlider from './BipolarSlider';
 
 type OverviewTabProps = {
   data: ResultResponse;
 };
 
-// ギャップ率の計算（元コードのロジックを継承）
-function getGapRateDisplay(data: ResultResponse): string {
-  const { gaps } = data;
-  const maxAbsGap = Math.max(
-    Math.abs(gaps.caution),
-    Math.abs(gaps.calmness),
-    Math.abs(gaps.logic),
-    Math.abs(gaps.cooperativeness),
-    Math.abs(gaps.positivity)
-  );
-  return `${Math.min(100, Math.round(maxAbsGap))}%`;
+// ハイライト正規表現（BEが埋め込む数値 + 単位 / 『テキスト』引用）
+const HIGHLIGHT_NUM_RE = /(\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
+const HIGHLIGHT_QUOTE_RE = /(『[^』]+』)/g;
+const COMBINED_RE = /(『[^』]+』|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
+
+/**
+ * 解析コメントテキストを JSX に変換する。
+ * - 数値 + 単位 → マゼンタ大文字ハイライト（highlight-magenta）
+ * - 『引用』  → ブルー大文字ハイライト（highlight-blue）
+ */
+function renderComment(text: string): React.ReactNode {
+  const parts = text.split(COMBINED_RE);
+  return parts.map((part, i) => {
+    if (HIGHLIGHT_NUM_RE.test(part)) {
+      HIGHLIGHT_NUM_RE.lastIndex = 0; // reset stateful regex
+      return (
+        <span key={i} className="highlight-magenta">
+          {part}
+        </span>
+      );
+    }
+    if (HIGHLIGHT_QUOTE_RE.test(part)) {
+      HIGHLIGHT_QUOTE_RE.lastIndex = 0;
+      return (
+        <span key={i} className="highlight-blue">
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
 }
 
-// キーワード強調用の小コンポーネント
-const Highlight = ({
-  children,
-  color,
-}: {
-  children: React.ReactNode;
-  color: string;
-}) => (
-  <span
-    className={`${color} px-2 py-0.5 rounded-md font-black mx-1 inline-block shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]`}
-  >
-    {children}
-  </span>
-);
+// 5 軸の表示順（上から下）
+const AXES = [
+  'caution',
+  'calmness',
+  'logic',
+  'cooperativeness',
+  'positivity',
+] as const;
 
 export default function OverviewTab({ data }: OverviewTabProps) {
-  const gapRate = getGapRateDisplay(data);
-  const { feedback } = data;
+  const { feedback, scores, baseline_scores } = data;
 
   return (
-    <div className="grid gap-8 md:grid-cols-2 items-center h-full max-h-full">
-      {/* 左側：レーダーチャートのカード */}
-      {/* 修正ポイント：aspect-square と overflow-hidden で「飛び出し」を防止 */}
-      <div className="relative bg-white border-4 border-black rounded-[2.5rem] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center overflow-hidden h-full min-h-[350px]">
-        <div className="w-full h-full aspect-square max-h-[380px] relative">
-          <RadarChart
-            baselineScores={data.baseline_scores}
-            measuredScores={data.scores}
-          />
+    <div className="total-layout-reconstructed">
+      {/* ===== 左カラム：タイトル + サブタイトル + 解析コメント ===== */}
+      <div className="total-left-panel">
+        {/* タイトルステッカー ＋ サブタイトルを一体のポップアウトブロックとして配置 */}
+        <div className="title-subtitle-block">
+          <div className="type-main-title-sticker">
+            <h2 className="type-main-title">
+              <span className="orange-highlight">{feedback.title}</span>
+            </h2>
+          </div>
+          {feedback.subtitle && (
+            <div className="type-intro-label">{feedback.subtitle}</div>
+          )}
+        </div>
+
+        {/* 解析コメントボックス */}
+        <div className="comment-container-new">
+          <div className="comment-header-tag">解析コメント</div>
+          <div className="comment-body-text">
+            {renderComment(feedback.description)}
+          </div>
         </div>
       </div>
 
-      {/* 右側：フィードバックのカード */}
-      <div className="relative h-full">
-        {/* CHECK THIS OUT! ステッカー */}
-        <div className="absolute -top-5 -left-4 z-20 bg-[#e63946] text-white font-black px-5 py-2 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform -rotate-3 text-sm lg:text-base">
-          CHECK THIS OUT!
-        </div>
+      {/* ===== 右カラム：5 軸両極スライダー ===== */}
+      <div className="total-right-panel">
+        <span className="five-axis-headline">
+          あなたの５軸ポジション（本能＝実測）
+        </span>
+        <span className="five-axis-headline">
+          あなたのMBTIの目安
+          <span className="average-icon">▼</span>
+        </span>
 
-        {/* 黄色のカード本体 */}
-        <div className="bg-[#fffbeb] border-4 border-black rounded-[2.5rem] p-8 lg:p-10 shadow-[10px_10px_0px_0px_rgba(13,148,136,1)] h-full flex flex-col justify-center relative z-10 min-h-[350px]">
-          <h2 className="text-2xl lg:text-3xl font-black text-black mb-6 leading-tight">
-            <span className="text-[#8b5cf6] block text-xl lg:text-2xl mb-1">
-              理性と本能のギャップ:
-            </span>
-            <span className="text-6xl lg:text-7xl">{gapRate}</span>
-          </h2>
-
-          <div className="text-base lg:text-lg font-bold leading-relaxed text-gray-800 space-y-4">
-            <p>
-              あなたは
-              <Highlight color="bg-blue-100 text-blue-700">
-                『{feedback.gap_point}』
-              </Highlight>
-              を自認していますが、実際の行動は
-              <Highlight color="bg-pink-100 text-pink-700">直感</Highlight>
-              にドーンと振れています！
-            </p>
-
-            <p className="whitespace-pre-line">{feedback.description}</p>
-          </div>
-        </div>
+        {/* スライダー群 */}
+        {AXES.map((axis) => (
+          <BipolarSlider
+            key={axis}
+            axis={axis}
+            score={scores[axis]}
+            baselineScore={baseline_scores[axis]}
+          />
+        ))}
       </div>
     </div>
   );

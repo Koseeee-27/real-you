@@ -2,14 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, RefreshCw, Star, type LucideIcon } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import type { GameId, ResultResponse } from '../types';
 import { GAME_META } from '../data/gameMeta';
 import GameDetailTab from './GameDetailTab';
 import OverviewTab from './OverviewTab';
 import SharePanel from './SharePanel';
 
-type TabId = 'overview' | GameId;
+type Mode = 'overview' | 'detail';
 
 const SOUNDS = {
   BGM: '/sounds/result-bgm.mp3',
@@ -17,12 +17,40 @@ const SOUNDS = {
   RETAKE: '/sounds/start-se.mp3',
 };
 
-// overview タブはゲームではなく総合診断の表示なので個別に定義する。
-// ゲームタブは API レスポンスの `data.details` の順序から動的に構築する。
-const OVERVIEW_TAB: { id: 'overview'; label: string; icon: LucideIcon } = {
-  id: 'overview',
-  label: '総合診断',
-  icon: Activity,
+/** コニックグラデーション背景（HTML mockup 完全再現） */
+const CONIC_BG = `
+  radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 0%, transparent 60%),
+  conic-gradient(
+    from 180deg at 50% 50%,
+    #86efac 0deg 20deg,
+    #fff 20deg 23deg,
+    #fef08a 23deg 65deg,
+    #fff 65deg 68deg,
+    #e2b07e 68deg 105deg,
+    #fff 105deg 108deg,
+    #fef08a 108deg 150deg,
+    #fff 150deg 153deg,
+    #d8b4fe 153deg 180deg,
+    #fff 180deg 183deg,
+    #87ceeb 183deg 215deg,
+    #fff 215deg 218deg,
+    #fef08a 218deg 255deg,
+    #fff 255deg 258deg,
+    #f87171 258deg 295deg,
+    #fff 295deg 298deg,
+    #fef08a 298deg 335deg,
+    #fff 335deg 338deg,
+    #86efac 338deg 360deg
+  )
+`.trim();
+
+/** ゲーム色 → CSS クラス名のマッピング */
+const COLOR_TO_BTN_CLASS: Record<string, string> = {
+  '#ef4444': 'btn-red',
+  '#f97316': 'btn-orange',
+  '#22c55e': 'btn-green',
+  '#3b82f6': 'btn-blue',
+  '#4d85ff': 'btn-blue',
 };
 
 type ResultReportProps = {
@@ -31,39 +59,37 @@ type ResultReportProps = {
 
 export default function ResultReport({ data }: ResultReportProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [mode, setMode] = useState<Mode>('overview');
+  const [activeGameId, setActiveGameId] = useState<GameId | null>(
+    data.details[0]?.game_id ?? null
+  );
   const bgmRef = useRef<HTMLAudioElement | null>(null);
 
-  // game_id をキーに phase_summaries を引けるようにしておく。
-  // タブ切り替え時に都度 find() しないよう一度マップ化する。
-  const summaryByGameId = new Map(
-    data.phase_summaries.map((p) => [p.game_id, p.summary])
-  );
-
-  // SE再生用ヘルパー
+  // SE 再生ヘルパー
   const playSE = (path: string) => {
     const audio = new Audio(path);
     audio.volume = 0.5;
-    audio.play().catch((e) => console.warn('SE playback failed:', e));
+    audio.play().catch(() => {
+      /* 自動再生制限は無視 */
+    });
   };
 
-  // BGMの開始・停止管理
+  // BGM 管理
   useEffect(() => {
     const bgm = new Audio(SOUNDS.BGM);
     bgm.loop = true;
     bgm.volume = 0.3;
     bgmRef.current = bgm;
 
-    // ユーザーがブラウザで何かしら操作した後に再生されるようにする
     const startBGM = () => {
       bgm.play().catch(() => {
-        /* 自動再生制限用 */
+        /* 自動再生制限は無視 */
       });
       window.removeEventListener('click', startBGM);
     };
 
     window.addEventListener('click', startBGM);
-    startBGM(); // すでに操作済みなら即再生
+    startBGM();
 
     return () => {
       bgm.pause();
@@ -71,18 +97,26 @@ export default function ResultReport({ data }: ResultReportProps) {
     };
   }, []);
 
-  const handleTabChange = (tabId: TabId) => {
-    // 1. SEをロードして再生
-    const se = new Audio(SOUNDS.TAB_CLICK);
-    se.volume = 0.5;
-    se.play().catch(() => {
-      /* 自動再生制限などで失敗してもエラーを出さない */
-    });
-
-    // 2. タブを切り替える
-    setActiveTab(tabId);
+  // 詳細モードへ遷移
+  const handleGoDetail = () => {
+    playSE(SOUNDS.TAB_CLICK);
+    setMode('detail');
+    setActiveGameId(data.details[0]?.game_id ?? null);
   };
 
+  // 総合モードへ戻る
+  const handleGoOverview = () => {
+    playSE(SOUNDS.TAB_CLICK);
+    setMode('overview');
+  };
+
+  // ゲームタブ切り替え
+  const handleGameTab = (gameId: GameId) => {
+    playSE(SOUNDS.TAB_CLICK);
+    setActiveGameId(gameId);
+  };
+
+  // リトライ
   const handleRetake = useCallback(() => {
     playSE(SOUNDS.RETAKE);
     setTimeout(() => {
@@ -93,102 +127,155 @@ export default function ResultReport({ data }: ResultReportProps) {
     }, 500);
   }, [router]);
 
-  // タブ一覧（overview + 各ゲーム）。ゲームタブは details の並び順に従う。
-  // GAME_META に未登録の game_id（BE / FE の generated.ts が一時的にズレた場合等）が
-  // 含まれる可能性に備え、flatMap でスキップして安全側に倒す。
+  // ゲームタブリスト（details 配列の順序に従う）
   const gameTabs = data.details.flatMap((detail) => {
     const meta = GAME_META[detail.game_id];
     if (!meta) return [];
-    return [
-      {
-        id: detail.game_id,
-        label: meta.label,
-        icon: meta.icon,
-        color: meta.color,
-        detail,
-        summary: summaryByGameId.get(detail.game_id) ?? '',
-      },
-    ];
+    return [{ gameId: detail.game_id, meta, detail }];
   });
-  const activeGameTab = gameTabs.find((tab) => tab.id === activeTab);
+
+  const activeDetail =
+    gameTabs.find((t) => t.gameId === activeGameId)?.detail ?? null;
 
   return (
+    /* 外側：コニックグラデーション背景 */
     <div
-      //背景にトップ画面と同じパターンを利用
-      className="relative h-screen w-full overflow-hidden font-sans text-gray-800 flex flex-col items-center justify-center p-2 sm:p-4"
+      className="slide-container"
       style={{
-        backgroundImage: `
-          radial-gradient(circle, rgba(255,255,255,0.8) 1.5px, transparent 4px),
-          url('/images/bg-pattern.svg')
-        `,
-        backgroundSize: '16px 16px, cover',
-        backgroundPosition: '0 0, center',
-        backgroundRepeat: 'repeat, no-repeat',
+        background: CONIC_BG,
+        minHeight: '100vh',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px 35px',
+        position: 'relative',
       }}
     >
-      <header className="relative z-10 mb-8 text-center">
-        <div className="inline-block bg-white border-4 border-black px-8 py-3 rounded-full shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transform -rotate-1">
-          <h1 className="text-2xl sm:text-3xl font-black text-black flex items-center gap-3">
-            <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-            行動解析REPORT
-            <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-          </h1>
+      {/* アメコミ調ドットオーバーレイ */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          backgroundImage:
+            'radial-gradient(rgba(0,0,0,0.03) 2px, transparent 2px)',
+          backgroundSize: '16px 16px',
+          zIndex: 0,
+        }}
+      />
+
+      {/* メインカード */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          width: '100%',
+          maxWidth: 1100,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* ===== ホワイトカード ===== */}
+        <div
+          className="main-card"
+          style={
+            mode === 'detail'
+              ? {
+                  height: 'calc(100vh - 130px)',
+                  overflow: 'hidden',
+                  flexDirection: 'column',
+                }
+              : { flexDirection: 'column' }
+          }
+        >
+          {/* 詳細モード：ゲームタブナビ */}
+          {mode === 'detail' && (
+            <nav
+              className="game-nav-reconstructed"
+              style={{ marginTop: 0, marginBottom: 12 }}
+            >
+              {gameTabs.map(({ gameId, meta }) => {
+                const isActive = activeGameId === gameId;
+                const Icon = meta.icon;
+                const btnColorClass =
+                  COLOR_TO_BTN_CLASS[meta.color] ?? 'btn-blue';
+                return (
+                  <button
+                    key={gameId}
+                    type="button"
+                    onClick={() => handleGameTab(gameId)}
+                    className={`game-tab-btn${isActive ? ` active ${btnColorClass}` : ''}`}
+                  >
+                    <Icon
+                      style={{
+                        width: 14,
+                        height: 14,
+                        color: isActive ? '#fff' : meta.color,
+                      }}
+                    />
+                    {meta.label}
+                  </button>
+                );
+              })}
+            </nav>
+          )}
+
+          {/* コンテンツ */}
+          <div
+            style={mode === 'detail' ? { flex: 1, minHeight: 0 } : undefined}
+          >
+            {mode === 'overview' && <OverviewTab data={data} />}
+            {mode === 'detail' && activeDetail && (
+              <GameDetailTab
+                detail={activeDetail}
+                tabColor={
+                  activeGameId ? GAME_META[activeGameId]?.color : '#3b82f6'
+                }
+              />
+            )}
+          </div>
         </div>
-      </header>
 
-      <main className="relative z-10 w-full max-w-7xl flex flex-col max-h-[80vh]">
-        <nav className="flex px-2 lg:px-10 items-end h-10">
-          {[OVERVIEW_TAB, ...gameTabs].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
+        {/* ===== フッターボタン ===== */}
+        <div className="footer-actions-reconstructed">
+          {mode === 'overview' ? (
+            /* 総合結果モードのフッター */
+            <>
               <button
-                key={tab.id}
                 type="button"
-                onClick={() => handleTabChange(tab.id)}
-                className={`relative flex-1 py-3 px-1 mx-1 rounded-t-2xl font-black text-xs sm:text-base transition-all transform duration-200 border-x-4 border-t-4 border-black
-                  ${
-                    isActive
-                      ? 'bg-white text-black translate-y-0 z-10'
-                      : 'bg-gray-100 text-gray-500 translate-y-2 hover:translate-y-1'
-                  }`}
+                onClick={handleRetake}
+                className="btn-action-new"
               >
-                <div className="flex items-center justify-center gap-2">
-                  <Icon
-                    className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive ? 'text-purple-600' : 'text-gray-400'}`}
-                  />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.label.slice(0, 2)}</span>
-                </div>
+                <RefreshCw style={{ width: 16, height: 16 }} />
+                もう一度診断
               </button>
-            );
-          })}
-        </nav>
 
-        <div className="flex-1 bg-white border-4 border-black rounded-3xl rounded-tr-3xl shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] p-4 sm:p-8 min-h-125">
-          {activeTab === 'overview' && <OverviewTab data={data} />}
-          {activeGameTab && (
-            <GameDetailTab
-              detail={activeGameTab.detail}
-              comment={activeGameTab.summary}
-              tabColor={activeGameTab.color}
-            />
+              <button
+                type="button"
+                onClick={handleGoDetail}
+                className="btn-action-new btn-orange-grad"
+              >
+                詳細を見る →
+              </button>
+            </>
+          ) : (
+            /* 詳細モードのフッター */
+            <>
+              <button
+                type="button"
+                onClick={handleGoOverview}
+                className="btn-action-new"
+              >
+                ← 戻る
+              </button>
+
+              <SharePanel title={data.feedback.title} />
+            </>
           )}
         </div>
-
-        <div className="mt-4 flex flex-wrap justify-center gap-4">
-          <button
-            type="button"
-            onClick={handleRetake}
-            className="flex items-center justify-center h-12 min-w-[160px] px-6 bg-white border-4 border-black text-black rounded-full font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-0.5 hover:shadow-none transition-all text-sm sm:text-base"
-          >
-            <RefreshCw className="w-5 h-5 mr-2" />
-            もう一度診断
-          </button>
-
-          <SharePanel title={data.feedback.title} />
-        </div>
-      </main>
+      </div>
     </div>
   );
 }
