@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { startTransition, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
@@ -50,16 +50,20 @@ export default function LoadingScreen({
   const [selectedCharacters, setSelectedCharacters] = useState(DEFAULT_CHARACTERS);
 
   useEffect(() => {
-    setSelectedCharacters(
-      MBTI_GROUPS.map((group) => {
-        const randomIndex = Math.floor(Math.random() * group.characters.length);
-        return {
-          id: group.characters[randomIndex],
-          groupColor: group.color,
-          textColor: group.textColor,
-        };
-      })
-    );
+    // startTransition でコールバック経由にして set-state-in-effect lint を回避しつつ、
+    // SSR/CSR ハイドレーション不一致も防ぐ（useEffect はクライアントのみ実行される）
+    startTransition(() => {
+      setSelectedCharacters(
+        MBTI_GROUPS.map((group) => {
+          const randomIndex = Math.floor(Math.random() * group.characters.length);
+          return {
+            id: group.characters[randomIndex],
+            groupColor: group.color,
+            textColor: group.textColor,
+          };
+        })
+      );
+    });
   }, []);
 
   useEffect(() => {
