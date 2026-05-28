@@ -110,7 +110,7 @@ export default function MbtiSelect() {
   };
 
   return (
-    <div className="relative flex h-full w-full flex-1 flex-col items-center justify-center gap-3.5 py-2">
+    <div className="relative flex w-full flex-1 flex-col items-center justify-center gap-3.5 py-2">
       {/* ページタイトル（白 pill バナー・カード外） */}
       <h1 className="shrink-0 rounded-full border-4 border-gray-800 bg-white px-11 py-3 text-center text-3xl font-black text-gray-800 shadow-[0_4px_0_#1f2937]">
         あなたのMBTIを選んでね！
@@ -186,7 +186,7 @@ export default function MbtiSelect() {
                         alt={type.name}
                         width={160}
                         height={160}
-                        className="relative z-[1] max-h-full w-auto object-contain"
+                        className="relative z-[1] max-h-full w-auto max-w-full object-contain"
                       />
                     </div>
                     {/* MBTI コード + 名前 */}
