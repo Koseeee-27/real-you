@@ -74,7 +74,13 @@ export default function GameDetailTab({
             <div className="intro-explanation-section" style={{ flex: 1 }}>
               <div className="intro-explanation-section-row">
                 <div className="intro-title-row">{detail.title}</div>
-                <div className="intro-body-paragraph">{meta.description}</div>
+                <div className="intro-body-paragraph">
+                  {meta.description.split('\n').map((line, i) => (
+                    <p key={i} style={{ margin: '0 0 6px' }}>
+                      {line}
+                    </p>
+                  ))}
+                </div>
                 <div
                   className="measure-traits-badge-box"
                   style={{ color: tabColor }}
@@ -116,7 +122,7 @@ export default function GameDetailTab({
             <div className="comment-header-tag-detail">解析コメント</div>
             <div className="comment-body-text">
               {detail.analysis_comment.map((line, i) => (
-                <p key={i} style={{ margin: '0 0 4px' }}>
+                <p key={i} style={{ margin: '0 0 10px' }}>
                   {renderComment(line)}
                 </p>
               ))}
