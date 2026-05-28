@@ -76,3 +76,8 @@ CREATE INDEX idx_game_logs_game_type ON game_logs(game_type);
 -- ALTER TABLE analysis_results
 -- ADD COLUMN details JSONB NOT NULL DEFAULT '[]'::jsonb;
 
+-- DB 列名を API / scoreCalculator の用語（game_breakdown）に統一する。
+-- 実行後にバックエンドをデプロイすること（先にデプロイすると列名不一致で一時的にキャッシュが壊れる）。
+ALTER TABLE analysis_results
+  RENAME COLUMN game_contributions TO game_breakdown;
+
