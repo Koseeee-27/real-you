@@ -211,10 +211,12 @@ export default function ResultReport({ data }: ResultReportProps) {
                 もう一度診断
               </button>
 
+              <SharePanel title={data.feedback.title} userId={data.user_id} />
+
               <button
                 type="button"
                 onClick={handleGoDetail}
-                className="btn-action-new btn-orange-grad"
+                className="btn-action-new btn-orange-grad btn-primary-large"
               >
                 詳細を見る →
               </button>

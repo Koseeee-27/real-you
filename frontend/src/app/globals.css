@@ -102,7 +102,7 @@
   display: inline-block;
   width: fit-content;
   white-space: nowrap;
-  box-shadow: 3px 3px 0px #636262;
+  box-shadow: 6px 6px 0px #000;
 }
 
 .type-preface-label {
@@ -146,7 +146,6 @@
   background: #fffce8;
   padding: 16px 20px;
   position: relative;
-  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.05);
   border-left: 10px solid #f87171;
   margin-top: 100px;
   margin-left: 0px;
@@ -670,12 +669,12 @@
 }
 
 .footer-actions-reconstructed {
-  height: 60px;
+  min-height: 64px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px;
-  margin-top: 5px;
+  gap: 16px;
+  margin-top: 8px;
   position: relative;
   z-index: 5;
 }
@@ -706,4 +705,10 @@
   background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
   color: #fff;
   box-shadow: 4px 4px 0px #000;
+}
+
+.btn-action-new.btn-primary-large {
+  padding: 13px 52px;
+  font-size: 18px;
+  box-shadow: 6px 6px 0px #000;
 }
