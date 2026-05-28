@@ -61,8 +61,14 @@ export default function SorterGameFlow() {
   const [pendingData, setPendingData] = useState<SorterGameData | null>(null);
   const retryCountRef = useRef(0);
 
-  // BGM 管理（既存ゲームと同流儀）
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
+  // BGM 管理。オンボーディング〜カウントダウン中は共通 BGM、プレイ中は通常/速度2倍/停止の
+  // ゲーム BGM を流す。「いま鳴らすべき BGM」は下の reconciler effect が phase / isFrozen /
+  // isSpeedUp から一元決定し、activeBgmRef が現在再生中の要素を指す。
+  const commonBgmRef = useRef<HTMLAudioElement | null>(null);
+  const normalBgmRef = useRef<HTMLAudioElement | null>(null);
+  const speedUpBgmRef = useRef<HTMLAudioElement | null>(null);
+  const freezeBgmRef = useRef<HTMLAudioElement | null>(null);
+  const activeBgmRef = useRef<HTMLAudioElement | null>(null);
 
   // ベルトコンテナの実測幅。PackageItem の U 字経路アニメに渡す
   const beltContainerRef = useRef<HTMLDivElement | null>(null);
@@ -114,29 +120,41 @@ export default function SorterGameFlow() {
     audio.play().catch(() => {});
   }
 
-  // BGM の初期化と再生管理
+  // BGM の初期化と自動再生制限の解除。
   //
-  // `SORTER_AUDIO_PATHS.bgm` が空文字列（BGM 未決定）の場合は `new Audio()` を
-  // 生成せず、コンソールに 404 ノイズを残さない。BGM が決まったら定数に
-  // ファイル名を入れるだけで自動的に再生される。
+  // 共通 BGM (`bgmCommon`) と、ゲーム BGM の通常 (`bgmNormal`) / 速度2倍 (`bgmSpeedUp`) /
+  // 停止 (`bgmFreeze`) を用意する。パスが空文字列の側は `new Audio()` を生成せず 404 を出さない。
+  // 「どの BGM を鳴らすか」は下の reconciler effect が phase / isFrozen / isSpeedUp から決める。
+  // ここでは生成と、autoplay 制限の解除（最初のクリックで現在の active BGM を再生し直す）だけ行う。
   useEffect(() => {
-    if (!SORTER_AUDIO_PATHS.bgm) return;
-
-    const bgm = new Audio(SORTER_AUDIO_PATHS.bgm);
-    bgm.loop = true;
-    bgm.volume = 0.3;
-    bgmRef.current = bgm;
-
-    const playBGM = () => {
-      bgm.play().catch(() => {});
-      window.removeEventListener('click', playBGM);
+    const createBgm = (src: string, volume = 0.3): HTMLAudioElement => {
+      const audio = new Audio(src);
+      audio.loop = true;
+      audio.volume = volume;
+      return audio;
     };
-    window.addEventListener('click', playBGM);
-    playBGM();
+
+    const { bgmCommon, bgmNormal, bgmSpeedUp, bgmFreeze } = SORTER_AUDIO_PATHS;
+    // 共通 BGM はトップページ等と音量を揃える（0.4）
+    if (bgmCommon) commonBgmRef.current = createBgm(bgmCommon, 0.4);
+    if (bgmNormal) normalBgmRef.current = createBgm(bgmNormal);
+    if (bgmSpeedUp) speedUpBgmRef.current = createBgm(bgmSpeedUp);
+    if (bgmFreeze) freezeBgmRef.current = createBgm(bgmFreeze);
+
+    // 自動再生制限の解除: マウント直後の play() は弾かれることがあるため、最初のクリックで
+    // 「いま鳴らすべき BGM」(activeBgmRef、初期はオンボーディングの共通 BGM) を再生し直す。
+    const unlockPlay = () => {
+      activeBgmRef.current?.play().catch(() => {});
+      window.removeEventListener('click', unlockPlay);
+    };
+    window.addEventListener('click', unlockPlay);
 
     return () => {
-      bgm.pause();
-      window.removeEventListener('click', playBGM);
+      commonBgmRef.current?.pause();
+      normalBgmRef.current?.pause();
+      speedUpBgmRef.current?.pause();
+      freezeBgmRef.current?.pause();
+      window.removeEventListener('click', unlockPlay);
     };
   }, []);
 
@@ -196,10 +214,18 @@ export default function SorterGameFlow() {
     }
   }
 
+  // BGM を全系統まとめて停止する
+  function stopAllBgm() {
+    commonBgmRef.current?.pause();
+    normalBgmRef.current?.pause();
+    speedUpBgmRef.current?.pause();
+    freezeBgmRef.current?.pause();
+  }
+
   async function handleComplete(data: SorterGameData) {
     setPendingData(data);
     setSubmitStatus('loading');
-    bgmRef.current?.pause();
+    stopAllBgm();
     await submitSorterGame(data);
   }
 
@@ -216,14 +242,14 @@ export default function SorterGameFlow() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user_id');
     }
-    bgmRef.current?.pause();
+    stopAllBgm();
     router.push('/');
   }
 
   /** 結果画面の「次のゲームへ ▶」ボタンで次ゲーム（空気読み）に手動遷移する */
   function handleProceedToNext() {
     playSE(SORTER_AUDIO_PATHS.generalSE);
-    bgmRef.current?.pause();
+    stopAllBgm();
     router.push('/games/group-chat');
   }
 
@@ -251,6 +277,35 @@ export default function SorterGameFlow() {
     handlePackageOutflow,
     handleOnboardingStart,
   } = useSorterGame({ onComplete: handleComplete });
+
+  // 「いま鳴らすべき BGM」を phase / isFrozen / isSpeedUp から一元的に決めて1系統だけ再生する。
+  // 優先順位:
+  //   - オンボーディング〜カウントダウン中 … 共通 BGM（トップページ等と同じ）
+  //   - プレイ中の機械停止（isFrozen）      … 停止 BGM
+  //   - プレイ中の速度2倍（isSpeedUp）      … 2倍速 BGM
+  //   - プレイ中のそれ以外                  … 通常 BGM
+  //   - 終了（ended）                       … 無音（結果表示中は BGM を流さない）
+  // 切替は「前の要素を pause → 対象を play」。play は対象の現在位置から再生するため、
+  // 停止明けに base（通常/2倍速）へ戻るときは一時停止位置から自然に再開する。一方、初回再生となる
+  // 共通→通常 / 通常→2倍速 / base→停止 は要素の currentTime が 0 のままなので頭から鳴る。
+  // 対象が未設定（空文字列で Audio 未生成）なら null となり、その間は無音（graceful degrade）。
+  useEffect(() => {
+    const resolveTargetBgm = (): HTMLAudioElement | null => {
+      if (phase === 'onboarding' || phase === 'countdown') {
+        return commonBgmRef.current;
+      }
+      if (phase === 'ended') return null;
+      if (isFrozen) return freezeBgmRef.current;
+      if (isSpeedUp) return speedUpBgmRef.current;
+      return normalBgmRef.current;
+    };
+
+    const target = resolveTargetBgm();
+    if (activeBgmRef.current === target) return;
+    activeBgmRef.current?.pause();
+    activeBgmRef.current = target;
+    target?.play().catch(() => {});
+  }, [phase, isFrozen, isSpeedUp]);
 
   /**
    * belt レイヤーを前面化（z-30）すべきか。
