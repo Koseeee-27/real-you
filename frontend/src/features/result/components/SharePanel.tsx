@@ -2,22 +2,25 @@
 
 import { Share2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { SITE_URL } from '@/constants/site';
 
 type SharePanelProps = {
   title: string;
+  userId: string;
 };
 
-function buildShareText(title: string): string {
-  return `私の行動解析結果は「${title}」でした！\n#行動解析REPORT`;
+function buildShareText(title: string, userId: string): string {
+  const shareUrl = `${SITE_URL}/share/${userId}`;
+  return `私の行動解析結果は「${title}」でした！\n#行動解析REPORT\n${shareUrl}`;
 }
 
-export default function SharePanel({ title }: SharePanelProps) {
+export default function SharePanel({ title, userId }: SharePanelProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const text = buildShareText(title);
+  const text = buildShareText(title, userId);
 
   useEffect(() => {
     if (!open) return;
@@ -53,9 +56,9 @@ export default function SharePanel({ title }: SharePanelProps) {
     setOpen(false);
   };
 
-  // TODO: 本番URL確定後、LINE シェアに url パラメータを追加する
   const shareToLine = () => {
-    const params = new URLSearchParams({ text });
+    const shareUrl = `${SITE_URL}/share/${userId}`;
+    const params = new URLSearchParams({ text, url: shareUrl });
     window.open(
       `https://social-plugins.line.me/lineit/share?${params}`,
       '_blank',

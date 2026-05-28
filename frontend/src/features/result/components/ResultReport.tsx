@@ -17,33 +17,6 @@ const SOUNDS = {
   RETAKE: '/sounds/start-se.mp3',
 };
 
-/** コニックグラデーション背景（HTML mockup 完全再現） */
-const CONIC_BG = `
-  radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 0%, transparent 60%),
-  conic-gradient(
-    from 180deg at 50% 50%,
-    #86efac 0deg 20deg,
-    #fff 20deg 23deg,
-    #fef08a 23deg 65deg,
-    #fff 65deg 68deg,
-    #e2b07e 68deg 105deg,
-    #fff 105deg 108deg,
-    #fef08a 108deg 150deg,
-    #fff 150deg 153deg,
-    #d8b4fe 153deg 180deg,
-    #fff 180deg 183deg,
-    #87ceeb 183deg 215deg,
-    #fff 215deg 218deg,
-    #fef08a 218deg 255deg,
-    #fff 255deg 258deg,
-    #f87171 258deg 295deg,
-    #fff 295deg 298deg,
-    #fef08a 298deg 335deg,
-    #fff 335deg 338deg,
-    #86efac 338deg 360deg
-  )
-`.trim();
-
 /** ゲーム色 → CSS クラス名のマッピング */
 const COLOR_TO_BTN_CLASS: Record<string, string> = {
   '#ef4444': 'btn-red',
@@ -138,11 +111,10 @@ export default function ResultReport({ data }: ResultReportProps) {
     gameTabs.find((t) => t.gameId === activeGameId)?.detail ?? null;
 
   return (
-    /* 外側：コニックグラデーション背景 */
+    /* 外側：トップページと同じ SVG 水玉背景 */
     <div
-      className="slide-container"
+      className="slide-container bg-top-pattern"
       style={{
-        background: CONIC_BG,
         minHeight: '100vh',
         width: '100%',
         display: 'flex',
@@ -153,19 +125,6 @@ export default function ResultReport({ data }: ResultReportProps) {
         position: 'relative',
       }}
     >
-      {/* アメコミ調ドットオーバーレイ */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          pointerEvents: 'none',
-          backgroundImage:
-            'radial-gradient(rgba(0,0,0,0.03) 2px, transparent 2px)',
-          backgroundSize: '16px 16px',
-          zIndex: 0,
-        }}
-      />
-
       {/* メインカード */}
       <div
         style={{
@@ -252,10 +211,12 @@ export default function ResultReport({ data }: ResultReportProps) {
                 もう一度診断
               </button>
 
+              <SharePanel title={data.feedback.title} userId={data.user_id} />
+
               <button
                 type="button"
                 onClick={handleGoDetail}
-                className="btn-action-new btn-orange-grad"
+                className="btn-action-new btn-orange-grad btn-primary-large"
               >
                 詳細を見る →
               </button>
@@ -271,7 +232,7 @@ export default function ResultReport({ data }: ResultReportProps) {
                 ← 戻る
               </button>
 
-              <SharePanel title={data.feedback.title} />
+              <SharePanel title={data.feedback.title} userId={data.user_id} />
             </>
           )}
         </div>

@@ -95,14 +95,23 @@
 }
 
 .type-main-title-sticker {
-  background: #fff;
+  background: #fef08a;
   border: 5px solid #000;
   border-radius: 18px;
-  padding: 20px 24px;
+  padding: 8px 24px 16px;
   display: inline-block;
   width: fit-content;
   white-space: nowrap;
-  box-shadow: 3px 3px 0px #636262;
+  box-shadow: 6px 6px 0px #000;
+}
+
+.type-preface-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: #666;
+  text-align: center;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
 }
 
 .type-intro-label {
@@ -137,7 +146,7 @@
   background: #fffce8;
   padding: 16px 20px;
   position: relative;
-  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
   border-left: 10px solid #f87171;
   margin-top: 100px;
   margin-left: 0px;
@@ -172,14 +181,14 @@
 }
 
 .comment-body-text {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 800;
   color: #333;
   line-height: 1.8;
 }
 
 .comment-body-text span.highlight-blue {
-  font-size: 40px;
+  font-size: 30px;
   color: #4d85ff;
   background: #eff6ff;
   padding: 1px 4px;
@@ -188,7 +197,7 @@
 }
 
 .comment-body-text span.highlight-magenta {
-  font-size: 40px;
+  font-size: 30px;
   color: #db2777;
   background: #fdf2f8;
   padding: 1px 4px;
@@ -309,7 +318,7 @@
 }
 
 .badge-pct-under.active-orange {
-  color: #f87171;
+  color: #f97316;
 }
 
 .badge-pct-under.active-blue {
@@ -328,15 +337,13 @@
 }
 
 .mbti-badge-new.btn-orange {
-  background: #f87171;
+  background: #f97316;
   color: #fff;
-  box-shadow: 2px 2px 0px #000;
 }
 
 .mbti-badge-new.btn-blue {
   background: #4d85ff;
   color: #fff;
-  box-shadow: 2px 2px 0px #000;
 }
 
 .mbti-badge-new.btn-white {
@@ -453,16 +460,23 @@
   border: 3px solid #000;
   border-radius: 14px;
   width: 50%;
-  height: auto;
   min-height: 160px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: block;
   position: relative;
   margin-bottom: 12px;
   flex-shrink: 0;
   flex-grow: 0;
+  align-self: stretch;
+  overflow: hidden;
+}
+
+.screenshot-placeholder-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .sc-icon-camera {
@@ -497,7 +511,7 @@
 }
 
 .intro-title-row {
-  font-size: 30px;
+  font-size: 22px;
   margin-top: 5px;
   font-weight: 900;
   color: #000;
@@ -508,7 +522,7 @@
 }
 
 .intro-body-paragraph {
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 800;
   color: #333;
   line-height: 1.8;
@@ -622,9 +636,13 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  /* 全カード高さを完全統一（min-height では伸びて崩れるため固定値） */
+  height: 175px;
+  overflow: hidden;
 }
 
 .data-title {
+  font-size: 14px;
   font-weight: 900;
   color: #000;
   margin-bottom: 5px;
@@ -644,15 +662,20 @@
   border-radius: 10px;
   margin-top: 10px;
   color: #334155;
+  /* 行数が多いテキストを2行でクリップし、カード高さを一定に保つ */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .footer-actions-reconstructed {
-  height: 60px;
+  min-height: 64px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px;
-  margin-top: 5px;
+  gap: 16px;
+  margin-top: 8px;
   position: relative;
   z-index: 5;
 }
@@ -683,4 +706,10 @@
   background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
   color: #fff;
   box-shadow: 4px 4px 0px #000;
+}
+
+.btn-action-new.btn-primary-large {
+  padding: 13px 52px;
+  font-size: 18px;
+  box-shadow: 6px 6px 0px #000;
 }
