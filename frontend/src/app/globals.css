@@ -98,7 +98,7 @@
   background: #fef08a;
   border: 5px solid #000;
   border-radius: 18px;
-  padding: 20px 24px;
+  padding: 8px 24px 16px;
   display: inline-block;
   width: fit-content;
   white-space: nowrap;
@@ -106,12 +106,12 @@
 }
 
 .type-preface-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
-  color: #888;
+  color: #666;
   text-align: center;
-  letter-spacing: 0.08em;
-  margin-bottom: 6px;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
 }
 
 .type-intro-label {
