@@ -167,7 +167,6 @@ export default function TopPage() {
           {showExplosion && <SparklesExplosion />}
         </div>
 
-    
         {/* SlideModal に children 配列を渡す（SlideModal が children 配列を受け取る実装の前提） */}
         <SlideModal
           open={showHowToPlay}
@@ -176,7 +175,7 @@ export default function TopPage() {
           ariaLabel="あそびかた 説明"
           classNames={{
             // 背景画像をカード内に収める（切れないように contain 指定、真ん中に）
-            card: "relative bg-white overflow-hidden [&>*]:relative [&>*]:z-10",
+            card: 'relative bg-white overflow-hidden [&>*]:relative [&>*]:z-10',
           }}
         >
           {howToPlaySlides}
