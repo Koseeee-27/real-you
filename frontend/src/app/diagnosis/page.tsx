@@ -12,7 +12,7 @@ export default function DiagnosisPage() {
       className="flex min-h-screen w-full flex-col items-center justify-center p-4"
       style={diagnosisBackgroundStyle}
     >
-      <div className="flex w-full max-w-5xl flex-1 flex-col items-center justify-center">
+      <div className="flex w-full max-w-7xl flex-1 flex-col items-center justify-center">
         <DiagnosisFlow />
       </div>
     </div>
