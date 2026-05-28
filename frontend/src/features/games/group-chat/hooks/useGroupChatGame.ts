@@ -420,9 +420,18 @@ export function useGroupChatGame(options: {
         }
         clearAllPendingTimeouts();
 
+        // この「入力中」は回答後に差し込む純粋な演出であり、プレイヤーの判断中に
+        // 出た同期Aのタイピングではない。反応時間・hover変化などの計測値は上の
+        // `turn.turnId === 1` ブロックでクリック時点の状態から既に確定記録済みのため、
+        // 計測用 ref（t1TypingIndicatorShownAtRef / typingShownForHoverRef /
+        // hoverChoiceAtTypingRef）はここでは意図的に更新しない。
         // 同期A「入力中」をすぐ表示（クリック→自分の発言までの「間」を埋める）
         setTypingSpeakerId('colleague-a');
         setIsTypingIndicatorVisible(true);
+
+        // 無言系の選択肢では自分の発言を出さないので、その分の待ち時間も入れない
+        const userMessageDelay = userMessage ? T1_CATCHUP_USER_MESSAGE_MS : 0;
+
         // 同期A「私やりましょうか！」
         trackTimeout(() => {
           t1PreemptShownRef.current = true;
@@ -436,14 +445,12 @@ export function useGroupChatGame(options: {
         if (userMessage) {
           trackTimeout(() => {
             setChatMessages((prev) => [...prev, userMessage]);
-          }, T1_CATCHUP_TYPING_MS + T1_CATCHUP_USER_MESSAGE_MS);
+          }, T1_CATCHUP_TYPING_MS + userMessageDelay);
         }
         // ターン確定 → ターン2へ
         trackTimeout(
           () => finalizeTurn(selectedOptionId, reactionTimeMs, false),
-          T1_CATCHUP_TYPING_MS +
-            T1_CATCHUP_USER_MESSAGE_MS +
-            T1_CATCHUP_ADVANCE_MS
+          T1_CATCHUP_TYPING_MS + userMessageDelay + T1_CATCHUP_ADVANCE_MS
         );
         return;
       }
