@@ -119,6 +119,7 @@ export const resultService = {
             gap_coop: analysisResult.gaps.cooperativeness,
             gap_positive: analysisResult.gaps.positivity,
             feedback_title: analysisResult.feedback.title,
+            feedback_subtitle: analysisResult.feedback.subtitle,
             feedback_description: analysisResult.feedback.description,
             feedback_gap_point: analysisResult.feedback.gap_point,
             game_breakdown: analysisResult.game_breakdown,
@@ -173,6 +174,7 @@ export const resultService = {
             game_breakdown: cached.game_breakdown,
             feedback: {
                 title: cached.feedback_title,
+                subtitle: cached.feedback_subtitle,
                 description: cached.feedback_description,
                 gap_point: cached.feedback_gap_point,
             },

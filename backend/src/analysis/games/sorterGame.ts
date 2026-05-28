@@ -1,6 +1,6 @@
 import { SorterGameData, sorterGameDataSchema } from '../../schemas/games/sorterGame';
 import type { GameDetail } from '../../schemas/results';
-import { linear, linearInv } from '../scoreUtils';
+import { linear, linearInv, buildTopDeviationMetrics } from '../scoreUtils';
 
 /**
  * sorter_game の分析で使う閾値定数。
@@ -38,6 +38,12 @@ export type SorterGameAnalyzeResult = {
     avgHesitationMs: number;
     wrongSortRate: number;
     concentration: number;
+    /** 荷物1個あたりの平均判断時間（秒）。buildHighlights / feedbackGenerator で使用 */
+    avgHesitation: number;
+    /** 機械停止中のパニッククリック回数。buildHighlights / feedbackGenerator で使用 */
+    panicCount: number;
+    /** ルール変更後の適応時間（秒）。buildHighlights / feedbackGenerator で使用 */
+    adaptTime: number;
 };
 
 function analyze(data: SorterGameData | undefined): SorterGameAnalyzeResult {
@@ -47,6 +53,9 @@ function analyze(data: SorterGameData | undefined): SorterGameAnalyzeResult {
             avgHesitationMs: 0,
             wrongSortRate: 0,
             concentration: 0.5,
+            avgHesitation: 0,
+            panicCount: 0,
+            adaptTime: 0,
         };
 
     // --- 誤仕分け率 ---
@@ -113,6 +122,9 @@ function analyze(data: SorterGameData | undefined): SorterGameAnalyzeResult {
         avgHesitationMs: data.averageHesitationMs,
         wrongSortRate,
         concentration,
+        avgHesitation: data.averageHesitationMs / 1000,
+        panicCount: data.panicClickCount,
+        adaptTime: adaptMs / 1000,
     };
 }
 
@@ -132,7 +144,128 @@ function buildSummary(data: SorterGameData | undefined): string {
     return `${adaptText}${panicText}`;
 }
 
+function buildHighlights(data: SorterGameData | undefined, result: SorterGameAnalyzeResult) {
+    return [
+        {
+            text: `荷物1つを仕分けるまでの平均判断時間は${result.avgHesitation.toFixed(1)}秒。`,
+            comparison: '平均は約1.5秒',
+            reason: '判断の速さから〈慎重さ／積極性〉がわかるため',
+        },
+        {
+            text: `ルールが変わってから正しく仕分けできるまで${result.adaptTime.toFixed(1)}秒かかりました。`,
+            comparison: '平均は約5秒',
+            reason: '新ルールへの適応速度から〈論理性〉がわかるため',
+        },
+        {
+            text: `機械が止まっている間、${result.panicCount}回クリックしていました。`,
+            comparison: '平均は約3回',
+            reason: '操作できない状況での連打から〈冷静さ〉がわかるため',
+        },
+    ];
+    void data;
+}
+
+/** 荷物仕分けゲームの解析コメント（軸スコアの根拠を複数文で説明） */
+function buildAnalysisComment(data: SorterGameData, result: SorterGameAnalyzeResult): string[] {
+    const comments: string[] = [];
+
+    // 冷静さ（panicClickCount）
+    const panicCount = result.panicCount;
+    if (panicCount <= 2) {
+        comments.push(`システム障害の5秒間もクリックは${panicCount}回と落ち着いた対応。この冷静さが「冷静さ」の高スコアにつながっています。`);
+    } else if (panicCount > 4) {
+        comments.push(`システム障害中に${panicCount}回クリック（平均3回）。焦りが行動に表れ、「冷静さ」のスコアに影響しています。`);
+    } else {
+        comments.push(`システム障害中のクリックは${panicCount}回と平均的でした。`);
+    }
+
+    // 論理性（ruleChangeAdaptMs / adaptTime）
+    if (data.ruleChangeAdaptMs === null) {
+        comments.push(`ルール変更後も完全適応には至りませんでした。この行動が「論理性」のスコアに影響しています。`);
+    } else if (result.adaptTime < 4) {
+        comments.push(`ルール変更後わずか${result.adaptTime.toFixed(1)}秒で正解。素早い適応力が「論理性」の高スコアにつながっています。`);
+    } else if (result.adaptTime > 6) {
+        comments.push(`ルール変更後${result.adaptTime.toFixed(1)}秒間は旧ルールで動き続けました。切り替えに時間がかかり「論理性」のスコアに影響しています。`);
+    } else {
+        comments.push(`ルール変更への適応は${result.adaptTime.toFixed(1)}秒と平均的でした。`);
+    }
+
+    // 慎重さ（avgHesitation）
+    const avg = result.avgHesitation;
+    if (avg > 2.0) {
+        comments.push(`平均判断時間${avg.toFixed(1)}秒（平均1.5秒）。確認してから動く慎重さが「慎重さ」の高スコアにつながっています。`);
+    } else {
+        comments.push(`平均判断時間${avg.toFixed(1)}秒と素早い判断が続きました。テンポよく動く行動パターンが「慎重さ」のスコアに表れています。`);
+    }
+
+    // 積極性（avgHesitation — 慎重さと逆方向）
+    if (avg < 1.0) {
+        comments.push(`迷わずどんどん仕分けるスピード感が「積極性」の高スコアにつながっています。`);
+    } else if (avg > 2.0) {
+        comments.push(`じっくり確認するスタイルのため、「積極性」はやや控えめのスコアになっています。`);
+    }
+
+    return comments;
+}
+
+/** 荷物仕分けゲームの行動データカード用 褒め言葉マップ */
+const SORTER_PRAISE_MAP: Record<string, { above: string; below: string }> = {
+    '平均判断時間(ms)': {
+        above: '丁寧に確認してから動く慎重さが光る！確実性を重視する信頼できるタイプ。',
+        below: '瞬時に正解を掴む直感力が抜群！スピーディーに動ける行動力の持ち主。',
+    },
+    '誤仕分け率(%)': {
+        above: 'スピードを優先して果敢に挑む積極性がある！大胆に行動できるチャレンジャー。',
+        below: '高い正確性でこなす集中力が光る！プレッシャーの中でも精度を保てる実力派。',
+    },
+    '流出ミス(回)': {
+        above: '一つひとつに集中して向き合う丁寧さがある！深い集中力の持ち主。',
+        below: '全体を見渡しながら判断できる俯瞰力がある！マルチタスクが得意なタイプ。',
+    },
+    'パニッククリック(回)': {
+        above: '全力で解決しようとする熱意と行動力がある！諦めない粘り強さが武器。',
+        below: 'トラブルにも動じない冷静な判断力！どんな状況でも平常心を保てる強さがある。',
+    },
+    'ルール適応速度(ms)': {
+        above: '一度身についたルールを丁寧に守る一貫性がある！確実にこなす安定感が武器。',
+        below: '新ルールへの素早い切り替えが光る！柔軟な思考と高い学習能力の持ち主。',
+    },
+};
+
 function buildDetails(data: SorterGameData | undefined, result: SorterGameAnalyzeResult): GameDetail {
+    const metrics = [
+        {
+            label: '平均判断時間(ms)',
+            user: Math.round(result.avgHesitationMs),
+            average: 1500,
+            category: 'time',
+        },
+        {
+            label: '誤仕分け率(%)',
+            user: Math.round(result.wrongSortRate * 100),
+            average: 15,
+            category: 'sort',
+        },
+        {
+            label: '流出ミス(回)',
+            user: data?.outflowMissCount ?? 0,
+            average: 2,
+            category: 'sort',
+        },
+        {
+            label: 'パニッククリック(回)',
+            user: data?.panicClickCount ?? THRESHOLDS.panicClick.fallback,
+            average: 3,
+            category: 'input',
+        },
+        {
+            label: 'ルール適応速度(ms)',
+            user: data?.ruleChangeAdaptMs ?? THRESHOLDS.adaptMs.fallback,
+            average: 5000,
+            category: 'time',
+        },
+    ];
+
     return {
         game_id: sorterGameModule.id,
         title: sorterGameModule.title,
@@ -142,38 +275,9 @@ function buildDetails(data: SorterGameData | undefined, result: SorterGameAnalyz
             { axis: 'logic', name: '論理性', score: result.scores.logic },
             { axis: 'positivity', name: '積極性', score: result.scores.positivity },
         ],
-        metrics: [
-            {
-                label: '平均判断時間(ms)',
-                user: Math.round(result.avgHesitationMs),
-                average: 1500,
-                category: 'time',
-            },
-            {
-                label: '誤仕分け率(%)',
-                user: Math.round(result.wrongSortRate * 100),
-                average: 15,
-                category: 'sort',
-            },
-            {
-                label: '流出ミス(回)',
-                user: data?.outflowMissCount ?? 0,
-                average: 2,
-                category: 'sort',
-            },
-            {
-                label: 'パニッククリック(回)',
-                user: data?.panicClickCount ?? THRESHOLDS.panicClick.fallback,
-                average: 3,
-                category: 'input',
-            },
-            {
-                label: 'ルール適応速度(ms)',
-                user: data?.ruleChangeAdaptMs ?? THRESHOLDS.adaptMs.fallback,
-                average: 5000,
-                category: 'time',
-            },
-        ],
+        metrics,
+        analysis_comment: data ? buildAnalysisComment(data, result) : [],
+        top_deviation_metrics: buildTopDeviationMetrics(metrics, SORTER_PRAISE_MAP),
     };
 }
 
@@ -185,4 +289,6 @@ export const sorterGameModule = {
     buildSummary: (data: unknown) => buildSummary(data as SorterGameData | undefined),
     buildDetails: (data: unknown, result: unknown) =>
         buildDetails(data as SorterGameData | undefined, result as SorterGameAnalyzeResult),
+    buildHighlights: (data: unknown, result: unknown) =>
+        buildHighlights(data as SorterGameData | undefined, result as SorterGameAnalyzeResult),
 };

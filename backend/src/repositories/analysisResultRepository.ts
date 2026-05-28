@@ -23,6 +23,7 @@ export interface AnalysisResultRow {
     gap_positive: number;
     // フィードバック
     feedback_title: string;
+    feedback_subtitle: string;
     feedback_description: string;
     feedback_gap_point: string;
     // その他

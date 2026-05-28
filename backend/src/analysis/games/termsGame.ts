@@ -1,6 +1,6 @@
 import { TermsGameData, termsGameDataSchema } from '../../schemas/games/termsGame';
 import type { GameDetail } from '../../schemas/results';
-import { linear, linearInv, logNorm } from '../scoreUtils';
+import { linear, linearInv, logNorm, buildTopDeviationMetrics } from '../scoreUtils';
 
 /**
  * 利用規約ゲーム（terms_game）の分析モジュール。
@@ -26,13 +26,14 @@ import { linear, linearInv, logNorm } from '../scoreUtils';
  * - `scores`: Partial<BaselineScores> 相当。aggregator の入力としてそのまま使える。
  * 新ロジック導入により、評価対象を既存の3軸から5軸（cooperativeness, positivityを追加）へ拡張。
  * - 残りのフィールド: 要約・details で使う中間統計量。HCIモデルの算出結果を反映するため
- * `invalidButtonClickCount` と `randomToggleCount` を追加した。
+ * `invalidButtonClickCount`（Hawkes: 同意ボタン連打数）と `randomToggleCount`（MFPT: 経路逸脱数）を含む。
  */
 export type TermsGameAnalyzeResult = {
     scores: { caution: number; logic: number; calmness: number; cooperativeness: number; positivity: number };
-    changedCount: number;
     averageSpeed: number;
     reversalCount: number;
+    /** 規約画面の滞在時間（秒）。feedbackGenerator / buildHighlights で使用 */
+    totalTime: number;
     invalidButtonClickCount: number;
     randomToggleCount: number;
 };
@@ -307,7 +308,7 @@ function analyze(data: TermsGameData | undefined): TermsGameAnalyzeResult {
     if (!data) {
         return {
             scores: { caution: 50, logic: 50, calmness: 50, cooperativeness: 50, positivity: 50 },
-            changedCount: 0, averageSpeed: 0, reversalCount: 0, invalidButtonClickCount: 0, randomToggleCount: 0,
+            averageSpeed: 0, reversalCount: 0, totalTime: 0, invalidButtonClickCount: 0, randomToggleCount: 0,
         };
     }
 
@@ -366,11 +367,10 @@ function analyze(data: TermsGameData | undefined): TermsGameAnalyzeResult {
             cooperativeness: Math.max(0, Math.min(100, cooperativeness)), 
             positivity: Math.max(0, Math.min(100, positivity)) 
         },
-        changedCount: hick.finalChanges,
         averageSpeed: ddm.averageSpeed,
         reversalCount: ddm.reversalCount,
+        totalTime: data.totalTime ?? 0,
         invalidButtonClickCount,
-        // UI表示ように数値を丸めて返す
         randomToggleCount: Math.round(mfpt.pathDeviation),
     };
 }
@@ -396,14 +396,156 @@ function buildSummary(data: TermsGameData | undefined): string {
     return `規約を${speedText}、わずか${timeSec}秒で同意ボタンを押しました。${trapText}`;
 }
 
+/** 利用規約ゲームの行動ハイライト（結果画面の「なぜこのスコアか」カード用） */
+function buildHighlights(data: TermsGameData | undefined, result: TermsGameAnalyzeResult) {
+    const totalTime = data?.totalTime ?? 0;
+    const AVERAGE_READ_TIME = 15; // 秒
+    const readTimeText =
+        totalTime < AVERAGE_READ_TIME
+            ? `「同意する」ボタンを押すまで、規約をわずか${totalTime.toFixed(1)}秒しか見ませんでした。`
+            : `「同意する」ボタンを押すまで、規約を${totalTime.toFixed(1)}秒かけてじっくり読んでいました。`;
+
+    return [
+        {
+            text: readTimeText,
+            comparison: '平均は約15秒',
+            reason: '読む時間の長さから〈慎重さ・論理性〉がわかるため',
+        },
+        {
+            text: `同意ボタンに手を伸ばしてから押すまでの迷いは${((data?.agreeButtonHoverTimeMs ?? 0) / 1000).toFixed(1)}秒。`,
+            comparison: '平均は約1.2秒',
+            reason: 'クリック前の躊躇から〈大胆さ／慎重さ〉がわかるため',
+        },
+        {
+            text: `規約を上にスクロールして読み返した回数は${result.reversalCount}回。`,
+            comparison: '平均は2.1回',
+            reason: '読み返しの有無から〈慎重さ〉がわかるため',
+        },
+    ];
+}
+
+/** 利用規約ゲームの解析コメント（軸スコアの根拠を複数文で説明） */
+function buildAnalysisComment(data: TermsGameData, result: TermsGameAnalyzeResult): string[] {
+    const comments: string[] = [];
+    const totalTime = result.totalTime;
+    const ratio = (totalTime / 15).toFixed(1);
+
+    // 慎重さ
+    if (totalTime > 30) {
+        comments.push(`規約を${totalTime.toFixed(1)}秒かけて読み込みました（平均の約${ratio}倍）。この丁寧な読み込み行動が「慎重さ」の高評価につながっています。`);
+    } else if (totalTime >= 15) {
+        comments.push(`規約の滞在時間は${totalTime.toFixed(1)}秒と平均的でした。バランスよく確認する行動が「慎重さ」に反映されています。`);
+    } else {
+        comments.push(`規約をわずか${totalTime.toFixed(1)}秒で読み進めました。スピード重視の行動パターンが「慎重さ」のスコアに表れています。`);
+    }
+
+    // 冷静さ
+    const clickCount = data.popupStats?.clickCount ?? 0;
+    if (clickCount <= 2) {
+        comments.push(`ポップアップ出現時のクリックは${clickCount}回と最小限。落ち着いた対応が「冷静さ」の高スコアにつながっています。`);
+    } else if (clickCount > 3) {
+        comments.push(`ポップアップ出現時に${clickCount}回クリック（平均3回）。予期せぬ状況への反応が「冷静さ」のスコアに影響しています。`);
+    } else {
+        comments.push(`ポップアップへの対応は${clickCount}回と平均的でした。`);
+    }
+
+    // 論理性
+    if (data.hiddenInput === '確認済み') {
+        comments.push(`隠しフィールドにも気づき「確認済み」と記入。細部まで確認する行動が「論理性」の高評価につながっています。`);
+    } else if (result.reversalCount >= 3) {
+        comments.push(`規約を${result.reversalCount}回読み返すなど、徹底した確認行動が「論理性」の高スコアにつながっています。`);
+    } else {
+        comments.push(`読み返し${result.reversalCount}回と、流れを重視したテンポよい進め方が「論理性」のスコアに表れています。`);
+    }
+
+    return comments;
+}
+
+/** 利用規約ゲームの行動データカード用 褒め言葉マップ */
+const TERMS_PRAISE_MAP: Record<string, { above: string; below: string }> = {
+    '読了速度(px/s)': {
+        above: '情報を素早くスキャンできる！要点把握が得意な情報処理の達人。',
+        below: '一語一句じっくり読む丁寧さがある！テキストを大切にする知性の持ち主。',
+    },
+    '総滞在時間(秒)': {
+        above: '時間をかけてでも確実に読み込む粘り強さがある！細部を見逃さない知性の持ち主。',
+        below: '必要な情報を素早く見抜ける！切れ味鋭い情報処理の持ち主。',
+    },
+    '決断前迷い(ms)': {
+        above: '最後まで確認してから決断するリスク管理力が高い！',
+        below: '迷いのない決断力がある！自信を持って動けるタイプ。',
+    },
+    '逆行確認(回)': {
+        above: '念入りに読み返す確認力が高い！ミスを未然に防ぐ慎重さの持ち主。',
+        below: '一度で理解できる高い読解力がある！集中力と記憶力が優秀。',
+    },
+    'マウスブレ(px)': {
+        above: '細やかな反応力の持ち主！感受性が豊かで変化に敏感。',
+        below: '落ち着いた操作が示す安定したメンタル！プレッシャーに強い。',
+    },
+    '同意ボタン連打(回)': {
+        above: '確認したいことがあると積極的に押しに行ける行動力の持ち主。',
+        below: '焦らずに落ち着いて操作できる冷静さがある！パニックに強いタイプ。',
+    },
+    '無関係操作(回)': {
+        above: '様々なアクションを試す探索精神がある！諦めずに活路を見出すタイプ。',
+        below: '迷いなく最短ルートで問題を解決できる！論理的で無駄のない思考の持ち主。',
+    },
+};
+
 /**
  * 利用規約ゲームの行動データ + analyze 結果 → 結果画面 details 用の構造体。
  *
  * `feature_scores` / `metrics` の各値は仕様書「データ構造」→ `GameDetail` 準拠。
  * 新ロジックへの移行に伴い、表示対象のスコアを3軸から5軸へ拡張し、
- * トラップ・エラー操作のメトリクス（連打回数、無関係操作）を追加した。
+ * HCIモデル由来のメトリクス（同意ボタン連打・無関係操作）を追加した。
  */
 function buildDetails(data: TermsGameData | undefined, result: TermsGameAnalyzeResult): GameDetail {
+    const metrics = [
+        {
+            label: '読了速度(px/s)',
+            user: Math.round(result.averageSpeed ?? 0),
+            average: 800,
+            category: 'scroll',
+        },
+        {
+            label: '総滞在時間(秒)',
+            user: Number((data?.totalTime ?? 0).toFixed(1)),
+            average: 15.0,
+            category: 'time',
+        },
+        {
+            label: '決断前迷い(ms)',
+            user: data?.agreeButtonHoverTimeMs ?? 0,
+            average: 1200,
+            category: 'mouse',
+        },
+        {
+            label: '逆行確認(回)',
+            user: result.reversalCount ?? 0,
+            average: 2.1,
+            category: 'scroll',
+        },
+        {
+            label: 'マウスブレ(px)',
+            user: data?.popupStats?.mouseJitter ?? 0,
+            average: 12.0,
+            category: 'mouse',
+        },
+        {
+            label: '同意ボタン連打(回)',
+            user: result.invalidButtonClickCount ?? 0,
+            average: 0.5,
+            category: 'mouse',
+        },
+        {
+            label: '無関係操作(回)',
+            user: result.randomToggleCount ?? 0,
+            average: 0.2,
+            category: 'input',
+        },
+    ];
+
     return {
         game_id: termsGameModule.id,
         title: termsGameModule.title,
@@ -414,15 +556,9 @@ function buildDetails(data: TermsGameData | undefined, result: TermsGameAnalyzeR
             { axis: 'cooperativeness', name: '協調性', score: result.scores.cooperativeness },
             { axis: 'positivity', name: '積極性', score: result.scores.positivity },
         ],
-        metrics: [
-            { label: '読了速度(px/s)', user: Math.round(result.averageSpeed ?? 0), average: 800, category: 'scroll' },
-            { label: '総滞在時間(秒)', user: Number((data?.totalTime ?? 0).toFixed(1)), average: 15.0, category: 'time' },
-            { label: '決断前迷い(ms)', user: data?.agreeButtonHoverTimeMs ?? 0, average: 1200, category: 'mouse' },
-            { label: '逆行確認(回)', user: result.reversalCount ?? 0, average: 2.1, category: 'scroll' },
-            { label: 'マウスブレ(px)', user: data?.popupStats?.mouseJitter ?? 0, average: 12.0, category: 'mouse' },
-            { label: '同意ボタン連打(回)', user: result.invalidButtonClickCount ?? 0, average: 0.5, category: 'mouse' },
-            { label: '無関係操作(回)', user: result.randomToggleCount ?? 0, average: 0.2, category: 'input' },
-        ],
+        metrics,
+        analysis_comment: data ? buildAnalysisComment(data, result) : [],
+        top_deviation_metrics: buildTopDeviationMetrics(metrics, TERMS_PRAISE_MAP),
     };
 }
 
@@ -440,4 +576,6 @@ export const termsGameModule = {
     buildSummary: (data: unknown) => buildSummary(data as TermsGameData | undefined),
     buildDetails: (data: unknown, result: unknown) =>
         buildDetails(data as TermsGameData | undefined, result as TermsGameAnalyzeResult),
+    buildHighlights: (data: unknown, result: unknown) =>
+        buildHighlights(data as TermsGameData | undefined, result as TermsGameAnalyzeResult),
 };

@@ -1,6 +1,6 @@
 import { GroupChatGameData, groupChatGameDataSchema } from '../../schemas/games/groupChatGame';
 import type { GameDetail } from '../../schemas/results';
-import { linear, linearInv, logNorm } from '../scoreUtils';
+import { linear, linearInv, logNorm, buildTopDeviationMetrics } from '../scoreUtils';
 
 /**
  * 空気読みグループチャット（group_chat_game）の分析モジュール。
@@ -48,12 +48,19 @@ const WEIGHTS = {
 /**
  * `analyze()` の戻り値型。
  * `conformRate` / `avgReactionMs` / `timeoutRate` は buildDetails / buildSummary でも参照する。
+ * `answeredFirst` / `hoverChanged` / `avgReaction` は buildHighlights / feedbackGenerator で使用する。
  */
 export type GroupChatGameAnalyzeResult = {
     scores: { cooperativeness: number; positivity: number; caution: number };
     conformRate: number;
     avgReactionMs: number;
     timeoutRate: number;
+    /** ターン1で同期より先に回答したか */
+    answeredFirst: boolean;
+    /** 同期のタイピング後にホバー先が変わったか（null = データなし） */
+    hoverChanged: boolean | null;
+    /** 全ターンの平均反応時間（秒） */
+    avgReaction: number;
 };
 
 /**
@@ -66,6 +73,9 @@ function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResul
             conformRate: 0,
             avgReactionMs: THRESHOLDS.reactionMs.fallback,
             timeoutRate: 0,
+            answeredFirst: false,
+            hoverChanged: null,
+            avgReaction: THRESHOLDS.reactionMs.fallback / 1000,
         };
 
     const turns = data.turns;
@@ -169,7 +179,36 @@ function analyze(data: GroupChatGameData | undefined): GroupChatGameAnalyzeResul
         conformRate,
         avgReactionMs,
         timeoutRate,
+        answeredFirst: data.turn1AnsweredBeforeColleagueA === true,
+        hoverChanged: data.turn1HoverChangedAfterColleagueATyping,
+        avgReaction: avgReactionMs / 1000,
     };
+}
+
+/**
+ * 空気読みグループチャットの行動データ + analyze 結果 → 結果画面 highlights 用のカード配列。
+ */
+function buildHighlights(data: GroupChatGameData | undefined, result: GroupChatGameAnalyzeResult) {
+    void data;
+    const answeredFirst = result.answeredFirst;
+    const hoverChanged = result.hoverChanged ?? false;
+    return [
+        {
+            text: `同期が動き出す前に返答${answeredFirst ? 'できました' : 'できませんでした'}。`,
+            comparison: '全体の約40%が先手を取れています',
+            reason: '先手を取れるかから〈積極性〉がわかるため',
+        },
+        {
+            text: `他の人が動いたあと、選択肢への迷いが${hoverChanged ? 'ありました' : 'ありませんでした'}。`,
+            comparison: '全体の約60%が影響を受けています',
+            reason: '周囲の動きで意思が変わるかから〈協調性〉がわかるため',
+        },
+        {
+            text: `返答までの平均時間は${result.avgReaction.toFixed(1)}秒。`,
+            comparison: '平均は約3秒',
+            reason: '即断か熟考かから〈積極性・慎重さ〉がわかるため',
+        },
+    ];
 }
 
 /**
@@ -196,6 +235,59 @@ function buildSummary(data: GroupChatGameData | undefined): string {
     return `${socialText}、${speedText}`;
 }
 
+/** 空気読みグループチャットの解析コメント（軸スコアの根拠を複数文で説明） */
+function buildAnalysisComment(data: GroupChatGameData, result: GroupChatGameAnalyzeResult): string[] {
+    const comments: string[] = [];
+
+    // 積極性（answeredFirst）
+    if (result.answeredFirst) {
+        comments.push(`ターン1で同僚より先に回答。場の流れを待たず動く積極性が「積極性」の高スコアにつながっています。`);
+    } else if (data.turn1AnsweredBeforeColleagueA === null) {
+        comments.push(`タイムアウトにより先手行動の測定ができませんでした。`);
+    } else {
+        comments.push(`同僚の動きを確認してから回答するパターンが見られました。様子を見てから動く行動が「積極性」のスコアに表れています。`);
+    }
+
+    // 協調性（hoverChanged）
+    if (result.hoverChanged === true) {
+        comments.push(`同僚の入力中にホバー先を変えていました。周囲への反応が「協調性」の高スコアにつながっています。`);
+    } else if (result.hoverChanged === false) {
+        comments.push(`周囲の動きに左右されず最初の選択を維持。自分軸の強さが「協調性」のスコアに表れています。`);
+    }
+
+    // 慎重さ（avgReaction は秒単位）
+    const avgSec = result.avgReaction;
+    if (avgSec > 4.0) {
+        comments.push(`返答までの平均${avgSec.toFixed(1)}秒と、じっくり考えてから選ぶ行動が「慎重さ」に反映されています。`);
+    } else if (avgSec < 2.0) {
+        comments.push(`素早いテンポで返答が続きました。直感で動く行動パターンが「慎重さ」のスコアに表れています。`);
+    } else {
+        comments.push(`返答までの平均${avgSec.toFixed(1)}秒と、標準的なテンポで進みました。`);
+    }
+
+    return comments;
+}
+
+/** 空気読みグループチャットの行動データカード用 褒め言葉マップ */
+const GROUP_PRAISE_MAP: Record<string, { above: string; below: string }> = {
+    '同調率(%)': {
+        above: '場の雰囲気を自然に読み取れる！チームワークを大切にする協力的なタイプ。',
+        below: '周りに流されない自分軸を持っている！自立した判断力が光る。',
+    },
+    '反応時間平均(ms)': {
+        above: 'じっくり考えてから発言する思慮深さがある！言葉を大切にする誠実なコミュニケーター。',
+        below: 'テンポよく会話に参加できる！コミュニケーション力が高く場が盛り上がる存在。',
+    },
+    'タイムアウト率(%)': {
+        above: '慎重に考えるあまり迷ってしまうことも。それだけ真剣に向き合っている証拠。',
+        below: '時間内に判断できる決断力がある！プレッシャーの中でも動ける実力派。',
+    },
+    '先回り回答': {
+        above: '場の先頭に立って動ける行動力がある！リーダーシップを自然に発揮できるタイプ。',
+        below: '周りの状況を把握してから動く観察力がある！場の空気を読む感受性の高い持ち主。',
+    },
+};
+
 /**
  * 空気読みグループチャットの行動データ + analyze 結果 → 結果画面 details 用の構造体。
  */
@@ -203,6 +295,33 @@ function buildDetails(
     data: GroupChatGameData | undefined,
     result: GroupChatGameAnalyzeResult,
 ): GameDetail {
+    const metrics = [
+        {
+            label: '同調率(%)',
+            user: Math.round(result.conformRate * 100),
+            average: 67,
+            category: 'social',
+        },
+        {
+            label: '反応時間平均(ms)',
+            user: Math.round(result.avgReactionMs),
+            average: 3500,
+            category: 'time',
+        },
+        {
+            label: 'タイムアウト率(%)',
+            user: Math.round(result.timeoutRate * 100),
+            average: 10,
+            category: 'input',
+        },
+        {
+            label: '先回り回答',
+            user: data?.turn1AnsweredBeforeColleagueA === true ? 1 : 0,
+            average: 0.5,
+            category: 'social',
+        },
+    ];
+
     return {
         game_id: groupChatGameModule.id,
         title: groupChatGameModule.title,
@@ -211,32 +330,9 @@ function buildDetails(
             { axis: 'positivity',      name: '積極性', score: result.scores.positivity },
             { axis: 'caution',         name: '慎重さ', score: result.scores.caution },
         ],
-        metrics: [
-            {
-                label: '同調率(%)',
-                user: Math.round(result.conformRate * 100),
-                average: 67,
-                category: 'social',
-            },
-            {
-                label: '反応時間平均(ms)',
-                user: Math.round(result.avgReactionMs),
-                average: 3500,
-                category: 'time',
-            },
-            {
-                label: 'タイムアウト率(%)',
-                user: Math.round(result.timeoutRate * 100),
-                average: 10,
-                category: 'input',
-            },
-            {
-                label: '先回り回答',
-                user: data?.turn1AnsweredBeforeColleagueA === true ? 1 : 0,
-                average: 0.5,
-                category: 'social',
-            },
-        ],
+        metrics,
+        analysis_comment: data ? buildAnalysisComment(data, result) : [],
+        top_deviation_metrics: buildTopDeviationMetrics(metrics, GROUP_PRAISE_MAP),
     };
 }
 
@@ -253,4 +349,6 @@ export const groupChatGameModule = {
     buildSummary: (data: unknown) => buildSummary(data as GroupChatGameData | undefined),
     buildDetails: (data: unknown, result: unknown) =>
         buildDetails(data as GroupChatGameData | undefined, result as GroupChatGameAnalyzeResult),
+    buildHighlights: (data: unknown, result: unknown) =>
+        buildHighlights(data as GroupChatGameData | undefined, result as GroupChatGameAnalyzeResult),
 };
