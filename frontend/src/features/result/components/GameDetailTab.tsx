@@ -122,12 +122,18 @@ export default function GameDetailTab({
             <div className="comment-header-tag-detail">解析コメント</div>
             <div className="comment-body-text">
               {detail.analysis_comment.map((line, i) => {
-                const sentences = line.split('。').filter((s) => s.trim());
+                const sentences = line
+                  .split(/(。|！|？)/)
+                  .reduce<string[]>((acc, s) => {
+                    if (/^[。！？]$/.test(s)) acc[acc.length - 1] += s;
+                    else if (s.trim()) acc.push(s);
+                    return acc;
+                  }, []);
                 return (
                   <p key={i} style={{ margin: '0 0 10px' }}>
                     {sentences.map((sentence, j) => (
                       <span key={j}>
-                        {renderComment(sentence + '。')}
+                        {renderComment(sentence)}
                         {j < sentences.length - 1 && <br />}
                       </span>
                     ))}

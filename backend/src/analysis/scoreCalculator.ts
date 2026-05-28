@@ -1,11 +1,11 @@
-import type { GameId } from "../schemas/results";
-import { BaselineScores } from "../types";
-import { aggregateScores } from "./aggregator";
-import { generateFeedback } from "./feedbackGenerator";
-import { GAME_MODULES, NORMAL_FLOW } from "./registry";
-import { safeScore } from "./scoreUtils";
-import type { SorterGameAnalyzeResult } from "./games/sorterGame";
-import type { TermsGameAnalyzeResult } from "./games/termsGame";
+import type { GameId } from '../schemas/results';
+import { BaselineScores } from '../types';
+import { aggregateScores } from './aggregator';
+import { generateFeedback } from './feedbackGenerator';
+import { GAME_MODULES, NORMAL_FLOW } from './registry';
+import { safeScore } from './scoreUtils';
+import type { SorterGameAnalyzeResult } from './games/sorterGame';
+import type { TermsGameAnalyzeResult } from './games/termsGame';
 
 /**
  * 結果レスポンスを組み立てる薄い統合層（Issue #102 で縮小）。
