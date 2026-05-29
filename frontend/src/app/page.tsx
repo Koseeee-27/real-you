@@ -197,7 +197,7 @@ export default function TopPage() {
           alt=""
           width={100}
           height={100}
-          className="absolute bottom-8 left-50 w-65 rotate-[-10deg]"
+          className="absolute bottom-8 left-50 w-65 rotate-[-10deg] pointer-events-none"
           style={{
             filter: `
             drop-shadow(5px 0 0 white)
