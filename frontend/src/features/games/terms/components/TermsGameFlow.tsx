@@ -12,6 +12,7 @@ import type {
   TermsCheckboxEvent,
 } from '@/features/games/types';
 import { termsGameDataAtom } from '@/stores/games';
+import { useSe } from '@/components/audio/useSe';
 import PopupAd from './PopupAd';
 import PopupTerms from './PopupTerms';
 import ErrorDialog from './ErrorDialog';
@@ -36,6 +37,7 @@ const DISAGREE_DIALOG_MESSAGE = '先に進むには、規約への同意が必�
 export default function TermsGameFlow() {
   const router = useRouter();
   const setTermsGameData = useSetAtom(termsGameDataAtom);
+  const playSe = useSe();
 
   const [checkboxStates, setCheckboxStates] = useState({
     readConfirm: false,
@@ -145,9 +147,7 @@ export default function TermsGameFlow() {
       key: 'readConfirm' | 'mailMagazine' | 'thirdPartyShare',
       checked: boolean
     ) => {
-      const se = new Audio('/sounds/check-box-se.mp3');
-      se.volume = 0.4;
-      se.play().catch(() => {});
+      playSe('checkbox');
       checkboxChangedRef.current[key] = true;
       setCheckboxStates((prev) => ({ ...prev, [key]: checked }));
 
@@ -161,7 +161,7 @@ export default function TermsGameFlow() {
       // エラー後のチェックボックス操作はクリックストリームにも記録する
       if (afterError) recordPostErrorClick('checkbox');
     },
-    [getElapsedMs, recordPostErrorClick]
+    [getElapsedMs, recordPostErrorClick, playSe]
   );
 
   const handleHiddenInputChange = useCallback((value: string) => {
@@ -239,8 +239,7 @@ export default function TermsGameFlow() {
 
   const handleAction = useCallback(
     (action: 'agree' | 'disagree') => {
-      const se = new Audio('/sounds/general-button-se.mp3');
-      se.play().catch(() => {});
+      playSe('buttonClick');
 
       // 「同意しない」: 遷移せず、押した事実を保持して同意を促す案内ダイアログを表示。
       // 一度でも押されたら finalAction は最終的に 'disagree' に確定する（後述の遷移処理参照）。
@@ -285,6 +284,7 @@ export default function TermsGameFlow() {
       buildTermsGameData,
       setTermsGameData,
       router,
+      playSe,
     ]
   );
 

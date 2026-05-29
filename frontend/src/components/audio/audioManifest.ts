@@ -53,3 +53,27 @@ export const BGM_BY_ROUTE: Record<string, BgmKey | undefined> = {
 export function resolveBgmKey(pathname: string): BgmKey | null {
   return BGM_BY_ROUTE[pathname] ?? null;
 }
+
+/**
+ * SE（効果音）の真実の単一ソース。ワンショットで鳴らす効果音を集約する。
+ * 実際の再生音量は baseVolume × ユーザー設定音量（seVolumeAtom）で算出する。
+ *
+ * baseVolume は共通基盤導入前に各ページでハードコードされていた volume 値を集約したもの。
+ * （general-button-se は 0.5、check-box-se は 0.4 が大半。start-se は 0.5 に統一）
+ */
+export type SeDef = {
+  src: string;
+  /** 効果音ごとの基準音量（0〜1） */
+  baseVolume: number;
+};
+
+export const SE_MANIFEST = {
+  // 汎用ボタンクリック音。
+  buttonClick: { src: '/sounds/general-button-se.mp3', baseVolume: 0.5 },
+  // スタート / もう一度診断などの開始音。
+  start: { src: '/sounds/start-se.mp3', baseVolume: 0.5 },
+  // チェックボックス操作音。
+  checkbox: { src: '/sounds/check-box-se.mp3', baseVolume: 0.4 },
+} as const satisfies Record<string, SeDef>;
+
+export type SeKey = keyof typeof SE_MANIFEST;

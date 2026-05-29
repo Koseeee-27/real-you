@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { howToPlaySlides } from '@/features/top/components/HowToPlayModal';
 import SlideModal from '@/components/common/SlideModal';
+import { useSe } from '@/components/audio/useSe';
 
 // --- まる爆発アニメーションコンポーネント ---
 const SparklesExplosion = () => {
@@ -61,15 +62,14 @@ const SparklesExplosion = () => {
 // --- メインのトップページコンポーネント ---
 export default function TopPage() {
   const router = useRouter();
+  const playSe = useSe();
   const [showExplosion, setShowExplosion] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   const handleStartClick = () => {
     setShowExplosion(true);
 
-    // SEの再生（パスを修正）
-    const audio = new Audio('/sounds/start-se.mp3');
-    audio.play().catch(() => {});
+    playSe('start');
 
     setTimeout(() => {
       router.push('/games/terms');

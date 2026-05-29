@@ -11,6 +11,7 @@ import {
 } from '@/lib/api/error';
 import ErrorScreen from '@/components/common/ErrorScreen';
 import { useBgmOverride } from '@/components/audio/useBgmOverride';
+import { useSe } from '@/components/audio/useSe';
 import type { BgmKey } from '@/components/audio/audioManifest';
 import { GROUP_HEADER, GROUP_MEMBER_COUNT } from '../data/turns';
 import type { OptionIntentId } from '../data/turns';
@@ -22,8 +23,6 @@ import TurnCutinOverlay from './TurnCutinOverlay';
 import ChatTimeline from './ChatTimeline';
 import ChoicePad from './ChoicePad';
 import GroupChatEndedOverlay from './GroupChatEndedOverlay';
-
-const SE_PATH = '/sounds/general-button-se.mp3';
 
 type SubmitStatus = 'loading' | 'success' | 'error';
 
@@ -50,11 +49,7 @@ export default function GroupChatGameFlow() {
   // 次画面遷移用 setTimeout の ID。unmount 時の cleanup と再スケジュールに使う。
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const playSE = useCallback((path: string) => {
-    const audio = new Audio(path);
-    audio.volume = 0.5;
-    audio.play().catch(() => {});
-  }, []);
+  const playSe = useSe();
 
   const scheduleRedirect = useCallback(
     (path: string) => {
@@ -130,20 +125,20 @@ export default function GroupChatGameFlow() {
   );
 
   const handleRetry = useCallback(async () => {
-    playSE(SE_PATH);
+    playSe('buttonClick');
     const data = pendingDataRef.current;
     if (!data) return;
     retryCountRef.current += 1;
     setSubmitStatus('loading');
     await submitGroupChatGame(data);
-  }, [submitGroupChatGame, playSE]);
+  }, [submitGroupChatGame, playSe]);
 
   const handleGoTop = useCallback(() => {
-    playSE(SE_PATH);
+    playSe('buttonClick');
     // 古い user_id を握ったままだと同じエラーで詰むため掃除する（他画面と同流儀）。
     if (typeof window !== 'undefined') localStorage.removeItem('user_id');
     router.push('/');
-  }, [playSE, router]);
+  }, [playSe, router]);
 
   const {
     gamePhase,
@@ -175,16 +170,16 @@ export default function GroupChatGameFlow() {
 
   // SE を鳴らすようにラップ
   const startGame = useCallback(() => {
-    playSE(SE_PATH);
+    playSe('buttonClick');
     rawStartGame();
-  }, [rawStartGame, playSE]);
+  }, [rawStartGame, playSe]);
 
   const selectOption = useCallback(
     (id: OptionIntentId) => {
-      playSE(SE_PATH);
+      playSe('buttonClick');
       rawSelectOption(id);
     },
-    [rawSelectOption, playSE]
+    [rawSelectOption, playSe]
   );
 
   return (

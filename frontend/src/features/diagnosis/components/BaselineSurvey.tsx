@@ -19,6 +19,7 @@ import {
   isApiClientError,
   isRestartCode,
 } from '@/lib/api/error';
+import { useSe } from '@/components/audio/useSe';
 
 type Status = 'answering' | 'loading' | 'error' | 'success';
 
@@ -34,12 +35,7 @@ export default function BaselineSurvey() {
   const router = useRouter();
   const mbti = useAtomValue(mbtiAtom);
   const termsGameData = useAtomValue(termsGameDataAtom);
-
-  const playSE = useCallback((path: string) => {
-    const audio = new Audio(path);
-    audio.volume = 0.5;
-    audio.play().catch(() => {});
-  }, []);
+  const playSe = useSe();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<
@@ -112,7 +108,7 @@ export default function BaselineSurvey() {
   const handleAnswer = (value: AnswerOption) => {
     const newAnswers = { ...answers, [currentQuestion.key]: value };
     setAnswers(newAnswers);
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
 
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex((prev) => prev + 1);
@@ -122,13 +118,13 @@ export default function BaselineSurvey() {
   };
 
   const handleRetry = () => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     retryCountRef.current += 1;
     submitToApi(answers as BaselineAnswers);
   };
 
   const handleGoTop = () => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     // RESTART_CODES（user_not_found / invalid_user_id 等）でトップに戻すケースでは、
     // 古い user_id を握ったまま再開しても同じエラーで詰むため localStorage を掃除する。
     // ResultPage.tsx の handleGoTop と挙動を揃えている。

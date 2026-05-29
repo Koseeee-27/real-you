@@ -1,11 +1,12 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSetAtom } from 'jotai';
 import { mbtiAtom, diagnosisStepAtom } from '@/stores/diagnosis';
 import { MBTI_TYPES, MBTI_GROUPS, type MbtiType } from '@/constants/mbti';
+import { useSe } from '@/components/audio/useSe';
 
 // タブ・カード・モーダルで共有するジャンル色（分析家 / 外交官 / 番人 / 探検家）
 const GROUP_COLORS = [
@@ -33,12 +34,7 @@ export default function MbtiSelect() {
   const [groupIndex, setGroupIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
-
-  const playSE = useCallback((path: string) => {
-    const audio = new Audio(path);
-    audio.volume = 0.5;
-    audio.play().catch(() => {});
-  }, []);
+  const playSe = useSe();
 
   const currentGroup = MBTI_GROUPS[groupIndex];
   const currentTypes = getTypesByGroup(currentGroup);
@@ -50,38 +46,38 @@ export default function MbtiSelect() {
     if (index === groupIndex) return;
     setGroupIndex(index);
     setSelected(null);
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
   };
 
   const handleSelectType = (code: string) => {
     setSelected(code);
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
   };
 
   const handleReselect = () => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     setSelected(null);
   };
 
   const handleConfirm = () => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     if (!selected) return;
     setMbti(selected);
     setStep('quiz');
   };
 
   const openSkip = () => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     setSkipModalOpen(true);
   };
 
   const cancelSkip = () => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     setSkipModalOpen(false);
   };
 
   const confirmSkip = () => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     setMbti(null);
     setStep('quiz');
   };

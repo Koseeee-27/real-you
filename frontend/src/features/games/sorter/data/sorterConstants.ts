@@ -331,19 +331,3 @@ export const RULE_CHANGE_PAIRS: ReadonlyArray<{
 }> = PACKAGE_TYPES.filter(
   (type) => RULE_CHANGED_CORRECT_BIN[type] !== type
 ).map((type) => ({ from: type, to: RULE_CHANGED_CORRECT_BIN[type] }));
-
-// ========================================
-// 音声
-// ========================================
-
-/**
- * SE のパス。
- *
- * BGM は共通基盤（audioManifest）で管理するため、ここでは扱わない。
- * 仕分けゲーム専用の曲は sorterNormal / sorterSpeedUp / sorterFreeze。
- * オンボーディング中はトップ / MBTI 選択 / 規約画面と共通の `start` キーを使う
- * （`start` は仕分け固有ではなく全画面共通のキー）。
- */
-export const SORTER_AUDIO_PATHS = {
-  generalSE: '/sounds/general-button-se.mp3',
-} as const;
