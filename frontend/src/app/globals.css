@@ -282,6 +282,45 @@
   margin-bottom: 8px;
 }
 
+/* 解析コメント切替タブナビ */
+.comment-tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.comment-tab-btn {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 2px solid #d1d5db;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1.6;
+}
+
+.comment-tab-btn:hover {
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.comment-tab-btn.active {
+  background: #f87171;
+  border-color: #f87171;
+  color: #fff;
+}
+
+/* 総合コメント・ゲーム別コメント共通段落 */
+.comment-sentence-block {
+  margin: 0 0 8px;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
 .comment-header-tag-detail {
   font-size: 14px;
   font-weight: 900;
@@ -290,14 +329,14 @@
 }
 
 .comment-body-text {
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
   color: #333;
-  line-height: 1.8;
+  line-height: 1.85;
 }
 
 .comment-body-text span.highlight-blue {
-  font-size: 30px;
+  font-size: 1em;
   color: #4d85ff;
   background: #eff6ff;
   padding: 1px 4px;
@@ -306,7 +345,7 @@
 }
 
 .comment-body-text span.highlight-magenta {
-  font-size: 30px;
+  font-size: 1em;
   color: #db2777;
   background: #fdf2f8;
   padding: 1px 4px;
@@ -321,11 +360,11 @@
 }
 
 .comment-container-detail .comment-body-text span.highlight-blue {
-  font-size: 20px;
+  font-size: 1em;
 }
 
 .comment-container-detail .comment-body-text span.highlight-magenta {
-  font-size: 20px;
+  font-size: 1em;
 }
 
 .total-right-panel {
