@@ -29,8 +29,7 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
                 return [
                     `あなたの自己認識一致度は${accuracy}%。`,
                     '「もっと大胆に動ける」と思っていたかもしれません。',
-                    `でも規約ゲームで、あなたは平均の${ratio}倍の時間をかけて読んでいました。`,
-                    'その慎重さは、意識していないところで顔を出しています。',
+                    `でも規約ゲームで、あなたは平均の${ratio}倍の時間をかけて読んでいました。その慎重さは、意識していないところで顔を出しています。`,
                 ].join('\n');
             },
         },
@@ -42,9 +41,8 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
                     totalTime !== undefined ? `${totalTime.toFixed(1)}` : '？';
                 return [
                     `あなたの自己認識一致度は${accuracy}%。`,
-                    '「慎重に考えてから動く」つもりだったかもしれません。',
-                    `でも規約ゲームで、あなたはわずか${time}秒で同意ボタンを押していました。`,
-                    '考える前に体が動く、それがあなたの本能です。',
+                    '「慎重に動く」つもりだったかもしれません。',
+                    `でも規約ゲームで、あなたはわずか${time}秒で同意ボタンを押していました。考える前に体が動く、それがあなたの本能です。`,
                 ].join('\n');
             },
         },
@@ -58,8 +56,7 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
                 return [
                     `あなたの自己認識一致度は${accuracy}%。`,
                     '「感情が出やすい」と思っていたかもしれません。',
-                    'でも仕分けゲームで機械が止まった3秒間、',
-                    `あなたのクリック数は${count}回でした。平均は約3回です。`,
+                    `でも仕分けゲームで機械が止まった3秒間、あなたのクリック数は${count}回でした。平均は約3回です。`,
                 ].join('\n');
             },
         },
@@ -71,8 +68,7 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
                 return [
                     `あなたの自己認識一致度は${accuracy}%。`,
                     '「冷静に対処できる」と思っていたかもしれません。',
-                    'でも仕分けゲームで機械が止まった3秒間、',
-                    `あなたは${count}回クリックしていました。その焦りがデータに残っています。`,
+                    `でも仕分けゲームで機械が止まった3秒間、あなたは${count}回クリックしていました。その焦りがデータに残っています。`,
                 ].join('\n');
             },
         },
@@ -87,8 +83,7 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
                 return [
                     `あなたの自己認識一致度は${accuracy}%。`,
                     '「直感で動くタイプ」と思っていたかもしれません。',
-                    'でも仕分けゲームでルールが変わった後、',
-                    `あなたはわずか${time}秒で新ルールに適応していました。`,
+                    `でも仕分けゲームでルールが変わった後、あなたはわずか${time}秒で新ルールに適応していました。`,
                 ].join('\n');
             },
         },
@@ -100,9 +95,8 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
                     adaptTime !== undefined ? `${adaptTime.toFixed(1)}` : '？';
                 return [
                     `あなたの自己認識一致度は${accuracy}%。`,
-                    '「論理的に考えるタイプ」と思っていたかもしれません。',
-                    'でも仕分けゲームでルールが変わった後も、',
-                    `あなたは${time}秒間、以前のルールで動き続けていました。`,
+                    '「論理的に考えている」と思っていたかもしれません。',
+                    `でも仕分けゲームでルールが変わった後も、あなたは${time}秒間、以前のルールで動き続けていました。`,
                 ].join('\n');
             },
         },
@@ -114,9 +108,8 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
             buildDescription: (accuracy) =>
                 [
                     `あなたの自己認識一致度は${accuracy}%。`,
-                    '「自分のペースで動くタイプ」と思っていたかもしれません。',
-                    'でもチャットゲームで他の人が動き出した瞬間、',
-                    'あなたの選択が変わっていました。',
+                    '「自分のペースで動いている」と思っていたかもしれません。',
+                    'でもチャットゲームで他の人が動き出した瞬間、あなたの選択が変わっていました。',
                 ].join('\n'),
         },
         low: {
@@ -125,9 +118,8 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
             buildDescription: (accuracy) =>
                 [
                     `あなたの自己認識一致度は${accuracy}%。`,
-                    '「周りに合わせるタイプ」と思っていたかもしれません。',
-                    'でもチャットゲームで周りが動き出しても、',
-                    'あなたの選択はブレませんでした。',
+                    '「周りに合わせている」と思っていたかもしれません。',
+                    'でもチャットゲームで周りが動き出しても、あなたの選択はブレませんでした。',
                 ].join('\n'),
         },
     },
@@ -138,9 +130,8 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
             buildDescription: (accuracy) =>
                 [
                     `あなたの自己認識一致度は${accuracy}%。`,
-                    '「慎重に様子を見るタイプ」と思っていたかもしれません。',
-                    'でもチャットゲームで、あなたは同期より先に動いていました。',
-                    '止まり方を知らない、それがあなたの本能です。',
+                    '「慎重に様子を見ている」と思っていたかもしれません。',
+                    'でもチャットゲームで、あなたは同期より先に動いていました。止まり方を知らない、それがあなたの本能です。',
                 ].join('\n'),
         },
         low: {
@@ -158,8 +149,8 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
                         : `判断は平均並みでしたが、自己認識より慎重な行動パターンが出ています。`;
                 return [
                     `あなたの自己認識一致度は${accuracy}%。`,
-                    '「積極的に動けるタイプ」と思っていたかもしれません。',
-                    `でも仕分けゲームで、あなたの平均判断時間は${avg}秒。`,
+                    '「積極的に動いている」と思っていたかもしれません。',
+                    `でも仕分けゲームで、あなたの平均判断時間は${avg}秒でした。`,
                     lastLine,
                 ].join('\n');
             },
