@@ -233,6 +233,15 @@ export default function ResultReport({ data }: ResultReportProps) {
               </button>
 
               <SharePanel title={data.feedback.title} userId={data.user_id} />
+
+              <button
+                type="button"
+                onClick={handleRetake}
+                className="btn-action-new"
+              >
+                <RefreshCw style={{ width: 16, height: 16 }} />
+                もう一度診断
+              </button>
             </>
           )}
         </div>
