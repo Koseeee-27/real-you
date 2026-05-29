@@ -72,14 +72,22 @@ export default function BipolarSlider({
 
   // ===== 自己申告 ▼ の可視化 =====
   // 表示座標系は pin と同じく (100 - 値)%。
-  const hasBaseline = baselineScore !== undefined;
-  const selfX = hasBaseline ? 100 - baselineScore : 0; // ▼ の x（自己申告）
+  // NaN や範囲外値で left: NaN% / 画面外配置が発生しないようにクランプ。
+  const hasBaseline =
+    baselineScore !== undefined &&
+    Number.isFinite(baselineScore) &&
+    baselineScore >= 0 &&
+    baselineScore <= 100;
+  const clampedBaseline = hasBaseline
+    ? Math.min(100, Math.max(0, baselineScore as number))
+    : 0;
+  const selfX = hasBaseline ? 100 - clampedBaseline : 0; // ▼ の x（自己申告）
   // 自己申告(点線) ↔ 実測(黒ピン) の差。2本の線の中間にこの数字を置く。
   // 符号は「色付き極（優勢側）の方向」基準。＋＝自己申告より実測が極寄り。
   const signedGap = hasBaseline
     ? isRight
-      ? score - baselineScore
-      : baselineScore - score
+      ? score - clampedBaseline
+      : clampedBaseline - score
     : 0;
   const gap = Math.abs(signedGap);
   const gapLabel = `${signedGap > 0 ? '+' : signedGap < 0 ? '−' : '±'}${gap}`;
