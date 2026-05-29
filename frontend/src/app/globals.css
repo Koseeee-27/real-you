@@ -1159,10 +1159,67 @@
   margin: 0;
 }
 
+/* ===== PC / モバイル 出し分け ===== */
+/* PC レイアウトはデフォルト非表示、768px 以上で表示 */
+.share-pc-only {
+  display: none;
+}
+.share-mobile-only {
+  display: block;
+}
+
+/* ===== SNS 共有ボタン行 ===== */
+.share-sns-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.share-sns-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #fff;
+  border: 3px solid #000;
+  border-radius: 50px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #000;
+  transition: all 0.1s;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  white-space: nowrap;
+}
+
+.share-sns-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.share-sns-icon {
+  font-size: 14px;
+}
+
 /* ============================================================
    PC レイアウト (≥768px): 2カラムに拡張
    ============================================================ */
 @media (min-width: 768px) {
+  /* PC では ResultReport 相当レイアウトに切替 */
+  .share-pc-only {
+    display: block;
+  }
+  .share-mobile-only {
+    display: none;
+  }
+
+  /* SNS ボタン: PC でフッター内に横並び */
+  .share-sns-row {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
   .share-page {
     padding: 28px 40px 56px;
   }
