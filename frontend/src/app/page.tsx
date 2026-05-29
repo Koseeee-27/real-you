@@ -7,6 +7,7 @@ import type { CSSProperties } from 'react';
 import { howToPlaySlides } from '@/features/top/components/HowToPlayModal';
 import SlideModal from '@/components/common/SlideModal';
 import { useSe } from '@/components/audio/useSe';
+import { VolumeControl } from '@/components/audio/VolumeControl';
 
 // --- まる爆発アニメーションコンポーネント ---
 const SparklesExplosion = () => {
@@ -195,6 +196,14 @@ export default function TopPage() {
           >
             あそびかた
           </button>
+
+          {/* 音量設定（トップページのみ） */}
+          <div className="mt-1 rounded-2xl border-[3px] border-gray-800 bg-white/90 px-5 py-3 shadow-[0_3px_0_#1f2937]">
+            <p className="mb-2 text-center text-xs font-bold text-gray-700">
+              音量設定
+            </p>
+            <VolumeControl />
+          </div>
 
           {showExplosion && <SparklesExplosion />}
         </div>
