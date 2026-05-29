@@ -62,7 +62,7 @@ export default function SorterGameFlow() {
   const retryCountRef = useRef(0);
 
   // BGM 管理。オンボーディング〜カウントダウン中は共通 BGM、プレイ中は通常/速度2倍/停止の
-  // ゲーム BGM を流す。「いま鳴らすべき BGM」は下の reconciler effect が phase / isFrozen /
+  // ゲーム BGM を流す。「いま鳴らすべき BGM」は下の reconciler effect が phase / 停止区間 /
   // isSpeedUp から一元決定し、activeBgmRef が現在再生中の要素を指す。
   const commonBgmRef = useRef<HTMLAudioElement | null>(null);
   const normalBgmRef = useRef<HTMLAudioElement | null>(null);
@@ -124,7 +124,7 @@ export default function SorterGameFlow() {
   //
   // 共通 BGM (`bgmCommon`) と、ゲーム BGM の通常 (`bgmNormal`) / 速度2倍 (`bgmSpeedUp`) /
   // 停止 (`bgmFreeze`) を用意する。パスが空文字列の側は `new Audio()` を生成せず 404 を出さない。
-  // 「どの BGM を鳴らすか」は下の reconciler effect が phase / isFrozen / isSpeedUp から決める。
+  // 「どの BGM を鳴らすか」は下の reconciler effect が phase / 停止区間 / isSpeedUp から決める。
   // ここでは生成と、autoplay 制限の解除（最初のクリックで現在の active BGM を再生し直す）だけ行う。
   useEffect(() => {
     const createBgm = (src: string, volume = 0.3): HTMLAudioElement => {
@@ -267,7 +267,7 @@ export default function SorterGameFlow() {
     showRuleChangeNotice,
     showSpeedUpBanner,
     freezeStage,
-    ruleGuideBinType,
+    missGuideBinType,
     isRuleChanged,
     isFrozen,
     isSpeedUp,
@@ -279,13 +279,19 @@ export default function SorterGameFlow() {
     handleOnboardingStart,
   } = useSorterGame({ onComplete: handleComplete });
 
-  // 「いま鳴らすべき BGM」を phase / isFrozen / isSpeedUp から一元的に決めて1系統だけ再生する。
+  // 停止 BGM を流す区間。停止予告（warning）が出た時点から流し始め、停止（frozen）まで継続する。
+  // 復旧（recovery）以降は通常 / 2倍速 BGM に戻す。
+  // 操作無効化に使う `isFrozen` は frozen のみで区間が異なるため、BGM 用に freezeStage から別途導出する。
+  const isFreezeBgmActive =
+    freezeStage === 'warning' || freezeStage === 'frozen';
+
+  // 「いま鳴らすべき BGM」を phase / isFreezeBgmActive / isSpeedUp から一元的に決めて1系統だけ再生する。
   // 優先順位:
-  //   - オンボーディング〜カウントダウン中 … 共通 BGM（トップページ等と同じ）
-  //   - プレイ中の機械停止（isFrozen）      … 停止 BGM
-  //   - プレイ中の速度2倍（isSpeedUp）      … 2倍速 BGM
-  //   - プレイ中のそれ以外                  … 通常 BGM
-  //   - 終了（ended）                       … 無音（結果表示中は BGM を流さない）
+  //   - オンボーディング〜カウントダウン中  … 共通 BGM（トップページ等と同じ）
+  //   - プレイ中の機械停止区間（予告〜停止） … 停止 BGM（停止予告が出た時点から流す）
+  //   - プレイ中の速度2倍（isSpeedUp）       … 2倍速 BGM
+  //   - プレイ中のそれ以外                   … 通常 BGM
+  //   - 終了（ended）                        … 無音（結果表示中は BGM を流さない）
   // 切替は「前の要素を pause → 対象を play」。play は対象の現在位置から再生するため、
   // 停止明けに base（通常/2倍速）へ戻るときは一時停止位置から自然に再開する。一方、初回再生となる
   // 共通→通常 / 通常→2倍速 / base→停止 は要素の currentTime が 0 のままなので頭から鳴る。
@@ -296,7 +302,7 @@ export default function SorterGameFlow() {
         return commonBgmRef.current;
       }
       if (phase === 'ended') return null;
-      if (isFrozen) return freezeBgmRef.current;
+      if (isFreezeBgmActive) return freezeBgmRef.current;
       if (isSpeedUp) return speedUpBgmRef.current;
       return normalBgmRef.current;
     };
@@ -306,13 +312,15 @@ export default function SorterGameFlow() {
     activeBgmRef.current?.pause();
     activeBgmRef.current = target;
     target?.play().catch(() => {});
-  }, [phase, isFrozen, isSpeedUp]);
+  }, [phase, isFreezeBgmActive, isSpeedUp]);
 
   /**
    * belt レイヤーを前面化（z-30）すべきか。
    * ドラッグ中の荷物が 1 つでもあり、かつ機械停止中でないとき。
    * 機械停止突入時は D&D 無効化のため前面化を解除する（指を押したまま frozen に入った
    * ケースでも belt を通常 z に戻し、凍結演出より荷物が前に出ないようにする）。
+   * なお SorterEventBanner（中央イベントカード層）は z-40 でこの z-30 より前面に置くため、
+   * ドラッグ中にイベントカードが出てもカードは belt の下に潜らない。
    */
   const shouldLiftBelt = draggingPackageIds.size > 0 && !isFrozen;
 
@@ -364,7 +372,7 @@ export default function SorterGameFlow() {
 
   return (
     <div
-      className="fixed inset-0 flex flex-col overflow-hidden px-4 pt-2 pb-4 sm:px-6"
+      className="fixed inset-0 flex flex-col overflow-hidden"
       style={{
         // ゲーム独自の緑背景（共通ユーティリティ `bg-page-pattern` の黄色とは意図的に別色）
         backgroundColor: SORTER_UI_COLORS.pageBg,
@@ -373,44 +381,46 @@ export default function SorterGameFlow() {
       }}
     >
       {/*
-        === 上部 HUD（固定高さ 88px + 絶対配置レイヤー）===
-        左に状態バッジ群（強調・出現アニメ + 継続パルス）、中央にタイマー（pill 形、警告時に発光 + pulse）、
-        右に SCORE パネル（数値主役で進捗を直感化）。
-        ルートの物理高さはバッジ数に依らず 88px 固定（SorterHUD 側で h-[88px] + 絶対配置）。
-        これにより下のベルト位置がバッジの 0/1/2 変化に影響されない
-        （「バッジ複数表示時にベルトが押し下げられる」事象を構造的に防ぐ）。
-        タイトル枠は廃止し、上余白も詰めて盤面を上に寄せる。
-      */}
-      <SorterHUD
-        displayScore={displayScore}
-        elapsedTimeMs={elapsedTimeMs}
-        isFrozen={isFrozen}
-        isRuleChanged={isRuleChanged}
-        isSpeedUp={isSpeedUp}
-      />
+        全体レイアウト:
+          - 上端に全幅のヘッダーバー（HUD = タイマー/スコア/通知バッジ）を敷く。
+          - その下のプレイフィールド（flex-1）で、ベルトと仕分けエリアを justify-evenly で均等配置する。
 
-      {/*
-        === 盤面ラッパー（ベルト + 仕分けエリア [BinTray] を包む relative コンテナ）===
-        危機感オーバーレイ（SorterEventBanner 内）をこのラッパー直下に absolute inset-0 で
-        重ねることで、上段のベルトだけでなく下段の bin エリアまで「やばい感」を覆える。
-        HUD は外に置いたままにして、タイマー / スコアの可読性を最優先する。
-        flex-1 でこのラッパーが HUD と下部余白の間を縦いっぱいに占める。
-        z-0 で stacking context を確立し、内部の z-20（EventBanner）が HUD など外側に漏れないよう閉じ込める。
+        z 順（ルート = position:fixed が stacking context。playfield は static で SC を作らないため
+        ベルト/仕分けエリアの z はルート文脈で解決される）:
+          仕分けエリア(z-10) < ドラッグ中ベルト(z-30) < EventBanner(z-40) < HUD バー(z-50)。
 
-        縦配分（上から詰める）:
-          ベルト（内容高 = BELT_HEIGHT_PX、shrink-0）
-            → 伸縮スペーサー（flex-1）で余白を仕分けエリアの手前に集約
-            → 仕分けエリア（BinTray、shrink-0）
+        === 上部 HUD ヘッダーバー ===
+        画面上端に全幅の帯（hudBarBg = 背景緑を一段暗くした色）を敷き、その中に HUD を乗せる。
+        帯に接地させることで、緑の余白に pill が浮いて見える問題を抑える。状態バッジ数（0/1/2）に
+        依らず HUD の高さは SorterHUD 側で 88px 固定。z-50 で EventBanner（z-40: 危機感オーバーレイ +
+        中央カード）の前面に保ち、停止演出が被ってもタイマー / スコアの可読性を確保する。
       */}
-      <div className="relative z-0 mt-3 flex flex-1 flex-col">
+      <header
+        className="relative z-50 w-full shrink-0 border-b-[5px] border-black px-4 py-3 shadow-[0_5px_10px_-2px_rgba(0,0,0,0.25)] sm:px-6"
+        style={{ backgroundColor: SORTER_UI_COLORS.hudBarBg }}
+      >
+        <SorterHUD
+          displayScore={displayScore}
+          elapsedTimeMs={elapsedTimeMs}
+          isFrozen={isFrozen}
+          isRuleChanged={isRuleChanged}
+          isSpeedUp={isSpeedUp}
+        />
+      </header>
+
+      {/* === プレイフィールド（ベルト + 仕分けエリア）===
+          ヘッダーバーの下の領域。justify-evenly でベルトと仕分けエリアの上下間隔を均等にし、
+          仕分けエリアを「ベルト下端〜画面下端」の中央に寄せる。横 padding はここで付与する
+          （ヘッダーバーは全幅で敷くため root からは px を外した）。 */}
+      <div className="flex flex-1 flex-col justify-evenly px-4 sm:px-6">
         {/*
           === ベルトと荷物（画面端まで広げる）===
           通常は z-0。ドラッグ中だけ z-30 に引き上げ、運んでいる荷物が BinTray（z-10）の
-          前面に出るようにする（belt と BinTray は別 stacking context のため、荷物単体の
-          z 引き上げでは bin を越えられない）。ドロップ / 取り消し / 中断 / 凍結突入で
-          ドラッグ集合が空になれば z-0 に戻る。
-          shrink-0 で内容高（BELT_HEIGHT_PX）を保ち、余白は下の spacer に逃がす。
-        */}
+        前面に出るようにする（belt と BinTray は別 stacking context のため、荷物単体の
+        z 引き上げでは bin を越えられない）。ドロップ / 取り消し / 中断 / 凍結突入で
+        ドラッグ集合が空になれば z-0 に戻る。
+        shrink-0 で内容高（BELT_HEIGHT_PX）を保つ（要素間の余白は親の justify-evenly が均等に確保）。
+      */}
         <div
           ref={beltContainerRef}
           className={`relative w-full shrink-0 ${
@@ -447,43 +457,38 @@ export default function SorterGameFlow() {
         </div>
 
         {/*
-          伸縮スペーサー。ベルトと仕分けエリアの間の余白を集約し、仕分けエリアを下寄せにする。
-          これによりベルト直下の余白を吸収しつつ、bin が画面下部に安定して配置される。
-        */}
-        <div className="min-h-0 flex-1" aria-hidden />
-
-        {/*
           === 仕分けエリア（BinTray のみ）===
-          mb-4 で画面下端と bin の補助ラベル（「特急」「取扱注意」「重量物」）が
-          詰まりすぎない余白を確保。relative + z-10 で BinTray の重なり順を確保する
-          （static だと z-10 が効かない）。
+          relative + z-10 で BinTray の重なり順を確保する（static だと z-10 が効かない）。
+          ベルトとの間隔・画面下端との間隔は親の justify-evenly が均等に確保する。
           ルール凡例はユーザー判断で削除（HUD のバッジで「ルール変更中: 特急 → 重量物」が
           表示されるため、常時表示の凡例は冗長）。
         */}
-        <div className="relative z-10 mb-4 shrink-0">
+        <div className="relative z-10 w-full shrink-0">
           <BinTray
             isFrozen={isFrozen}
             onBinClick={onBinClick}
             lastFeedback={lastFeedback}
             // 機械停止中はドロップ操作が無効なのでハイライトも出さない
             hoveredBinType={isFrozen ? null : hoveredBinType}
-            // 機械停止中は bin が操作不能なので誤投入ガイドも出さない
-            guideBinType={isFrozen ? null : ruleGuideBinType}
+            // 機械停止中は bin が操作不能なので誤仕分けガイドも出さない
+            guideBinType={isFrozen ? null : missGuideBinType}
           />
         </div>
-
-        {/*
-          危機感オーバーレイ + 上部イベントバナー群（ルール変更 / 凍結予告 / 復旧 / 速度 2 倍）。
-          盤面ラッパー全体（ベルト + bin）を覆い、bin エリアまで赤暗く染める。
-          z-20 で BinTray（relative z-10）より前面。bin を relative z-10 にしてあるため
-          この z 比較が成立する。内部で danger-overlay < バナーの重なりを保つ。
-        */}
-        <SorterEventBanner
-          freezeStage={freezeStage}
-          showRuleChangeNotice={showRuleChangeNotice}
-          showSpeedUpBanner={showSpeedUpBanner}
-        />
       </div>
+
+      {/*
+        危機感オーバーレイ + 中央イベントカード群（ルール変更 / 凍結予告 / 復旧 / 速度 2 倍）。
+        画面全体（absolute inset-0）を覆い、盤面を赤暗く染めつつ中央にカードを出す。
+        z-40（SorterEventBanner 内で指定）で BinTray（z-10）・ドラッグ中ベルト（z-30）より前面、
+        HUD（z-50）より背面に置く。これより低いと、荷物をドラッグ中に中央カードが出たとき
+        belt(z-30) の下にカードが潜る。HUD を前面に残すことでタイマーの可読性を確保。
+        内部で danger-overlay < カードの重なりを保つ。
+      */}
+      <SorterEventBanner
+        freezeStage={freezeStage}
+        showRuleChangeNotice={showRuleChangeNotice}
+        showSpeedUpBanner={showSpeedUpBanner}
+      />
 
       {/* === オンボーディング === */}
       <OnboardingSlides open={phase === 'onboarding'} onStart={onStart} />
