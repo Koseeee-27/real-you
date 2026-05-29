@@ -11,25 +11,29 @@ interface LoadingScreenProps {
 const MBTI_GROUPS = [
   {
     name: 'Analysts',
-    color: '#E0D7FF', // Purple-ish
+    color: '#E0D7FF', // Purple-ish（明るい側）
+    deep: '#B9A3F2', // 深い側（グラデーション用）
     textColor: '#5D2FB7',
     characters: ['INTJ', 'INTP', 'ENTJ', 'ENTP'],
   },
   {
     name: 'Diplomats',
     color: '#D7FFD7', // Green-ish
+    deep: '#9FE0A0',
     textColor: '#2D812D',
     characters: ['INFJ', 'INFP', 'ENFJ', 'ENFP'],
   },
   {
     name: 'Sentinels',
     color: '#D7F3FF', // Blue-ish
+    deep: '#9CD6F2',
     textColor: '#2B6DA1',
     characters: ['ISTJ', 'ISFJ', 'ESTJ', 'ESFJ'],
   },
   {
     name: 'Explorers',
     color: '#FFF7D7', // Yellow-ish
+    deep: '#FAE79A',
     textColor: '#A17D1F',
     characters: ['ISTP', 'ISFP', 'ESTP', 'ESFP'],
   },
@@ -39,6 +43,7 @@ const MBTI_GROUPS = [
 const DEFAULT_CHARACTERS = MBTI_GROUPS.map((group) => ({
   id: group.characters[0],
   groupColor: group.color,
+  groupDeep: group.deep,
   textColor: group.textColor,
 }));
 
@@ -62,6 +67,7 @@ export default function LoadingScreen({
           return {
             id: group.characters[randomIndex],
             groupColor: group.color,
+            groupDeep: group.deep,
             textColor: group.textColor,
           };
         })
@@ -77,16 +83,50 @@ export default function LoadingScreen({
     return () => clearInterval(timer);
   }, [selectedCharacters.length]);
 
+  // 末尾の「...」を分離して、ドットだけ順番に点滅アニメーションさせる
+  const hasDots = /\.+$/.test(message);
+  const baseText = message.replace(/\.+$/, '');
+
   return (
-    <motion.div
+    <div
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
-      initial={{ backgroundColor: selectedCharacters[0].groupColor }}
-      animate={{ backgroundColor: selectedCharacters[activeStep].groupColor }}
-      transition={{ duration: 0.8 }}
+      style={{
+        backgroundColor: selectedCharacters[activeStep].groupDeep,
+        transition: 'background-color 0.8s ease',
+      }}
     >
+      {/* 縦グラデーション：上を少し明るく→下を深く（色変化が見えるよう控えめに） */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            'linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,0.08) 100%)',
+        }}
+      />
+
+      {/* ビネット：四隅を少し暗くして奥行きを出す */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            'radial-gradient(ellipse at 50% 38%, transparent 50%, rgba(0,0,0,0.1) 100%)',
+        }}
+      />
+
+      {/* 斜めに流れる光のスイープ（動き） */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            'linear-gradient(115deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0) 70%)',
+          backgroundSize: '250% 250%',
+          animation: 'loadingGradientShift 6s ease-in-out infinite',
+        }}
+      />
+
       {/* Retro-pop dot pattern background */}
       <div
-        className="absolute inset-0 opacity-40"
+        className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           backgroundImage: 'radial-gradient(circle, #fff 2px, transparent 2px)',
           backgroundSize: '24px 24px',
@@ -95,7 +135,12 @@ export default function LoadingScreen({
 
       <div className="relative z-10 flex flex-col items-center">
         {/* Characters Row */}
-        <div className="mb-12 flex items-end justify-center gap-4 sm:gap-8">
+        <div className="relative mb-14 flex items-end justify-center gap-5 sm:gap-10">
+          {/* 共有ステージ（足元の地面）: キャラが宙に浮かないよう接地感を出す */}
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-1 mx-auto h-7 w-[92%] rounded-[50%] blur-lg"
+            style={{ backgroundColor: 'rgba(0,0,0,0.08)' }}
+          />
           {selectedCharacters.map((char, index) => {
             const isActive = index === activeStep;
 
@@ -108,8 +153,8 @@ export default function LoadingScreen({
                   animate={
                     isActive
                       ? {
-                          y: [0, -60, 0],
-                          scale: [1, 1.1, 1],
+                          y: [0, -70, 0],
+                          scale: [1, 1.15, 1],
                         }
                       : { y: 0, scale: 0.9 }
                   }
@@ -117,7 +162,7 @@ export default function LoadingScreen({
                     duration: 0.6,
                     ease: 'easeOut',
                   }}
-                  className="relative h-24 w-24 sm:h-32 sm:w-32"
+                  className="relative h-32 w-32 sm:h-44 sm:w-44"
                 >
                   <Image
                     src={`/images/mbti/${char.id}.png`}
@@ -125,19 +170,25 @@ export default function LoadingScreen({
                     fill
                     className="object-contain"
                     priority
+                    // キャラと背景の間に白フチ（ステッカー風の白枠）を入れて分離させる
+                    // ※ drop-shadow を増やすと重くなるため 4 方向・細め(2px)に抑える
+                    style={{
+                      filter:
+                        'drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff)',
+                    }}
                   />
                 </motion.div>
 
-                {/* Visual indicator / shadow under active char */}
+                {/* 足元のぼかし楕円シャドウ（ジャンプ中は小さく薄く） */}
                 <motion.div
-                  className="mt-2 h-2 rounded-full bg-black/10"
+                  className="mt-1 h-3 rounded-[50%] bg-black/25 blur-[5px]"
                   animate={
                     isActive
                       ? {
-                          width: ['40%', '20%', '40%'],
-                          opacity: [0.2, 0.1, 0.2],
+                          width: ['70%', '38%', '70%'],
+                          opacity: [0.3, 0.12, 0.3],
                         }
-                      : { width: '40%', opacity: 0.2 }
+                      : { width: '70%', opacity: 0.3 }
                   }
                   transition={{ duration: 0.6 }}
                 />
@@ -149,45 +200,62 @@ export default function LoadingScreen({
         {/* Loading Text */}
         <div className="relative">
           <motion.p
-            key={activeStep}
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
             // 文字間隔（tracking）を wider から wide や normal に少し狭めると、文字同士がくっついてより「丸っこく」見えます
-            className="text-4xl font-black tracking-wide sm:text-5xl"
+            className="text-center text-4xl font-black tracking-wide sm:text-5xl"
             style={{
-              fontFamily:
-                '"Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif',
+              // アプリ共通の丸ゴシックに合わせて統一感を出す
+              fontFamily: '"M PLUS Rounded 1c", sans-serif',
               color: '#222222',
 
               // 縁取りを文字の「外側」に広げます（中の文字が潰れません）
               paintOrder: 'stroke fill',
-              // 白い縁取りを思い切って太くします（丸みがグッと増します）
-              WebkitTextStroke: '8px white',
-              // 縁取りが太くなった分、影も少し大きく・濃くしてポップな立体感を出します
-              textShadow: '5px 5px 0px rgba(0,0,0,0.25)',
+              // 白フチ（太すぎないよう少し控えめに）
+              WebkitTextStroke: '6px white',
+              // 硬いドロップ影をやめ、ふんわり拡散する影でゴースト感を解消
+              textShadow: '0 5px 14px rgba(0,0,0,0.20)',
             }}
           >
-            {message}
+            {baseText}
+            {hasDots && (
+              <span aria-hidden className="inline-flex">
+                {[0, 1, 2].map((i) => (
+                  <motion.span
+                    key={i}
+                    animate={{ opacity: [0.25, 1, 0.25] }}
+                    transition={{
+                      duration: 1.2,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                      delay: i * 0.22,
+                    }}
+                  >
+                    .
+                  </motion.span>
+                ))}
+              </span>
+            )}
           </motion.p>
 
-          {/* Pulsing dots indicator */}
-          <div className="mt-4 flex justify-center gap-2">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                animate={{
-                  scale: [1, 1.5, 1],
-                  opacity: [0.3, 1, 0.3],
-                }}
-                transition={{
-                  duration: 0.8,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                }}
-                className="h-3 w-3 rounded-full bg-current"
-                style={{ color: selectedCharacters[activeStep].textColor }}
-              />
-            ))}
+          {/* 流れる進捗バー（インディターミネート） */}
+          <div className="mx-auto mt-7 h-4 w-60 overflow-hidden rounded-full border-2 border-black/15 bg-white/50 shadow-inner sm:w-72">
+            <motion.div
+              className="h-full w-2/5 rounded-full"
+              style={{
+                // バーの色は固定（背景色には追従しない）・やわらかめのグレー
+                backgroundImage:
+                  'linear-gradient(90deg, rgba(90,90,90,0) 0%, rgba(90,90,90,0.72) 50%, rgba(90,90,90,0) 100%)',
+                boxShadow: '0 0 9px rgba(0,0,0,0.18)',
+              }}
+              animate={{ x: ['-130%', '360%'] }}
+              transition={{
+                duration: 1.3,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
           </div>
         </div>
       </div>
@@ -198,11 +266,13 @@ export default function LoadingScreen({
           key={activeStep}
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.4 }}
-          className="text-sm font-bold uppercase tracking-[0.3em] text-black"
+          className="text-center text-sm font-bold uppercase tracking-[0.3em] text-black"
+          // tracking の分だけ末尾に余白が入り左寄りに見えるため、字間1個分だけ右へ寄せて相殺
+          style={{ textIndent: '0.3em' }}
         >
           {MBTI_GROUPS[activeStep].name}
         </motion.p>
       </div>
-    </motion.div>
+    </div>
   );
 }
