@@ -76,16 +76,18 @@ export default function TermsContent({
           負いません。サービスの変更、中断、終了等について、当社は可能な限り事前に通知するよう
           努めますが、緊急の場合はこの限りではありません。
         </p>
-        <label className="mt-3 flex items-center gap-2">
+        {/* 必須チェックはアクション枠（ネオブル調カード）にして「操作項目」と分かるようにする。
+            位置（第5条内）・onChange・checked は不変で計測には影響しない。 */}
+        <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-black bg-[#fff9e0] px-4 py-3 shadow-[2px_2px_0_0_#000]">
           <input
             type="checkbox"
             checked={checkboxStates.readConfirm}
             onChange={(e) => onCheckboxChange('readConfirm', e.target.checked)}
-            className="h-4 w-4"
+            className="h-5 w-5 accent-black"
           />
-          <span className="text-xs text-gray-500">
+          <span className="text-sm font-bold text-gray-800">
             上記の内容を読みました
-            <span className="ml-1 font-bold text-red-500">必須</span>
+            <span className="ml-1 font-black text-red-500">必須</span>
           </span>
         </label>
       </section>
