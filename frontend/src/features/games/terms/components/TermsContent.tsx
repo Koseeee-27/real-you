@@ -81,7 +81,10 @@ export default function TermsContent({
             onChange={(e) => onCheckboxChange('readConfirm', e.target.checked)}
             className="h-4 w-4"
           />
-          <span className="text-xs text-gray-500">上記の内容を読みました</span>
+          <span className="text-xs text-gray-500">
+            上記の内容を読みました
+            <span className="ml-1 font-bold text-red-500">必須</span>
+          </span>
         </label>
       </section>
 
