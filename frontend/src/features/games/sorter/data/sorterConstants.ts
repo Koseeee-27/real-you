@@ -339,8 +339,10 @@ export const RULE_CHANGE_PAIRS: ReadonlyArray<{
 /**
  * SE のパス。
  *
- * BGM は共通基盤（audioManifest の sorterNormal / sorterSpeedUp / sorterFreeze / start）で
- * 管理するため、ここでは扱わない。
+ * BGM は共通基盤（audioManifest）で管理するため、ここでは扱わない。
+ * 仕分けゲーム専用の曲は sorterNormal / sorterSpeedUp / sorterFreeze。
+ * オンボーディング中はトップ / MBTI 選択 / 規約画面と共通の `start` キーを使う
+ * （`start` は仕分け固有ではなく全画面共通のキー）。
  */
 export const SORTER_AUDIO_PATHS = {
   generalSE: '/sounds/general-button-se.mp3',
