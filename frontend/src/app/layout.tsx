@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { SITE_URL } from '@/constants/site';
-import { AudioProvider } from '@/components/audio/AudioProvider';
+import { AudioController } from '@/components/audio/AudioController';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -21,7 +21,8 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
-        <AudioProvider>{children}</AudioProvider>
+        <AudioController />
+        {children}
       </body>
     </html>
   );

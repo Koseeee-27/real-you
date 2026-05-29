@@ -4,7 +4,6 @@ import { useState, useCallback, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { mbtiAtom } from '@/stores/diagnosis';
-import { useBgm } from '@/components/audio/useBgm';
 import { termsGameDataAtom } from '@/stores/games';
 import {
   QUESTIONS,
@@ -35,9 +34,6 @@ export default function BaselineSurvey() {
   const router = useRouter();
   const mbti = useAtomValue(mbtiAtom);
   const termsGameData = useAtomValue(termsGameDataAtom);
-
-  // 共通基盤で BGM を再生（トップから続く start-bgm を継続再生する）
-  useBgm('start');
 
   const playSE = useCallback((path: string) => {
     const audio = new Audio(path);

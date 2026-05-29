@@ -12,7 +12,6 @@ import type {
   TermsCheckboxEvent,
 } from '@/features/games/types';
 import { termsGameDataAtom } from '@/stores/games';
-import { useBgm } from '@/components/audio/useBgm';
 import PopupAd from './PopupAd';
 import PopupTerms from './PopupTerms';
 import ErrorDialog from './ErrorDialog';
@@ -55,9 +54,6 @@ export default function TermsGameFlow() {
   const [showDisagreeDialog, setShowDisagreeDialog] = useState(false);
   // ゲーム完了フラグ（trueで完了画面を表示→次のゲームへ遷移）
   const [isCompleted, setIsCompleted] = useState(false);
-
-  // 共通基盤で BGM を再生（トップから続く start-bgm を継続再生する）
-  useBgm('start');
 
   // --- 以下は再レンダリング不要なデータをrefで管理 ---
   // ゲーム開始時刻（totalTime算出用）

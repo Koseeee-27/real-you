@@ -5,7 +5,6 @@ import { useCallback, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import type { GameId, ResultResponse } from '../types';
 import { GAME_META } from '../data/gameMeta';
-import { useBgm } from '@/components/audio/useBgm';
 import GameDetailTab from './GameDetailTab';
 import OverviewTab from './OverviewTab';
 import SharePanel from './SharePanel';
@@ -36,9 +35,6 @@ export default function ResultReport({ data }: ResultReportProps) {
   const [activeGameId, setActiveGameId] = useState<GameId | null>(
     data.details[0]?.game_id ?? null
   );
-
-  // 共通基盤で結果画面の BGM を再生
-  useBgm('result');
 
   // SE 再生ヘルパー
   const playSE = (path: string) => {

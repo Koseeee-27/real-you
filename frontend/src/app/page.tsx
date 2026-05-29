@@ -6,7 +6,6 @@ import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { howToPlaySlides } from '@/features/top/components/HowToPlayModal';
 import SlideModal from '@/components/common/SlideModal';
-import { useBgm } from '@/components/audio/useBgm';
 
 // --- まる爆発アニメーションコンポーネント ---
 const SparklesExplosion = () => {
@@ -64,9 +63,6 @@ export default function TopPage() {
   const router = useRouter();
   const [showExplosion, setShowExplosion] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-
-  // 共通基盤で BGM を再生（規約ゲームまで同じ曲を継続再生する）
-  useBgm('start');
 
   const handleStartClick = () => {
     setShowExplosion(true);
