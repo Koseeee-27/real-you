@@ -45,7 +45,9 @@ export const DEV_COMMENT_SAMPLES: DevCommentSample[] = [
     description: [
       'あなたの自己認識一致度は65%。',
       '「感情が出やすい」と思っていたかもしれません。',
-      'でも仕分けゲームで機械が止まった3秒間、あなたのクリック数は0回でした。平均は約3回です。',
+      'でも仕分けゲームで機械が止まった3秒間、',
+      'あなたのクリック数は0回でした。平均は約3回です。',
+      'どんな状況でも外には出さない。それが本物の冷静さです。',
     ].join('\n'),
   },
   // calmness.low — panicCount=8, accuracy=58
@@ -57,6 +59,7 @@ export const DEV_COMMENT_SAMPLES: DevCommentSample[] = [
       'あなたの自己認識一致度は58%。',
       '「冷静に対処できる」と思っていたかもしれません。',
       'でも仕分けゲームで機械が止まった3秒間、あなたは8回クリックしていました。その焦りがデータに残っています。',
+      '感情が素直に行動に乗り移るのが、あなたのスタイルです。',
     ].join('\n'),
   },
   // logic.high — adaptTime=1.5, accuracy=80
@@ -68,6 +71,7 @@ export const DEV_COMMENT_SAMPLES: DevCommentSample[] = [
       'あなたの自己認識一致度は80%。',
       '「直感で動くタイプ」と思っていたかもしれません。',
       'でも仕分けゲームでルールが変わった後、あなたはわずか1.5秒で新ルールに適応していました。',
+      'ルールを理解する前に、もう次の手が見えているタイプです。',
     ].join('\n'),
   },
   // logic.low — adaptTime=9.2, accuracy=42
@@ -88,8 +92,9 @@ export const DEV_COMMENT_SAMPLES: DevCommentSample[] = [
     subtitle: '無意識に場の空気を作り、周りを動かしている人',
     description: [
       'あなたの自己認識一致度は75%。',
-      '「自分のペースで動いている」と思っていたかもしれません。',
+      '自分では「マイペース」なつもりだったはず。',
       'でもチャットゲームで他の人が動き出した瞬間、あなたの選択が変わっていました。',
+      '流されているようで、実はあなたが場を作っています。',
     ].join('\n'),
   },
   // cooperativeness.low — accuracy=38
@@ -101,6 +106,7 @@ export const DEV_COMMENT_SAMPLES: DevCommentSample[] = [
       'あなたの自己認識一致度は38%。',
       '「周りに合わせている」と思っていたかもしれません。',
       'でもチャットゲームで周りが動き出しても、あなたの選択はブレませんでした。',
+      '周りに流されない一貫性が、あなたへの信頼につながっています。',
     ].join('\n'),
   },
   // positivity.high — accuracy=68
@@ -111,7 +117,8 @@ export const DEV_COMMENT_SAMPLES: DevCommentSample[] = [
     description: [
       'あなたの自己認識一致度は68%。',
       '「慎重に様子を見ている」と思っていたかもしれません。',
-      'でもチャットゲームで、あなたは同期より先に動いていました。止まり方を知らない、それがあなたの本能です。',
+      'でもチャットゲームで、あなたは同期より先に動いていました。',
+      '止まり方を知らない本能があなたの行動に表れています。',
     ].join('\n'),
   },
   // positivity.low — avgHesitation=3.2 (diffVal=1.7), accuracy=55
