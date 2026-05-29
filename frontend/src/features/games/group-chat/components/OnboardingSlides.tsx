@@ -54,10 +54,10 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** 目的（=やること）の強調表示: 緑の丸ピル（アイコン付き・中央寄せ） */
+/** 目的（=やること）の強調表示: オレンジの丸ピル（アイコン付き・中央寄せ） */
 function GoalEmphasis() {
   return (
-    <div className="mx-auto flex w-fit items-center gap-2 rounded-full border-[3px] border-black bg-[#57d071] px-5 py-2 text-white shadow-[3px_3px_0_0_#000]">
+    <div className="mx-auto flex w-fit items-center gap-2 rounded-full border-[3px] border-black bg-[#f97316] px-5 py-2 text-white shadow-[3px_3px_0_0_#000]">
       <MessageCircle className="h-5 w-5 shrink-0" strokeWidth={2.5} />
       <span className="text-base font-black tracking-wide sm:text-lg lg:text-xl">
         {ONBOARDING_INSTRUCTION}
