@@ -335,7 +335,7 @@
   justify-content: flex-start;
   gap: 8px;
   padding-left: 25px;
-  padding-top: 48px;
+  padding-top: 50px;
   padding-bottom: 10px;
   position: relative;
 }
@@ -344,7 +344,7 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 100px;
+  top: 150px;
   bottom: 0;
   border-left: 3px dashed #e2e8f0;
 }
@@ -363,6 +363,29 @@
   margin-left: 6px;
   display: inline-block;
   vertical-align: middle;
+}
+
+.slider-legend-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.legend-item {
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #777;
+}
+
+.legend-tri-actual {
+  color: #ef4444;
+  font-size: 0.85em;
+}
+
+.legend-tri-self {
+  color: #94a3b8;
+  font-size: 0.85em;
 }
 
 .mbti-slider-row-new {
@@ -395,20 +418,64 @@
   margin-top: -20px;
 }
 
-.average-marker-wrapper {
+/* 自己申告 ▼ ＋ %ラベル ＋ トラックへ伸びるグレー点線
+   バンドはトラックより十分上に置き、▼・% がトラックに被らないようにする。 */
+.gap-arrow-band {
   position: absolute;
-  top: -35px;
+  top: -48px;
   left: 0;
   right: 0;
   height: 0;
   overflow: visible;
 }
 
-.average-marker {
+/* ▼（実測マーカー本体）。座標 boundary に中央寄せ。 */
+.actual-tri {
   position: absolute;
-  font-size: 14px;
+  top: 14px;
+  font-size: 16px;
   color: #ef4444;
   transform: translateX(-50%);
+  line-height: 1;
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ▼（自己申告マーカー本体）。座標 selfX に中央寄せ。 */
+.self-tri {
+  position: absolute;
+  top: 16px;
+  font-size: 13px;
+  color: #94a3b8;
+  transform: translateX(-50%);
+  line-height: 1;
+}
+
+/* ▼ の下端からトラックの中まで貫くグレー点線（自己申告位置） */
+.self-guide-line {
+  position: absolute;
+  top: 28px;
+  height: 17px; /* ▼下端(≈22) → トラック下端まで貫通 */
+  border-left: 2px dashed #94a3b8;
+  transform: translateX(-50%);
+  z-index: 5; /* トラックの塗りより前面 */
+}
+
+/* 点線(自己申告) と 黒ピン(実測) の中間に置く「差」の数字（濃いめ） */
+.gap-diff {
+  position: absolute;
+  top: 36px; /* トラックの上下中央あたり */
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: 900;
+  color: #0f172a;
+  /* 塗りの上でも読めるよう白フチ */
+  text-shadow:
+    0 0 3px #fff,
+    0 0 3px #fff,
+    0 0 3px #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
 }
 
 .badge-pct-container {
