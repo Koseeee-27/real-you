@@ -33,6 +33,19 @@
   }
 }
 
+/* ローディング画面：背景グラデーションをゆっくり斜めに流す */
+@keyframes loadingGradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 /* ============================================================
    結果画面（ResultReport / OverviewTab / GameDetailTab /
    BipolarSlider）用 CSS  ← index.html mockup から移植
