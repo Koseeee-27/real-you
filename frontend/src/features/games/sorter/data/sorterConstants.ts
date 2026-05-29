@@ -117,16 +117,19 @@ export const EVENT_ANCHORS: ReadonlyArray<{
 // freeze を遅らせる / TIME_CAP_MS を縮める / サブシーケンスを延ばす調整時はこの不変条件を要確認
 // （満たさないと機械停止の途中で時間切れ失敗し、復旧演出やパニッククリック計測が中断される）。
 
-/** ルール変更通知バナーの表示時間（ms）。表示後に自動で消える（プレイは阻害しない） */
-export const RULE_CHANGE_NOTICE_DURATION_MS = 3_000;
+/**
+ * ルール変更通知（中央の特大カード + うっすら暗転）の表示時間（ms）。表示後に自動で消える。
+ * 中央カードが盤面を覆い続けないよう短めにする（プレイ自体は pointer-events-none で阻害しない）。
+ */
+export const RULE_CHANGE_NOTICE_DURATION_MS = 2_000;
 
 /**
- * ルール変更で正解が動いた荷物（特急）を誤投入した直後、正しい入れ先 bin（重量物）を
- * ハイライト +「こっちへ！」でガイド表示する時間（ms）。一定時間後に自動で消える。
- * ルール変更に気づかず旧 bin に入れ続ける理不尽さを軽減するためのリアクティブなガイド
+ * 誤仕分け直後に、正しい入れ先 bin をハイライト +「こっちへ！」でガイド表示する時間（ms）。
+ * 一定時間後に自動で消える。ルール変更ミス・通常ミスを問わず全ての誤仕分けで表示し、
+ * どこが正解だったかを直感的に伝えるリアクティブなガイド
  * （初回ミスは記録され、適応時間 ruleChangeAdaptMs などの診断シグナルは保たれる）。
  */
-export const RULE_GUIDE_DURATION_MS = 3_000;
+export const MISS_GUIDE_DURATION_MS = 3_000;
 
 /** 機械停止: 予告（赤バナー shake、まだ操作可）の時間（ms） */
 export const FROZEN_WARNING_DURATION_MS = 2_000;
@@ -245,6 +248,8 @@ export const SORTER_UI_COLORS = {
   link: '#2d5be3',
   /** プレイ画面の背景色（緑、bg-page-pattern とは意図的に別色） */
   pageBg: '#b8e687',
+  /** 上部 HUD ヘッダーバーの背景色（pageBg を一段暗くした緑。白い pill を地に馴染ませ浮きを抑える） */
+  hudBarBg: '#8cbf5a',
   /** 採点ルール「正解」バッジの薄背景（success の alpha 0.2） */
   successBgSubtle: 'rgba(87, 208, 113, 0.2)',
   /** 採点ルール「正解」バッジの濃文字色（success のダーク版） */

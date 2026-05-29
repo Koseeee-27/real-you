@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 // 各軸の左端ラベル（0側）と右端ラベル（100側）
-const AXIS_POLES: Record<string, { left: string; right: string }> = {
+export const AXIS_POLES: Record<string, { left: string; right: string }> = {
   caution: { left: '大胆', right: '慎重' },
   calmness: { left: '感情的', right: '冷静' },
   logic: { left: '直感的', right: '論理的' },
@@ -70,6 +70,29 @@ export default function BipolarSlider({
         width: animated ? `${boundary}%` : '0%',
       };
 
+  // ===== 自己申告 ▼ の可視化 =====
+  // 表示座標系は pin と同じく (100 - 値)%。
+  // NaN や範囲外値で left: NaN% / 画面外配置が発生しないようにクランプ。
+  const hasBaseline =
+    baselineScore !== undefined &&
+    Number.isFinite(baselineScore) &&
+    baselineScore >= 0 &&
+    baselineScore <= 100;
+  const clampedBaseline = hasBaseline
+    ? Math.min(100, Math.max(0, baselineScore as number))
+    : 0;
+  const selfX = hasBaseline ? 100 - clampedBaseline : 0; // ▼ の x（自己申告）
+  // 自己申告(点線) ↔ 実測(黒ピン) の差。2本の線の中間にこの数字を置く。
+  // 符号は「色付き極（優勢側）の方向」基準。＋＝自己申告より実測が極寄り。
+  const signedGap = hasBaseline
+    ? isRight
+      ? score - clampedBaseline
+      : clampedBaseline - score
+    : 0;
+  const gap = Math.abs(signedGap);
+  const gapLabel = `${signedGap > 0 ? '+' : signedGap < 0 ? '−' : '±'}${gap}`;
+  const gapMidX = (selfX + boundary) / 2; // 点線(selfX) と 黒ピン(boundary) の中点
+
   return (
     <div className="mbti-slider-row-new">
       <div className="mbti-slider-track-new">
@@ -94,18 +117,22 @@ export default function BipolarSlider({
             <div className="slider-pin-point" style={{ left: pinLeft }} />
           </div>
 
-          {/* ▼ ベースラインマーカー（baselineScore が渡されたときのみ）
-              NOTE: ピンの座標系は `left: (100 - score)%` なので、
-              ▼ も同じ座標系に合わせるため `(100 - baselineScore)%` とする。
-              `baselineScore%` では左右が反転した誤位置になる。 */}
-          {baselineScore !== undefined && (
-            <div className="average-marker-wrapper">
-              <div
-                className="average-marker"
-                style={{ left: `${100 - baselineScore}%` }}
-              >
+          {/* 実測▼（赤, .actual-tri）＋ 自己申告▼（グレー, .self-tri）＋ グレー点線
+              座標は pin と同じ (100 - 値)% 系で揃える。 */}
+          {hasBaseline && (
+            <div className="gap-arrow-band">
+              <div className="actual-tri" style={{ left: pinLeft }}>
                 ▼
               </div>
+              <div className="self-tri" style={{ left: `${selfX}%` }}>
+                ▼
+              </div>
+              <div className="self-guide-line" style={{ left: `${selfX}%` }} />
+              {gap >= 5 && (
+                <span className="gap-diff" style={{ left: `${gapMidX}%` }}>
+                  {gapLabel}
+                </span>
+              )}
             </div>
           )}
         </div>

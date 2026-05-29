@@ -28,10 +28,10 @@ const REACHED_BOTTOM_THRESHOLD = 0.9;
 // 第5条「読みました」未チェックで同意を試みた際のエラー理由。
 // BE 分析（termsGame.ts）が完全一致で判定するため固定値（仕様書「データ構造」準拠）。
 const ERROR_REASON_MISSING_READ_CONFIRM = 'missing_read_confirm';
-// エラー差し戻しダイアログの表示メッセージ
-const ERROR_DIALOG_MESSAGE = '未確認の必須項目があります';
+// エラー差し戻しダイアログの表示メッセージ（表示専用。BE 判定は ERROR_REASON_* で行う）
+const ERROR_DIALOG_MESSAGE = '「読みました」にチェックを入れてください';
 // 「同意しない」押下時に同意を促す案内ダイアログのメッセージ
-const DISAGREE_DIALOG_MESSAGE = 'ご利用には規約への同意が必要です';
+const DISAGREE_DIALOG_MESSAGE = '先に進むには、規約への同意が必要です';
 
 export default function TermsGameFlow() {
   const router = useRouter();
@@ -293,7 +293,7 @@ export default function TermsGameFlow() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[#F0F380]">
+    <div className="bg-page-pattern flex h-screen flex-col">
       <div className="flex-1" />
 
       {showPopup && (

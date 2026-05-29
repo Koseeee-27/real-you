@@ -124,24 +124,24 @@ function SlideHowToPlay() {
                   {PACKAGE_LABELS[type]}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <div className="relative h-9 w-9 shrink-0 sm:h-10 sm:w-10 lg:h-11 lg:w-11">
+                  <div className="relative h-12 w-12 shrink-0 sm:h-14 sm:w-14 lg:h-16 lg:w-16">
                     <Image
                       src={PACKAGE_IMAGE_PATHS[type]}
                       alt={`${PACKAGE_LABELS[type]}の荷物`}
                       fill
-                      sizes="(min-width: 1024px) 44px, 40px"
+                      sizes="(min-width: 1024px) 64px, 56px"
                       className="object-contain"
                     />
                   </div>
                   <span aria-hidden className="text-base font-black sm:text-lg">
                     →
                   </span>
-                  <div className="relative h-9 w-9 shrink-0 sm:h-10 sm:w-10 lg:h-11 lg:w-11">
+                  <div className="relative h-12 w-12 shrink-0 sm:h-14 sm:w-14 lg:h-16 lg:w-16">
                     <Image
                       src={BIN_IMAGE_PATHS[type]}
                       alt={`${PACKAGE_LABELS[type]}の仕分け先`}
                       fill
-                      sizes="(min-width: 1024px) 44px, 40px"
+                      sizes="(min-width: 1024px) 64px, 56px"
                       className="object-contain"
                     />
                   </div>
@@ -315,11 +315,16 @@ function SlideRules() {
 
       {/* ギミックのヒント。2 倍速・機械停止・ルール変更などの具体内容は伏せ、
           「何か起きそう」と匂わせるだけに留めてワクワク感を残す
-          （実際の演出は SorterEventBanner がゲーム中に表示する）。 */}
-      <p className="mt-6 text-center text-sm font-bold text-gray-500 sm:mt-8 sm:text-base">
-        時々<span className="mx-0.5 font-black text-black">ハプニング</span>
-        が起きるかも。
-      </p>
+          （実際の演出は SorterEventBanner がゲーム中に表示する）。
+          見落とされないよう、黄色（warning）の枠付きバッジで目立たせる。 */}
+      <div className="mt-6 flex justify-center sm:mt-8">
+        <span
+          className="inline-block rounded-xl border-[3px] border-black px-4 py-2 text-base font-black tracking-wide text-black shadow-[3px_3px_0_0_#000] sm:text-lg"
+          style={{ backgroundColor: SORTER_UI_COLORS.warning }}
+        >
+          ⚠ 時々ハプニングが起きるかも…！
+        </span>
+      </div>
     </div>
   );
 }

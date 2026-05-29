@@ -5,7 +5,6 @@ import Image from 'next/image';
 import type { PackageType } from '@/features/games/types';
 import {
   BIN_IMAGE_PATHS,
-  PACKAGE_COLORS,
   PACKAGE_LABELS,
   PACKAGE_TYPES,
   SORTER_UI_COLORS,
@@ -27,9 +26,9 @@ interface BinTrayProps {
    */
   hoveredBinType: PackageType | null;
   /**
-   * ルール変更で正解が動いた荷物を誤投入した直後にガイド表示する「正しい入れ先」bin 種別。
-   * 一致する bin をハイライト（hoveredBinType と同じ強調機構）し、上に「こっちへ！」バブルを
-   * 出して正解を示す。一定時間後に親が null へ戻す。
+   * 誤仕分け直後にガイド表示する「正しい入れ先」bin 種別（ルール変更ミス・通常ミス共通）。
+   * 一致する bin をハイライト（hoveredBinType と同じ強調機構）し、上に「こっちへ！」バブル
+   * （下向き矢印付き）を出して正解を示す。一定時間後に親が null へ戻す。
    */
   guideBinType: PackageType | null;
 }
@@ -38,14 +37,15 @@ interface BinTrayProps {
  * 下部に並ぶ 3 つの仕分け先（urgent / fragile / heavy）。
  *
  * 画像内に「特急 / 取扱注意 / 重量物」のラベル + 識別シンボルが焼き込まれているため、
- * 画像主体のシンプル構成。ただし bin を縮小すると画像内テキストが読みにくくなるため、
- * 画像の下に補助の種類名ラベル（CSS テキスト）を表示する。
+ * 画像主体のシンプル構成（CSS の補助ラベルは置かない）。
  *
  * ルール変更後でも bin 個別の見た目は変えない（前バージョンで決めた方針、計測価値を保つため）。
  * 凍結中は控えめなシマシマオーバーレイを重ねる。
  *
- * 仕分け実行直後は、クリックされた bin の上に「+10 OK」「-5 NG」のフィードバックポップアップを
- * framer-motion で 0.7s フラッシュ表示する。
+ * 仕分け実行直後のフィードバック:
+ *   - 正解: クリックされた bin の上に「+N」ポップアップ（success 色）を 0.7s フラッシュ。
+ *   - 誤り: クリックされた bin を赤グロー + 横シェイクで反応させ、「✗ ちがう！ -N」ポップアップを出す。
+ *     さらに正しい入れ先 bin を緑ハイライト +「こっちへ！」バブルでガイドする（guideBinType）。
  */
 export default function BinTray({
   isFrozen,
@@ -61,9 +61,11 @@ export default function BinTray({
     <div className="mx-auto grid w-full max-w-3xl grid-cols-3 gap-8 sm:gap-12">
       {PACKAGE_TYPES.map((binType) => {
         const showFeedback = lastFeedback?.binType === binType;
+        // この bin が「誤って選ばれた」直後か（赤グロー + シェイクで間違いを伝える）
+        const isWrongReaction = showFeedback && lastFeedback?.correct === false;
         // D&D 中、ポインタがこの bin の上に重なっているか（ドロップ可能の合図）
         const isDropTarget = hoveredBinType === binType;
-        // ルール変更の誤投入後、この bin が「正しい入れ先」としてガイド表示中か
+        // 誤仕分け後、この bin が「正しい入れ先」としてガイド表示中か
         const isGuideTarget = guideBinType === binType;
         // グロー / 拡大パルスは「ドロップ可能」「正解ガイド」どちらでも出す（同じ強調機構を流用）
         const isHighlighted = isDropTarget || isGuideTarget;
@@ -97,14 +99,27 @@ export default function BinTray({
                         `drop-shadow(0 0 18px ${SORTER_UI_COLORS.success}) drop-shadow(0 0 6px ${SORTER_UI_COLORS.success})`,
                       ],
                     }
-                  : {
-                      scale: 1,
-                      // 中立値はハイライト時と同じ drop-shadow を 2 つ、ブラー 0・アルファ 0 で。
-                      // drop-shadow ↔ 'none'（キーワード値）は数値補間できずグローが残留するため、
-                      // 同種値（drop-shadow 同士・同数）で補間して確実にフェードアウトさせる。
-                      filter:
-                        'drop-shadow(0 0 0px rgba(87,208,113,0)) drop-shadow(0 0 0px rgba(87,208,113,0))',
-                    }
+                  : isWrongReaction
+                    ? {
+                        // 誤って選ばれた bin: 赤グローを一瞬焚いて横シェイク。
+                        // ハイライト（緑・継続パルス）とは別経路の単発リアクションで「間違い」を伝える。
+                        // 終端は透明な drop-shadow / x:0 に収束させ、リアクション後に残留させない。
+                        scale: 1,
+                        x: [0, -8, 8, -6, 6, 0],
+                        filter: [
+                          `drop-shadow(0 0 6px ${SORTER_UI_COLORS.danger}) drop-shadow(0 0 2px ${SORTER_UI_COLORS.danger})`,
+                          `drop-shadow(0 0 18px ${SORTER_UI_COLORS.danger}) drop-shadow(0 0 6px ${SORTER_UI_COLORS.danger})`,
+                          'drop-shadow(0 0 0px rgba(224,49,49,0)) drop-shadow(0 0 0px rgba(224,49,49,0))',
+                        ],
+                      }
+                    : {
+                        scale: 1,
+                        // 中立値はハイライト時と同じ drop-shadow を 2 つ、ブラー 0・アルファ 0 で。
+                        // drop-shadow ↔ 'none'（キーワード値）は数値補間できずグローが残留するため、
+                        // 同種値（drop-shadow 同士・同数）で補間して確実にフェードアウトさせる。
+                        filter:
+                          'drop-shadow(0 0 0px rgba(87,208,113,0)) drop-shadow(0 0 0px rgba(87,208,113,0))',
+                      }
               }
               transition={
                 isHighlighted
@@ -114,7 +129,12 @@ export default function BinTray({
                       repeatType: 'reverse',
                       ease: 'easeInOut',
                     }
-                  : { duration: 0.2 }
+                  : isWrongReaction
+                    ? {
+                        x: { duration: 0.45, ease: 'easeInOut' },
+                        filter: { duration: 0.55, ease: 'easeOut' },
+                      }
+                    : { duration: 0.2 }
               }
               aria-label={`${PACKAGE_LABELS[binType]}の仕分け先${
                 isDropTarget
@@ -160,14 +180,6 @@ export default function BinTray({
               )}
             </motion.button>
 
-            {/* bin 下の種類名ラベル（CSS テキストで補助、画像テキストが読みにくいケースの保険） */}
-            <span
-              className="mt-1 text-sm font-black tracking-widest sm:text-base"
-              style={{ color: PACKAGE_COLORS[binType] }}
-            >
-              {PACKAGE_LABELS[binType]}
-            </span>
-
             {/*
               フィードバックポップアップ。
               bin の上に「+10」「-5」を 0.7s フラッシュ表示。
@@ -203,15 +215,17 @@ export default function BinTray({
                 >
                   {lastFeedback.correct
                     ? `+${lastFeedback.scoreChange}`
-                    : `${lastFeedback.scoreChange}`}
+                    : `✗ ちがう！ ${lastFeedback.scoreChange}`}
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/*
-              ルール変更の誤投入後ガイド。「正しい入れ先」bin の上に「こっちへ！」バブルを
-              出し、ルール変更に気づかず旧 bin に入れ続ける理不尽さを軽減する。bin 本体は
+              誤仕分け後ガイド。「正しい入れ先」bin の上に大きめの「こっちへ！」バブル
+              （下向き矢印付き）を出し、どこが正解だったかを直感的に示す。bin 本体は
               isHighlighted で緑グロー + 拡大パルス（D&D ホバーと同じ強調機構を流用）。
+              小さくて気づきにくかったため、文字・余白を拡大し、bin を指す ▼ 矢印（吹き出しの
+              しっぽ）を付けて視線を誘導する。
               継続バウンス（y の repeat: Infinity）を持つため、exit には独自 transition を
               必ず指定する（親の repeat を継承して exit が完了せず、opacity:0 のゾンビ要素として
               残るのを防ぐ — frontend.md の framer-motion 注意点に従う）。
@@ -219,10 +233,10 @@ export default function BinTray({
             <AnimatePresence>
               {isGuideTarget && (
                 <motion.div
-                  key="rule-guide"
+                  key="miss-guide"
                   aria-hidden
                   initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1, y: [0, -6, 0] }}
+                  animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
                   exit={{
                     opacity: 0,
                     scale: 0.8,
@@ -231,12 +245,19 @@ export default function BinTray({
                   transition={{
                     opacity: { duration: 0.2 },
                     scale: { duration: 0.2 },
-                    y: { duration: 0.8, repeat: Infinity, ease: 'easeInOut' },
+                    y: { duration: 0.7, repeat: Infinity, ease: 'easeInOut' },
                   }}
-                  className="pointer-events-none absolute -top-3 left-1/2 z-30 -translate-x-1/2 -translate-y-full rounded-lg border-[3px] border-black px-3 py-1 text-sm font-black tracking-widest whitespace-nowrap text-white shadow-[3px_3px_0_0_#000] sm:text-base"
+                  className="pointer-events-none absolute -top-4 left-1/2 z-30 -translate-x-1/2 -translate-y-full rounded-xl border-[4px] border-black px-5 py-2.5 text-xl font-black tracking-widest whitespace-nowrap text-white shadow-[4px_4px_0_0_#000] sm:text-2xl"
                   style={{ backgroundColor: SORTER_UI_COLORS.success }}
                 >
                   こっちへ！
+                  {/* 吹き出しのしっぽ（bin を指す下向き矢印）。45度回転した正方形の
+                      右下 2 辺だけ黒枠を見せて、バブル下端から下を向く三角に見せる。 */}
+                  <span
+                    aria-hidden
+                    className="absolute -bottom-2.5 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-r-[4px] border-b-[4px] border-black"
+                    style={{ backgroundColor: SORTER_UI_COLORS.success }}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

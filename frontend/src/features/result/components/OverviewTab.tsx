@@ -2,39 +2,12 @@
 
 import type { ResultResponse } from '../types';
 import BipolarSlider from './BipolarSlider';
+import { renderComment, computeBiggestGap } from '../utils/commentUtils';
 
 type OverviewTabProps = {
   data: ResultResponse;
 };
 
-// ハイライト正規表現（BEが埋め込む数値 + 単位 / 『テキスト』引用）
-const COMBINED_RE =
-  /(『[^』]+』|「[^」]+」|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
-const NUM_RE = /^\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分)$/;
-const QUOTE_RE = /^(?:『[^』]+』|「[^」]+」)$/;
-
-function renderComment(text: string): React.ReactNode {
-  const parts = text.split(COMBINED_RE);
-  return parts.map((part, i) => {
-    if (NUM_RE.test(part)) {
-      return (
-        <span key={i} className="highlight-magenta">
-          {part}
-        </span>
-      );
-    }
-    if (QUOTE_RE.test(part)) {
-      return (
-        <span key={i} className="highlight-blue">
-          {part}
-        </span>
-      );
-    }
-    return part;
-  });
-}
-
-// 5 軸の表示順（上から下）
 const AXES = [
   'caution',
   'calmness',
@@ -45,12 +18,12 @@ const AXES = [
 
 export default function OverviewTab({ data }: OverviewTabProps) {
   const { feedback, scores, baseline_scores } = data;
+  const gap = computeBiggestGap(scores, baseline_scores);
 
   return (
     <div className="total-layout-reconstructed">
       {/* ===== 左カラム：タイトル + サブタイトル + 解析コメント ===== */}
       <div className="total-left-panel">
-        {/* タイトルステッカー ＋ サブタイトルを一体のポップアウトブロックとして配置 */}
         <div className="title-subtitle-block">
           <div className="type-main-title-sticker">
             <div className="type-preface-label">
@@ -68,9 +41,35 @@ export default function OverviewTab({ data }: OverviewTabProps) {
         {/* 解析コメントボックス */}
         <div className="comment-container-new">
           <div className="comment-header-tag">解析コメント</div>
+
+          {gap && (
+            <div className="gap-callout">
+              <span className="gap-callout-tag">最大のギャップ</span>
+              {gap.gap <= 10 ? (
+                <p className="gap-callout-body">
+                  自己認識と行動は
+                  <span className="gap-actual">ほぼ一致</span>！
+                </p>
+              ) : gap.sameSide ? (
+                <p className="gap-callout-body">
+                  自覚以上に
+                  <span className="gap-actual">「{gap.actualLabel}」</span>
+                  でした！
+                </p>
+              ) : (
+                <p className="gap-callout-body">
+                  自分では
+                  <span className="gap-self">「{gap.selfLabel}」</span>
+                  のつもり、でも実際は
+                  <span className="gap-actual">「{gap.actualLabel}」</span>！
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="comment-body-text">
             {feedback.description.split('\n').map((line, i) => (
-              <p key={i} style={{ margin: '0 0 6px' }}>
+              <p key={i} className="comment-sentence-block">
                 {renderComment(line)}
               </p>
             ))}
@@ -80,15 +79,15 @@ export default function OverviewTab({ data }: OverviewTabProps) {
 
       {/* ===== 右カラム：5 軸両極スライダー ===== */}
       <div className="total-right-panel">
-        <span className="five-axis-headline">
-          あなたの５軸ポジション（本能＝実測）
-        </span>
-        <span className="five-axis-headline">
-          あなたの自己申告の目安
-          <span className="average-icon">▼</span>
-        </span>
+        <div className="slider-legend-row">
+          <span className="legend-item">
+            <span className="legend-tri-actual">▼</span> 実測（本能）
+          </span>
+          <span className="legend-item">
+            <span className="legend-tri-self">▼</span> 自己申告
+          </span>
+        </div>
 
-        {/* スライダー群 */}
         {AXES.map((axis) => (
           <BipolarSlider
             key={axis}
