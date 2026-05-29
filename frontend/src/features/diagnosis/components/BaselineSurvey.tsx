@@ -177,22 +177,22 @@ export default function BaselineSurvey() {
   }
 
   return (
-    <div className="relative w-full max-w-2xl">
+    <div className="relative w-full max-w-4xl">
       {/* ヘッダー: タイトル + プログレスバー */}
       <div className="mb-0 flex items-start justify-between gap-4">
         {/* タイトルエリア - メインカードに少し重なる */}
         <div className="relative z-10 flex flex-col">
-          <div className="rounded-2xl border-4 border-gray-800 bg-white px-6 py-3 shadow-md">
-            <h1 className="text-xl font-bold text-gray-900">質問コーナー</h1>
+          <div className="rounded-2xl border-4 border-gray-800 bg-white px-8 py-4 shadow-md">
+            <h1 className="text-2xl font-bold text-gray-900">質問コーナー</h1>
           </div>
         </div>
 
         {/* プログレスバー: 5セグメント */}
-        <div className="flex shrink-0 gap-0.5 rounded-xl border-4 border-gray-800 bg-gray-100 p-1">
+        <div className="flex shrink-0 gap-1 rounded-xl border-4 border-gray-800 bg-gray-100 p-1.5">
           {Array.from({ length: totalQuestions }).map((_, i) => (
             <div
               key={i}
-              className={`h-6 w-8 rounded-lg transition-colors ${
+              className={`h-8 w-10 rounded-lg transition-colors ${
                 i <= currentIndex ? 'bg-rose-400' : 'bg-gray-200'
               }`}
             />
@@ -201,19 +201,22 @@ export default function BaselineSurvey() {
       </div>
 
       {/* メインカード: 質問 + 4択 - タイトルと重なる */}
-      <div className="relative -mt-4 rounded-3xl border-4 border-gray-800 bg-white p-6 shadow-lg">
-        <p className="mb-6 text-xl font-bold text-gray-900">
+      <div className="relative -mt-5 rounded-3xl border-4 border-gray-800 bg-white p-8 shadow-lg">
+        <p className="mb-6 text-2xl font-bold text-gray-900">
           Q{currentIndex + 1}. {currentQuestion.label}
         </p>
 
-        {/* 2x2グリッドの選択肢 */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* 2x2グリッドの選択肢
+            auto-rows-fr で2行を等高にし、改行の有無でボタンの高さが変わらないようにする。
+            grid item（button）は align-items:stretch（デフォルト）で行の高さまで伸びるため、
+            最も背の高い（2行になる）選択肢に4つすべての高さが揃う。 */}
+        <div className="grid auto-rows-fr grid-cols-2 gap-4">
           {currentQuestion.options.map((option) => (
             <button
               key={option.value}
               type="button"
               onClick={() => handleAnswer(option.value)}
-              className="rounded-2xl border-4 border-gray-800 bg-gray-100 px-6 py-4 text-center font-bold text-gray-900 transition hover:bg-rose-50 hover:border-rose-300"
+              className="flex items-center justify-center rounded-2xl border-4 border-gray-800 bg-gray-100 px-6 py-6 text-center text-lg font-bold text-gray-900 transition hover:border-rose-300 hover:bg-rose-50"
             >
               {option.label}
             </button>
