@@ -134,13 +134,13 @@ export default function TopPage() {
         backgroundRepeat: 'repeat, no-repeat',
       }}
     >
-      <div className="relative flex flex-col items-center gap-[2vh] w-full">
+      <div className="relative flex flex-col items-center w-full">
         <Image
           src="/images/RealYouLogo.png"
           alt="Real You -本当の私じゃだめですか？-"
           width={800}
           height={500}
-          className="max-h-[65vh] w-auto object-contain drop-shadow-2xl animate-[fadeInUp_0.5s_ease-out] pointer-events-none"
+          className="max-h-[65vh] w-auto object-contain drop-shadow-2xl animate-[fadeInUp_0.5s_ease-out] pointer-events-none mt-[4vh]"
         />
 
         {/** MBTIキャラの追加 */}
@@ -149,7 +149,7 @@ export default function TopPage() {
           alt=""
           width={100}
           height={100}
-          className="absolute top-10 right-20 w-60 rotate-[-15deg] pointer-events-none"
+          className="absolute top-5 right-20 w-60 rotate-[-15deg] pointer-events-none"
           style={{
             filter: `
             drop-shadow(5px 0 0 white)
@@ -165,7 +165,7 @@ export default function TopPage() {
           alt=""
           width={100}
           height={100}
-          className="absolute bottom-10 right-45 w-65 rotate-[15deg] pointer-events-none"
+          className="absolute bottom-8 right-50 w-65 rotate-[15deg] pointer-events-none"
           style={{
             filter: `
             drop-shadow(5px 0 0 white)
@@ -181,7 +181,7 @@ export default function TopPage() {
           alt=""
           width={100}
           height={100}
-          className="absolute top-8 left-20 w-60 rotate-[3deg] pointer-events-none"
+          className="absolute top-5 left-20 w-60 rotate-[3deg] pointer-events-none"
           style={{
             filter: `
             drop-shadow(5px 0 0 white)
@@ -197,7 +197,7 @@ export default function TopPage() {
           alt=""
           width={100}
           height={100}
-          className="absolute bottom-10 left-45 w-65 rotate-[-10deg]"
+          className="absolute bottom-8 left-50 w-65 rotate-[-10deg] pointer-events-none"
           style={{
             filter: `
             drop-shadow(5px 0 0 white)
@@ -208,7 +208,7 @@ export default function TopPage() {
           }}
         />
 
-        <div className="relative flex flex-col items-center gap-4">
+        <div className="relative flex flex-col items-center">
           <button
             onClick={handleStartClick}
             className="transition-all duration-100 ease-out hover:scale-110 active:scale-95 active:opacity-50"
@@ -224,9 +224,15 @@ export default function TopPage() {
 
           <button
             onClick={openHowToPlay}
-            className="rounded-full border border-black bg-white/90 px-6 py-3 text-sm font-bold text-black shadow-md transition hover:bg-white active:scale-95"
+            className="transition-all duration-100 ease-out hover:scale-110 active:scale-95 active:opacity-50"
           >
-            あそびかた
+            <Image
+              src="/images/asobikata_button.png"
+              alt="あそびかた"
+              width={120}
+              height={120}
+              className="w-[20vw] max-w-[180px] min-w-[90px] drop-shadow-md"
+            />
           </button>
 
           {showExplosion && <SparklesExplosion />}
