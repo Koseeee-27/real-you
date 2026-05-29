@@ -119,7 +119,7 @@ export default function OverviewTab({ data }: OverviewTabProps) {
           {gap && (
             <div className="gap-callout">
               <span className="gap-callout-tag">最大のギャップ</span>
-              {gap.gap < 10 ? (
+              {gap.gap <= 10 ? (
                 <p className="gap-callout-body">
                   自己認識と行動は
                   <span className="gap-actual">ほぼ一致</span>！

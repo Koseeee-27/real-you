@@ -117,7 +117,7 @@ export default function ShareResultView({ data }: ShareResultViewProps) {
           {gap && (
             <div className="share-card">
               <span className="share-tag">最大のギャップ</span>
-              {gap.gap < 10 ? (
+              {gap.gap <= 10 ? (
                 <p className="share-gap-body">
                   自己認識と行動は
                   <span className="gap-actual">ほぼ一致</span>！

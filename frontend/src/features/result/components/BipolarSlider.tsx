@@ -109,7 +109,7 @@ export default function BipolarSlider({
             <div className="slider-pin-point" style={{ left: pinLeft }} />
           </div>
 
-          {/* 実測▼（黒）＋ 自己申告▼（赤）＋ グレー点線（baselineScore があるときのみ）
+          {/* 実測▼（赤, .actual-tri）＋ 自己申告▼（グレー, .self-tri）＋ グレー点線
               座標は pin と同じ (100 - 値)% 系で揃える。 */}
           {hasBaseline && (
             <div className="gap-arrow-band">

@@ -245,7 +245,8 @@
 }
 
 /* 自己申告ラベル：取り消し線で「思い込み」を表現 */
-.gap-callout-body .gap-self {
+.gap-callout-body .gap-self,
+.share-gap-body .gap-self {
   color: #888;
   text-decoration: line-through;
   text-decoration-thickness: 2px;
@@ -253,7 +254,8 @@
 }
 
 /* 実測ラベル：黒フチ付きで強調（タイトルと同じポップ調） */
-.gap-callout-body .gap-actual {
+.gap-callout-body .gap-actual,
+.share-gap-body .gap-actual {
   color: #f87171;
   font-size: 16px;
   margin: 0 2px;
@@ -358,21 +360,6 @@
   border-left: 3px dashed #e2e8f0;
 }
 
-.five-axis-headline {
-  font-size: 11.5px;
-  font-weight: 900;
-  color: #777;
-  margin-bottom: 5px;
-  text-align: right;
-}
-
-.average-icon {
-  color: #ef4444;
-  font-size: 0.8em;
-  margin-left: 6px;
-  display: inline-block;
-  vertical-align: middle;
-}
 
 .slider-legend-row {
   display: flex;
