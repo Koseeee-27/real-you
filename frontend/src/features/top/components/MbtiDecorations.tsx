@@ -22,6 +22,8 @@ const MBTI_DECORATIONS = [
 /**
  * トップ画面の背景を彩る MBTI キャラ装飾画像。
  * 静的な装飾のみで状態を持たないため Server Component として描画する。
+ *
+ * 四隅への絶対配置が前提のため、ロゴ・ボタンと重なる狭い画面（lg 未満）では非表示にする。
  */
 export default function MbtiDecorations() {
   return (
@@ -33,7 +35,7 @@ export default function MbtiDecorations() {
           alt=""
           width={100}
           height={100}
-          className={`absolute pointer-events-none ${className}`}
+          className={`absolute hidden pointer-events-none lg:block ${className}`}
           style={WHITE_OUTLINE}
         />
       ))}
