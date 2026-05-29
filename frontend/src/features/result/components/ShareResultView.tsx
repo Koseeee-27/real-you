@@ -129,7 +129,9 @@ export default function ShareResultView({ data }: ShareResultViewProps) {
           )}
 
           {/* コンテンツ */}
-          <div style={mode === 'detail' ? { flex: 1, minHeight: 0 } : undefined}>
+          <div
+            style={mode === 'detail' ? { flex: 1, minHeight: 0 } : undefined}
+          >
             {mode === 'overview' && <OverviewTab data={data} />}
             {mode === 'detail' && activeDetail && (
               <GameDetailTab
