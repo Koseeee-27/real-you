@@ -157,10 +157,10 @@ export default function OverviewTab({ data }: OverviewTabProps) {
         <span className="five-axis-headline">
           あなたの５軸ポジション（本能＝実測）
         </span>
-        <span className="five-axis-headline">
-          あなたの自己申告の目安
-          <span className="average-icon">▼</span>
-        </span>
+        <div className="slider-legend-row">
+          <span className="legend-actual">● 実際の行動</span>
+          <span className="legend-baseline">▼ 自己認識の目安</span>
+        </div>
 
         {/* スライダー群 */}
         {AXES.map((axis) => (

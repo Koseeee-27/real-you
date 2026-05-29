@@ -238,7 +238,7 @@
 
 .gap-callout-body {
   margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
   line-height: 1.5;
   color: #333;
@@ -357,6 +357,24 @@
   text-align: right;
 }
 
+/* スライダー凡例：● 実際の行動 / ▼ 自己認識の目安 */
+.slider-legend-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  font-size: 11px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.slider-legend-row .legend-actual {
+  color: #4d85ff;
+}
+
+.slider-legend-row .legend-baseline {
+  color: #ef4444;
+}
+
 .average-icon {
   color: #ef4444;
   font-size: 0.8em;
@@ -469,6 +487,17 @@
   transition:
     left 0.7s cubic-bezier(0.22, 1, 0.36, 1),
     width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 自己認識(▼)と実測(●)の間のギャップを黄色帯で示す */
+.slider-gap-zone {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(251, 191, 36, 0.45);
+  z-index: 3;
+  transition: opacity 0.6s ease 0.3s;
+  pointer-events: none;
 }
 
 .slider-pin-point {

@@ -91,6 +91,18 @@ export default function BipolarSlider({
         <div className="slider-wrapper">
           <div className="slider-line-track">
             <div className="slider-color-fill" style={fillStyle} />
+            {/* ギャップ帯：自己認識(▼)と実測(●)の間を黄色帯で可視化 */}
+            {baselineScore !== undefined &&
+              Math.abs(score - baselineScore) > 5 && (
+                <div
+                  className="slider-gap-zone"
+                  style={{
+                    left: `${Math.min(boundary, 100 - baselineScore)}%`,
+                    width: `${Math.abs(boundary - (100 - baselineScore))}%`,
+                    opacity: animated ? 1 : 0,
+                  }}
+                />
+              )}
             <div className="slider-pin-point" style={{ left: pinLeft }} />
           </div>
 
