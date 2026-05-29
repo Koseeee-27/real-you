@@ -360,7 +360,6 @@
   border-left: 3px dashed #e2e8f0;
 }
 
-
 .slider-legend-row {
   display: flex;
   justify-content: flex-end;
@@ -900,8 +899,12 @@
   background-image:
     radial-gradient(circle, rgba(255, 255, 255, 0.8) 1px, transparent 4px),
     url('/images/bg-pattern.svg');
-  background-size: 16px 16px, cover;
-  background-position: 0 0, center;
+  background-size:
+    16px 16px,
+    cover;
+  background-position:
+    0 0,
+    center;
   background-repeat: repeat, no-repeat;
   display: flex;
   flex-direction: column;
@@ -1137,7 +1140,9 @@
   text-align: center;
   text-decoration: none;
   box-shadow: 5px 5px 0 #000;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
   letter-spacing: 0.03em;
 }
 

@@ -113,7 +113,9 @@ export default function BipolarSlider({
               座標は pin と同じ (100 - 値)% 系で揃える。 */}
           {hasBaseline && (
             <div className="gap-arrow-band">
-              <div className="actual-tri" style={{ left: pinLeft }}>▼</div>
+              <div className="actual-tri" style={{ left: pinLeft }}>
+                ▼
+              </div>
               <div className="self-tri" style={{ left: `${selfX}%` }}>
                 ▼
               </div>
