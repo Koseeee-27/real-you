@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 // 各軸の左端ラベル（0側）と右端ラベル（100側）
 const AXIS_POLES: Record<string, { left: string; right: string }> = {
   caution: { left: '大胆', right: '慎重' },
@@ -44,9 +46,29 @@ export default function BipolarSlider({
   // フィルとピンは常に (100-score)% の位置を境界とする
   const boundary = 100 - score;
 
+  // マウント後に false → true へ切り替え、CSS transition でバー/ピンを
+  // 「空」の状態から実値まで伸ばすアニメーションを発火させる。
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setAnimated(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // 境界（ピン位置）。アニメ前は各ポール端（左モード=0% / 右モード=100%）に寄せ、
+  // アニメ後に boundary% へ。fill は端から伸びる形になる。
+  const pinLeft = animated ? `${boundary}%` : isRight ? '100%' : '0%';
+
   const fillStyle: React.CSSProperties = isRight
-    ? { background: '#4d85ff', left: `${boundary}%`, right: 0 }
-    : { background: '#f97316', left: 0, width: `${boundary}%` };
+    ? {
+        background: '#4d85ff',
+        left: animated ? `${boundary}%` : '100%',
+        right: 0,
+      }
+    : {
+        background: '#f97316',
+        left: 0,
+        width: animated ? `${boundary}%` : '0%',
+      };
 
   return (
     <div className="mbti-slider-row-new">
@@ -69,10 +91,7 @@ export default function BipolarSlider({
         <div className="slider-wrapper">
           <div className="slider-line-track">
             <div className="slider-color-fill" style={fillStyle} />
-            <div
-              className="slider-pin-point"
-              style={{ left: `${boundary}%` }}
-            />
+            <div className="slider-pin-point" style={{ left: pinLeft }} />
           </div>
 
           {/* ▼ ベースラインマーカー（baselineScore が渡されたときのみ）

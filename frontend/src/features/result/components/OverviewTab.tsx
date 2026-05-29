@@ -44,7 +44,7 @@ const AXES = [
 ] as const;
 
 export default function OverviewTab({ data }: OverviewTabProps) {
-  const { feedback, scores, baseline_scores } = data;
+  const { feedback, scores, baseline_scores, accuracy_score } = data;
 
   return (
     <div className="total-layout-reconstructed">
@@ -75,6 +75,15 @@ export default function OverviewTab({ data }: OverviewTabProps) {
               </p>
             ))}
           </div>
+        </div>
+
+        {/* 自己認識精度バッジ（自己申告と実測の一致度） */}
+        <div className="accuracy-badge">
+          <span className="accuracy-badge-label">自己認識精度</span>
+          <span className="accuracy-badge-value">
+            {accuracy_score}
+            <span className="accuracy-badge-unit">%</span>
+          </span>
         </div>
       </div>
 
