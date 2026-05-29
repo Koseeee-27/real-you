@@ -1,15 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useRef, useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { GameId, ResultResponse } from '../types';
 import { GAME_META } from '../data/gameMeta';
 import BipolarSlider from './BipolarSlider';
 import OverviewTab from './OverviewTab';
 import GameDetailTab from './GameDetailTab';
+import SnsShareTrigger from './SnsShareTrigger';
 import { renderComment, computeBiggestGap } from '../utils/commentUtils';
-import { SITE_URL } from '@/constants/site';
 
 type ShareResultViewProps = {
   data: ResultResponse;
@@ -32,81 +32,6 @@ const AXES = [
   'cooperativeness',
   'positivity',
 ] as const;
-
-// ===== SNS 共有ヘルパー =====
-
-function buildShareText(title: string, shareUrl: string): string {
-  return `私の行動解析結果は「${title}」でした！\n#技育博 #RealYou #本当の私じゃだめですか\n${shareUrl}`;
-}
-
-type SnsPanelProps = {
-  title: string;
-  userId: string;
-};
-
-function SnsShareButtons({ title, userId }: SnsPanelProps) {
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
-  const shareUrl = `${SITE_URL}/share/${userId}`;
-  const text = buildShareText(title, shareUrl);
-
-  const shareToX = () => {
-    const params = new URLSearchParams({ text });
-    window.open(
-      `https://twitter.com/intent/tweet?${params}`,
-      '_blank',
-      'noopener,noreferrer'
-    );
-  };
-
-  const shareToLine = () => {
-    const params = new URLSearchParams({ text, url: shareUrl });
-    window.open(
-      `https://social-plugins.line.me/lineit/share?${params}`,
-      '_blank',
-      'noopener,noreferrer'
-    );
-  };
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopied(false), 2000);
-    } catch {
-      const el = document.createElement('textarea');
-      el.value = text;
-      el.style.cssText = 'position:fixed;opacity:0';
-      document.body.appendChild(el);
-      el.select();
-      const ok = document.execCommand('copy');
-      document.body.removeChild(el);
-      if (ok) {
-        setCopied(true);
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => setCopied(false), 2000);
-      }
-    }
-  }, [text]);
-
-  return (
-    <div className="share-sns-row">
-      <button type="button" onClick={shareToX} className="share-sns-btn">
-        <span className="share-sns-icon">𝕏</span>
-        <span>Xでシェア</span>
-      </button>
-      <button type="button" onClick={shareToLine} className="share-sns-btn">
-        <span className="share-sns-icon">💬</span>
-        <span>LINE</span>
-      </button>
-      <button type="button" onClick={handleCopy} className="share-sns-btn">
-        <span className="share-sns-icon">{copied ? '✓' : '📋'}</span>
-        <span>{copied ? 'コピー済！' : 'テキストコピー'}</span>
-      </button>
-    </div>
-  );
-}
 
 // ===== メインコンポーネント =====
 
@@ -242,7 +167,7 @@ export default function ShareResultView({ data }: ShareResultViewProps) {
                     自分も診断する →
                   </Link>
 
-                  <SnsShareButtons
+                  <SnsShareTrigger
                     title={feedback.title}
                     userId={data.user_id}
                   />
@@ -268,7 +193,7 @@ export default function ShareResultView({ data }: ShareResultViewProps) {
                     ← 戻る
                   </button>
 
-                  <SnsShareButtons
+                  <SnsShareTrigger
                     title={feedback.title}
                     userId={data.user_id}
                   />
@@ -293,6 +218,15 @@ export default function ShareResultView({ data }: ShareResultViewProps) {
       <div className="share-mobile-only">
         <div className="share-page">
           <div className="share-app-label">Real You 行動解析REPORT</div>
+
+          <div className="share-pc-recommend" role="note">
+            <p className="share-pc-recommend-title">
+              💻 この診断は <strong>PC</strong> でのプレイを推奨しています
+            </p>
+            <p className="share-pc-recommend-body">
+              スマホでは結果の閲覧・シェア専用です。自分も診断する場合は会場のPCブースへどうぞ。
+            </p>
+          </div>
 
           {/* 2カラム on タブレット+ / 1カラム on SP */}
           <div className="share-main-grid">
@@ -520,10 +454,10 @@ export default function ShareResultView({ data }: ShareResultViewProps) {
             <p className="share-footer-copy">
               あなたも3つのゲームで、本当の自分を暴き出してみよう。
             </p>
+            <SnsShareTrigger title={feedback.title} userId={data.user_id} />
             <Link href="/" className="share-cta-btn">
               自分も診断する →
             </Link>
-            <SnsShareButtons title={feedback.title} userId={data.user_id} />
             <p className="share-footer-brand">Real You — 行動解析REPORT</p>
           </div>
         </div>
