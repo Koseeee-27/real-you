@@ -134,13 +134,13 @@ export default function TopPage() {
         backgroundRepeat: 'repeat, no-repeat',
       }}
     >
-      <div className="flex flex-col items-center gap-[2vh] w-full">
+      <div className="relative flex flex-col items-center gap-[2vh] w-full">
         <Image
           src="/images/RealYouLogo.png"
           alt="Real You -本当の私じゃだめですか？-"
           width={800}
           height={500}
-          className="max-h-[65vh] w-auto object-contain drop-shadow-2xl animate-[fadeInUp_0.5s_ease-out]"
+          className="max-h-[65vh] w-auto object-contain drop-shadow-2xl animate-[fadeInUp_0.5s_ease-out] pointer-events-none"
         />
 
         {/** MBTIキャラの追加 */}
@@ -149,7 +149,7 @@ export default function TopPage() {
           alt=""
           width={100}
           height={100}
-          className="absolute top-10 right-20 w-60 rotate-[-15deg]"
+          className="absolute top-10 right-20 w-60 rotate-[-15deg] pointer-events-none"
           style={{
             filter: `
             drop-shadow(5px 0 0 white)
@@ -165,7 +165,7 @@ export default function TopPage() {
           alt=""
           width={100}
           height={100}
-          className="absolute bottom-10 right-45 w-65 rotate-[15deg]"
+          className="absolute bottom-10 right-45 w-65 rotate-[15deg] pointer-events-none"
           style={{
             filter: `
             drop-shadow(5px 0 0 white)
@@ -181,7 +181,7 @@ export default function TopPage() {
           alt=""
           width={100}
           height={100}
-          className="absolute top-8 left-20 w-60 rotate-[3deg]"
+          className="absolute top-8 left-20 w-60 rotate-[3deg] pointer-events-none"
           style={{
             filter: `
             drop-shadow(5px 0 0 white)
