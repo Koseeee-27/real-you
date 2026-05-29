@@ -226,7 +226,7 @@ export default function OverviewTab({ data }: OverviewTabProps) {
           <div className="comment-body-text">
             {feedback.description.split('\n').map((line, i) => (
               <p key={i} className="comment-sentence-block">
-                {renderParagraphWithBreaks(line)}
+                {renderComment(line)}
               </p>
             ))}
           </div>
