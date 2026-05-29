@@ -143,6 +143,9 @@
   line-height: 1.1;
   margin: 0;
   letter-spacing: -0.5px;
+  /* ステッカー幅は前置きラベルなど最長要素で決まるため、
+     短いタイトル（例「特攻隊長」）でも常に中央寄せにする */
+  text-align: center;
 }
 
 .type-main-title span.orange-highlight {
