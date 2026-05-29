@@ -903,10 +903,11 @@
 }
 
 /* ============================================================
-   共有リンク（/share/[userId]）スマホ専用レイアウト
+   共有リンク（/share/[userId]）レスポンシブレイアウト
+   Mobile-first: 1カラム → PC (≥768px): 2カラム
    ============================================================ */
 
-.share-mobile-page {
+.share-page {
   font-family: 'M PLUS Rounded 1c', sans-serif;
   min-height: 100vh;
   background-image:
@@ -918,17 +919,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 16px 40px;
+  padding: 16px 16px 48px;
   gap: 16px;
 }
 
-/* ページ全体の最大幅（スマホ幅でも PC でも読みやすく） */
-.share-mobile-page > * {
+/* スマホ: 全要素を最大幅 480px に制限 */
+.share-page > * {
   width: 100%;
   max-width: 480px;
 }
 
-.share-mobile-app-label {
+.share-app-label {
   font-size: 11px;
   font-weight: 900;
   color: #888;
@@ -937,8 +938,23 @@
   padding-top: 8px;
 }
 
+/* ===== 2カラムグリッド（スマホ: 1列、PC: 2列） ===== */
+.share-main-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.share-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 /* ===== タイトルカード ===== */
-.share-mobile-title-card {
+.share-title-card {
   background: #fef08a;
   border: 4px solid #000;
   border-radius: 20px;
@@ -951,7 +967,7 @@
   gap: 8px;
 }
 
-.share-mobile-preface {
+.share-preface {
   font-size: 11px;
   font-weight: 900;
   color: #666;
@@ -959,7 +975,7 @@
   margin: 0;
 }
 
-.share-mobile-title {
+.share-title {
   font-size: 40px;
   font-weight: 950;
   color: #000;
@@ -968,7 +984,7 @@
   letter-spacing: -0.5px;
 }
 
-.share-mobile-subtitle {
+.share-subtitle {
   font-size: 15px;
   font-weight: 900;
   color: #555;
@@ -976,10 +992,8 @@
   line-height: 1.5;
 }
 
-/* ===== 汎用カード（コメント・スライダー） ===== */
-.share-mobile-gap-card,
-.share-mobile-comment-card,
-.share-mobile-sliders-card {
+/* ===== 汎用カード ===== */
+.share-card {
   background: #fff;
   border: 3.5px solid #000;
   border-radius: 18px;
@@ -990,8 +1004,8 @@
   gap: 10px;
 }
 
-/* ===== ギャップコールアウト ===== */
-.share-mobile-gap-tag {
+/* ===== タグ（コールアウトラベル） ===== */
+.share-tag {
   display: inline-block;
   background: #000;
   color: #fff;
@@ -1003,7 +1017,7 @@
   align-self: flex-start;
 }
 
-.share-mobile-gap-body {
+.share-gap-body {
   font-size: 18px;
   font-weight: 900;
   color: #000;
@@ -1011,21 +1025,8 @@
   line-height: 1.5;
 }
 
-/* ===== セクションタグ ===== */
-.share-mobile-section-tag {
-  display: inline-block;
-  background: #000;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  padding: 2px 10px;
-  border-radius: 20px;
-  align-self: flex-start;
-}
-
 /* ===== ゲーム別アコーディオン ===== */
-.share-mobile-games-section {
+.share-games-section {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1033,15 +1034,16 @@
   max-width: 480px;
 }
 
-.share-mobile-section-label {
+.share-section-label {
   font-size: 12px;
   font-weight: 900;
   color: #888;
   letter-spacing: 0.06em;
   padding: 0 2px;
+  margin: 0;
 }
 
-.share-mobile-accordion {
+.share-accordion {
   background: #fff;
   border: 3.5px solid #000;
   border-radius: 18px;
@@ -1049,7 +1051,7 @@
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
 }
 
-.share-mobile-accordion-header {
+.share-accordion-header {
   width: 100%;
   background: #fff;
   border: none;
@@ -1063,11 +1065,11 @@
   transition: background 0.15s;
 }
 
-.share-mobile-accordion-header:active {
+.share-accordion-header:active {
   background: #f8fafc;
 }
 
-.share-mobile-accordion-title {
+.share-accordion-title {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1075,31 +1077,38 @@
   text-align: left;
 }
 
-.share-mobile-accordion-body {
+.share-accordion-body {
   border-top: 2px solid #e2e8f0;
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.share-mobile-subsection-label {
+/* アコーディオン内：スマホ1列、PC2列 */
+.share-accordion-inner-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.share-subsection-label {
   font-size: 11px;
   font-weight: 900;
   color: #94a3b8;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin: 0 0 4px;
 }
 
-.share-mobile-data-grid {
+.share-data-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 4px;
 }
 
-.share-mobile-data-item {
+.share-data-item {
   background: #f8fafc;
   border: 2px solid #e2e8f0;
   border-radius: 14px;
@@ -1109,7 +1118,7 @@
 }
 
 /* ===== フッター ===== */
-.share-mobile-footer {
+.share-footer {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1120,7 +1129,7 @@
   text-align: center;
 }
 
-.share-mobile-footer-copy {
+.share-footer-copy {
   font-size: 14px;
   font-weight: 700;
   color: #555;
@@ -1128,7 +1137,7 @@
   line-height: 1.6;
 }
 
-.share-mobile-cta-btn {
+.share-cta-btn {
   display: block;
   width: 100%;
   background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
@@ -1145,15 +1154,87 @@
   letter-spacing: 0.03em;
 }
 
-.share-mobile-cta-btn:active {
+.share-cta-btn:active {
   transform: translate(2px, 2px);
   box-shadow: 3px 3px 0 #000;
 }
 
-.share-mobile-footer-brand {
+.share-footer-brand {
   font-size: 11px;
   font-weight: 900;
   color: #aaa;
   letter-spacing: 0.08em;
   margin: 0;
+}
+
+/* ============================================================
+   PC レイアウト (≥768px): 2カラムに拡張
+   ============================================================ */
+@media (min-width: 768px) {
+  .share-page {
+    padding: 28px 40px 56px;
+  }
+
+  /* PC では全要素を最大幅 1100px に拡張 */
+  .share-page > * {
+    max-width: 1100px;
+  }
+
+  /* 左右2カラムグリッド */
+  .share-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+    max-width: 1100px;
+  }
+
+  /* タイトル文字を PC でやや拡大 */
+  .share-title {
+    font-size: 52px;
+  }
+
+  .share-subtitle {
+    font-size: 17px;
+  }
+
+  .share-gap-body {
+    font-size: 20px;
+  }
+
+  /* ゲームアコーディオン全幅 */
+  .share-games-section {
+    max-width: 1100px;
+  }
+
+  /* アコーディオン内も2カラム */
+  .share-accordion-inner-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  /* フッター全幅 */
+  .share-footer {
+    max-width: 1100px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+  }
+
+  .share-footer-copy {
+    text-align: left;
+    font-size: 15px;
+  }
+
+  .share-cta-btn {
+    width: auto;
+    white-space: nowrap;
+    padding: 16px 48px;
+  }
+
+  .share-footer-brand {
+    text-align: right;
+  }
 }
