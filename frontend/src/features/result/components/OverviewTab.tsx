@@ -154,13 +154,14 @@ export default function OverviewTab({ data }: OverviewTabProps) {
 
       {/* ===== 右カラム：5 軸両極スライダー ===== */}
       <div className="total-right-panel">
-        <span className="five-axis-headline">
-          あなたの５軸ポジション（本能＝実測）
-        </span>
-        <span className="five-axis-headline">
-          あなたの自己申告の目安
-          <span className="average-icon">▼</span>
-        </span>
+        <div className="slider-legend-row">
+          <span className="legend-item">
+            <span className="legend-tri-actual">▼</span> 実測（本能）
+          </span>
+          <span className="legend-item">
+            <span className="legend-tri-self">▼</span> 自己申告
+          </span>
+        </div>
 
         {/* スライダー群 */}
         {AXES.map((axis) => (
