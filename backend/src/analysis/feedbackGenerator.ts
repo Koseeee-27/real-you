@@ -101,6 +101,7 @@ const FEEDBACK_PATTERNS: Record<keyof BaselineScores, AxisFeedback> = {
                     `あなたの自己認識一致度は${accuracy}%。`,
                     '「論理的に考えている」と思っていたかもしれません。',
                     `でも仕分けゲームでルールが変わった後も、あなたは${time}秒間、以前のルールで動き続けていました。`,
+                    '頭より先に体が動く。それがあなたの本能のかたちです。',
                 ].join('\n');
             },
         },

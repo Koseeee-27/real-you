@@ -83,6 +83,7 @@ export const DEV_COMMENT_SAMPLES: DevCommentSample[] = [
       'あなたの自己認識一致度は42%。',
       '「論理的に考えている」と思っていたかもしれません。',
       'でも仕分けゲームでルールが変わった後も、あなたは9.2秒間、以前のルールで動き続けていました。',
+      '頭より先に体が動く。それがあなたの本能のかたちです。',
     ].join('\n'),
   },
   // cooperativeness.high — accuracy=75
