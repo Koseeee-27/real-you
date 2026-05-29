@@ -11,7 +11,7 @@ type SharePanelProps = {
 
 function buildShareText(title: string, userId: string): string {
   const shareUrl = `${SITE_URL}/share/${userId}`;
-  return `私の行動解析結果は「${title}」でした！\n#技育博 #RealYou #本当の私じゃだめですか #行動解析REPORT\n${shareUrl}`;
+  return `私の行動解析結果は「${title}」でした！\n#技育博 #RealYou #本当の私じゃだめですか\n${shareUrl}`;
 }
 
 export default function SharePanel({ title, userId }: SharePanelProps) {
