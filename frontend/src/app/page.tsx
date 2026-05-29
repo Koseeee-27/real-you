@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { howToPlaySlides } from '@/features/top/components/HowToPlayModal';
 import SlideModal from '@/components/common/SlideModal';
+import { useBgm } from '@/components/audio/useBgm';
 
 // --- まる爆発アニメーションコンポーネント ---
 const SparklesExplosion = () => {
@@ -64,33 +65,8 @@ export default function TopPage() {
   const [showExplosion, setShowExplosion] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
-  // BGMを保持するための Ref
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
-
-  // BGMの初期化と再生管理
-  useEffect(() => {
-    // パスは public/sounds/start-bgm.mp3 を想定
-    const bgm = new Audio('/sounds/start-bgm.mp3');
-    bgm.loop = true;
-    bgm.volume = 0.4;
-    bgmRef.current = bgm;
-
-    const playBGM = () => {
-      bgm.play().catch(() => {
-        // 自動再生制限がかかった場合は何もしない
-      });
-      // 一度クリックされたらイベントリスナーを削除
-      window.removeEventListener('click', playBGM);
-    };
-
-    window.addEventListener('click', playBGM);
-
-    // クリーンアップ
-    return () => {
-      bgm.pause();
-      window.removeEventListener('click', playBGM);
-    };
-  }, []);
+  // 共通基盤で BGM を再生（規約ゲームまで同じ曲を継続再生する）
+  useBgm('start');
 
   const handleStartClick = () => {
     setShowExplosion(true);
@@ -98,11 +74,6 @@ export default function TopPage() {
     // SEの再生（パスを修正）
     const audio = new Audio('/sounds/start-se.mp3');
     audio.play().catch(() => {});
-
-    // ボタン押下時にBGMを停止
-    if (bgmRef.current) {
-      bgmRef.current.pause();
-    }
 
     setTimeout(() => {
       router.push('/games/terms');
