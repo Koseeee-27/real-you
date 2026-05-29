@@ -108,6 +108,8 @@
 }
 
 .type-main-title-sticker {
+  position: relative;
+  z-index: 2;
   background: #fef08a;
   border: 5px solid #000;
   border-radius: 18px;
@@ -130,10 +132,21 @@
 .type-intro-label {
   font-size: 20px;
   font-weight: 900;
-  color: #555;
+  color: #4d85ff;
   margin-top: 8px;
   white-space: nowrap;
   text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* QRモーダル表示時: 青い解説（サブタイトル）を背面へ */
+body.share-qr-modal-open .type-intro-label {
+  z-index: 0;
+}
+
+body.share-qr-modal-open .type-main-title-sticker {
+  z-index: 2;
 }
 
 .type-main-title {
@@ -1168,7 +1181,256 @@
   display: block;
 }
 
-/* ===== SNS 共有ボタン行 ===== */
+/* ===== QR シェアモーダル（body 直下 portal） ===== */
+.share-qr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.share-qr-modal-dialog {
+  background: #fff;
+  border: 5px solid #000;
+  border-radius: 24px;
+  padding: 28px 32px;
+  text-align: center;
+  box-shadow: 8px 8px 0 #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 320;
+  width: 100%;
+  position: relative;
+}
+
+.share-qr-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  padding: 4px;
+}
+
+.share-qr-modal-heading {
+  font-weight: 900;
+  font-size: 18px;
+  color: #000;
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+.share-qr-modal-nickname {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.share-qr-modal-qr-wrap {
+  padding: 8px;
+  border: 3px solid #000;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.share-qr-modal-url {
+  font-size: 11px;
+  color: #888;
+  word-break: break-all;
+  max-width: 240;
+  line-height: 1.5;
+}
+
+.share-qr-modal-copy-btn {
+  color: #fff;
+  border: 3px solid #000;
+  border-radius: 50px;
+  padding: 8px 28px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+}
+
+/* ===== スマホ共有: PCプレイ推奨 ===== */
+.share-pc-recommend {
+  width: 100%;
+  max-width: 480px;
+  background: #eff6ff;
+  border: 3.5px solid #3b82f6;
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 4px 4px 0 rgba(59, 130, 246, 0.25);
+}
+
+.share-pc-recommend-title {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #1e3a8a;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.share-pc-recommend-title strong {
+  color: #2563eb;
+}
+
+.share-pc-recommend-body {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* ===== SNS シェア導線（結果をシェアボタンと同デザイン） ===== */
+.share-sns-trigger-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.share-sns-hint {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 900;
+  color: #555;
+  letter-spacing: 0.03em;
+}
+
+.share-sns-trigger-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  min-width: 200px;
+  padding: 0 24px;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 9999px;
+  font-size: 15px;
+  font-weight: 900;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 #fbbf24;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+}
+
+.share-sns-trigger-btn:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+/* SNS 選択モーダル */
+.share-sns-picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20px;
+}
+
+.share-sns-picker-dialog {
+  background: #fff;
+  border: 5px solid #000;
+  border-radius: 24px 24px 18px 18px;
+  padding: 24px 20px 20px;
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  box-shadow: 8px 8px 0 #000;
+}
+
+.share-sns-picker-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  padding: 4px;
+}
+
+.share-sns-picker-heading {
+  margin: 0 0 16px;
+  font-size: 17px;
+  font-weight: 900;
+  color: #000;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+.share-sns-picker-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.share-sns-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: #fff;
+  border: 3px solid #000;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 900;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #000;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+}
+
+.share-sns-picker-option:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.share-sns-picker-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .share-sns-picker-overlay {
+    align-items: center;
+  }
+
+  .share-sns-picker-dialog {
+    border-radius: 24px;
+  }
+}
+
+/* ===== SNS 共有ボタン行（旧・横並び） ===== */
 .share-sns-row {
   display: flex;
   flex-wrap: wrap;
