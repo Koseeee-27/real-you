@@ -14,9 +14,21 @@ export type BgmDef = {
 
 export const BGM_MANIFEST = {
   // トップ・MBTI 選択・規約ゲームで共通使用。ページ遷移をまたいで継続再生する。
+  // 各ゲームのオンボーディング中もこの start を使う。
   start: { src: '/sounds/start-bgm.mp3', baseVolume: 0.4 },
   // 結果画面。
   result: { src: '/sounds/result-bgm.mp3', baseVolume: 0.3 },
+  // 仕分けゲーム（プレイ中の状態で切替）。
+  sorterNormal: { src: '/sounds/sorter-game-bgm.mp3', baseVolume: 0.3 },
+  sorterSpeedUp: {
+    src: '/sounds/sorter-game-bgm-speedup.mp3',
+    baseVolume: 0.3,
+  },
+  sorterFreeze: { src: '/sounds/sorter-game-bgm-freeze.mp3', baseVolume: 0.3 },
+  // 空気読みゲーム（本編）。
+  groupChat: { src: '/sounds/group-chat-game-bgm.mp3', baseVolume: 0.3 },
+  // ヘルプデスクゲーム。
+  helpdesk: { src: '/sounds/helpdesk-game-bgm.mp3', baseVolume: 0.2 },
 } as const satisfies Record<string, BgmDef>;
 
 export type BgmKey = keyof typeof BGM_MANIFEST;

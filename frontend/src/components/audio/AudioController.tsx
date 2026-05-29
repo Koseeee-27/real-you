@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAtomValue } from 'jotai';
-import { bgmVolumeAtom } from '@/stores/audio';
+import { bgmVolumeAtom, bgmOverrideAtom } from '@/stores/audio';
 import { BGM_MANIFEST, resolveBgmKey } from './audioManifest';
 import type { BgmKey } from './audioManifest';
 
@@ -18,6 +18,8 @@ import type { BgmKey } from './audioManifest';
 export function AudioController() {
   const pathname = usePathname();
   const bgmVolume = useAtomValue(bgmVolumeAtom);
+  // ゲーム等がルート由来の曲を上書きする一時指定。あればこちらを優先する。
+  const override = useAtomValue(bgmOverrideAtom);
 
   // 現在再生中の Audio 要素と曲。
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -27,9 +29,10 @@ export function AudioController() {
   // 最新のユーザー設定音量。曲切替時に参照するため ref に同期する。
   const bgmVolumeRef = useRef(bgmVolume);
 
-  // ルートに応じて再生中の BGM を切り替える。
+  // ルート（または override）に応じて再生中の BGM を切り替える。
   useEffect(() => {
-    const targetKey = resolveBgmKey(pathname);
+    // 上書き指定があればそれを優先し、なければルート由来の曲を使う。
+    const targetKey = override ?? resolveBgmKey(pathname);
     // 同じ曲なら何もしない（＝ページ遷移をまたいで継続再生）。
     if (targetKey === currentKeyRef.current) return;
 
@@ -52,7 +55,7 @@ export function AudioController() {
         // 自動再生制限がかかった場合はアンロック後に再生される。
       });
     }
-  }, [pathname]);
+  }, [pathname, override]);
 
   // ユーザー設定音量の変化を再生中の BGM に反映し、最新値を ref に同期する。
   useEffect(() => {

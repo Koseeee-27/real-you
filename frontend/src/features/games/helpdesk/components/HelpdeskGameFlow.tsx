@@ -12,6 +12,8 @@ import {
 import { useHelpdeskGame } from '../hooks/useHelpdeskGame';
 import Spinner from '@/components/ui/Spinner';
 import ErrorScreen from '@/components/common/ErrorScreen';
+import { useBgmOverride } from '@/components/audio/useBgmOverride';
+import type { BgmKey } from '@/components/audio/audioManifest';
 import { GAME_TOPIC } from '../data/supportResponses';
 
 type SubmitStatus = 'loading' | 'success' | 'error';
@@ -41,9 +43,7 @@ export default function HelpdeskGameFlow() {
   // 走って意図しない遷移を引き起こす可能性があるため明示的に管理する。
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // --- サウンド管理用のRefとヘルパー ---
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
-
+  // --- SE 再生ヘルパー（BGM は共通基盤が管理） ---
   const playSE = useCallback((path: string) => {
     const audio = new Audio(path);
     audio.volume = 0.5;
@@ -64,27 +64,6 @@ export default function HelpdeskGameFlow() {
     },
     [router]
   );
-
-  // BGMの初期化と再生管理
-  useEffect(() => {
-    const bgm = new Audio('/sounds/helpdesk-game-bgm.mp3');
-    bgm.loop = true;
-    bgm.volume = 0.2;
-    bgmRef.current = bgm;
-
-    const playBGM = () => {
-      bgm.play().catch(() => {});
-      window.removeEventListener('click', playBGM);
-    };
-
-    window.addEventListener('click', playBGM);
-    playBGM(); // 前の画面（規約）から遷移した場合は、既にユーザー操作済みなので即再生される可能性が高い
-
-    return () => {
-      bgm.pause();
-      window.removeEventListener('click', playBGM);
-    };
-  }, []);
 
   // unmount 時に予約済みの遷移タイマーをキャンセルする。
   useEffect(() => {
@@ -158,12 +137,6 @@ export default function HelpdeskGameFlow() {
     async (data: HelpdeskGameData) => {
       pendingDataRef.current = data;
       setSubmitStatus('loading');
-
-      // 終了時にBGMを停止
-      if (bgmRef.current) {
-        bgmRef.current.pause();
-      }
-
       await submitHelpdeskGame(data);
     },
     [submitHelpdeskGame]
@@ -190,13 +163,17 @@ export default function HelpdeskGameFlow() {
     hints,
   } = useHelpdeskGame({ onComplete: handleComplete });
 
-  // voice-api-error フェーズで restart variant に切り替わったら ErrorScreen を全画面で
-  // 表示するため、ゲーム中の BGM を裏で鳴らし続けるのは違和感がある。明示的に停止する。
-  useEffect(() => {
-    if (gamePhase === 'voice-api-error' && voiceApiErrorVariant === 'restart') {
-      bgmRef.current?.pause();
-    }
-  }, [gamePhase, voiceApiErrorVariant]);
+  // ゲーム中はヘルプデスク BGM を流し続け、終了時と restart エラー時のみ止める。
+  //   - completed                         … 無音（終了画面・送信表示中）
+  //   - voice-api-error かつ restart       … 無音（ErrorScreen を全画面表示するため）
+  //   - それ以外（tutorial 〜 プレイ中）   … ヘルプデスク BGM
+  // 再生・停止・自動再生制限の解除は AudioController が担う。
+  const bgmKey: BgmKey | null =
+    gamePhase === 'completed' ||
+    (gamePhase === 'voice-api-error' && voiceApiErrorVariant === 'restart')
+      ? null
+      : 'helpdesk';
+  useBgmOverride(bgmKey);
 
   // --- アクションをラップしてSEを追加 ---
   const startInstruction = useCallback(() => {
@@ -249,9 +226,6 @@ export default function HelpdeskGameFlow() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user_id');
     }
-    // ErrorScreen 表示中も BGM が鳴り続けるのを防ぐ。
-    // unmount 時の cleanup でも止まるが、ボタン押下前の状態を考慮して明示的に停止。
-    bgmRef.current?.pause();
     router.push('/');
   }, [playSE, router]);
 
