@@ -1,7 +1,7 @@
 'use client';
 
 import type { ResultResponse } from '../types';
-import BipolarSlider from './BipolarSlider';
+import BipolarSlider, { AXIS_POLES } from './BipolarSlider';
 
 type OverviewTabProps = {
   data: ResultResponse;
@@ -43,8 +43,55 @@ const AXES = [
   'positivity',
 ] as const;
 
+// score >= 50 を「右ポール側」とみなしてラベル化する
+function sideLabel(axis: string, score: number): string {
+  const poles = AXIS_POLES[axis] ?? { left: axis, right: axis };
+  return score >= 50 ? poles.right : poles.left;
+}
+
+type GapHighlight = {
+  /** ズレの大きさ（絶対値, 0–100） */
+  gap: number;
+  /** 自己申告側のラベル（例「慎重」） */
+  selfLabel: string;
+  /** 実測側のラベル（例「大胆」） */
+  actualLabel: string;
+  /** 自己申告と実測が同じポール側か（差が程度のみ） */
+  sameSide: boolean;
+};
+
+/**
+ * 5 軸の中で「自己申告 ↔ 実測」のズレが最大の軸を抽出する。
+ * 結果画面の「思っていた自分 → 本能の自分」断言カードに使う。
+ */
+function computeBiggestGap(
+  scores: Record<string, number>,
+  baseline: Record<string, number>
+): GapHighlight | null {
+  let best: (GapHighlight & { axis: string }) | null = null;
+  for (const axis of AXES) {
+    const actual = scores[axis];
+    const self = baseline[axis];
+    if (actual == null || self == null) continue;
+    const gap = Math.abs(actual - self);
+    if (!best || gap > best.gap) {
+      const selfLabel = sideLabel(axis, self);
+      const actualLabel = sideLabel(axis, actual);
+      best = {
+        axis,
+        gap,
+        selfLabel,
+        actualLabel,
+        sameSide: selfLabel === actualLabel,
+      };
+    }
+  }
+  return best;
+}
+
 export default function OverviewTab({ data }: OverviewTabProps) {
   const { feedback, scores, baseline_scores } = data;
+  const gap = computeBiggestGap(scores, baseline_scores);
 
   return (
     <div className="total-layout-reconstructed">
@@ -80,6 +127,31 @@ export default function OverviewTab({ data }: OverviewTabProps) {
 
       {/* ===== 右カラム：5 軸両極スライダー ===== */}
       <div className="total-right-panel">
+        {/* ギャップ・ハイライト：思っていた自分 → 本能の自分（スライダーの直上） */}
+        {gap && (
+          <div className="gap-callout">
+            <span className="gap-callout-tag">最大のギャップ</span>
+            {gap.gap < 10 ? (
+              <p className="gap-callout-body">
+                自己認識と行動は
+                <span className="gap-actual">ほぼ一致</span>！
+              </p>
+            ) : gap.sameSide ? (
+              <p className="gap-callout-body">
+                自覚以上に
+                <span className="gap-actual">「{gap.actualLabel}」</span>
+                でした！
+              </p>
+            ) : (
+              <p className="gap-callout-body">
+                自分では
+                <span className="gap-self">「{gap.selfLabel}」</span>
+                のつもり、でも実際は
+                <span className="gap-actual">「{gap.actualLabel}」</span>！
+              </p>
+            )}
+          </div>
+        )}
         <span className="five-axis-headline">
           あなたの５軸ポジション（本能＝実測）
         </span>

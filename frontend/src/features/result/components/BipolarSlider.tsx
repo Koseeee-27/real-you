@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 // 各軸の左端ラベル（0側）と右端ラベル（100側）
-const AXIS_POLES: Record<string, { left: string; right: string }> = {
+export const AXIS_POLES: Record<string, { left: string; right: string }> = {
   caution: { left: '大胆', right: '慎重' },
   calmness: { left: '感情的', right: '冷静' },
   logic: { left: '直感的', right: '論理的' },
