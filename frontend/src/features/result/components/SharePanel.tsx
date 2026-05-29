@@ -2,6 +2,7 @@
 
 import { Share2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { SITE_URL } from '@/constants/site';
 
@@ -25,11 +26,15 @@ export default function SharePanel({ title, userId }: SharePanelProps) {
 
   useEffect(() => {
     if (!open) return;
+    document.body.classList.add('share-qr-modal-open');
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false);
     }
     document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+    return () => {
+      document.body.classList.remove('share-qr-modal-open');
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -96,115 +101,56 @@ export default function SharePanel({ title, userId }: SharePanelProps) {
         </span>
       </button>
 
-      {open && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            background: 'rgba(0,0,0,0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
-          }}
-          onClick={() => setOpen(false)}
-        >
+      {open &&
+        createPortal(
           <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="qr-modal-title"
-            style={{
-              background: '#fff',
-              border: '5px solid #000',
-              borderRadius: 24,
-              padding: '28px 32px',
-              textAlign: 'center',
-              boxShadow: '8px 8px 0 #000',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 16,
-              maxWidth: 320,
-              width: '100%',
-              position: 'relative',
-            }}
-            onClick={(e) => e.stopPropagation()}
+            className="share-qr-modal-overlay"
+            onClick={() => setOpen(false)}
           >
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              style={{
-                position: 'absolute',
-                top: 12,
-                right: 12,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#888',
-                padding: 4,
-              }}
-              aria-label="閉じる"
-            >
-              <X size={20} />
-            </button>
-
             <div
-              id="qr-modal-title"
-              style={{
-                fontWeight: 900,
-                fontSize: 18,
-                color: '#000',
-                letterSpacing: '0.03em',
-              }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="qr-modal-title"
+              className="share-qr-modal-dialog"
+              onClick={(e) => e.stopPropagation()}
             >
-              スマホで読み取ってね！
-            </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="share-qr-modal-close"
+                aria-label="閉じる"
+              >
+                <X size={20} />
+              </button>
 
-            <div
-              style={{
-                padding: 8,
-                border: '3px solid #000',
-                borderRadius: 12,
-                background: '#fff',
-              }}
-            >
-              <QRCodeSVG value={shareUrl} size={180} />
-            </div>
+              <div id="qr-modal-title" className="share-qr-modal-heading">
+                スマホで読み取ってね！
+              </div>
 
-            <div
-              style={{
-                fontSize: 11,
-                color: '#888',
-                wordBreak: 'break-all',
-                maxWidth: 240,
-                lineHeight: 1.5,
-              }}
-            >
-              {shareUrl}
-            </div>
+              <p className="share-qr-modal-nickname">
+                <span className="orange-highlight">{title}</span>
+              </p>
 
-            <button
-              type="button"
-              onClick={handleCopyUrl}
-              style={{
-                background: copied ? '#22c55e' : '#000',
-                color: '#fff',
-                border: '3px solid #000',
-                borderRadius: 50,
-                padding: '8px 28px',
-                fontSize: 14,
-                fontWeight: 900,
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-                width: '100%',
-              }}
-            >
-              {copied ? '✓ コピーしました！' : '📋 URLをコピー'}
-            </button>
-          </div>
-        </div>
-      )}
+              <div className="share-qr-modal-qr-wrap">
+                <QRCodeSVG value={shareUrl} size={180} />
+              </div>
+
+              <div className="share-qr-modal-url">{shareUrl}</div>
+
+              <button
+                type="button"
+                onClick={handleCopyUrl}
+                className="share-qr-modal-copy-btn"
+                style={{
+                  background: copied ? '#22c55e' : '#000',
+                }}
+              >
+                {copied ? '✓ コピーしました！' : '📋 URLをコピー'}
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 }
