@@ -70,6 +70,21 @@ export default function BipolarSlider({
         width: animated ? `${boundary}%` : '0%',
       };
 
+  // ===== 自己申告 ▼ の可視化 =====
+  // 表示座標系は pin と同じく (100 - 値)%。
+  const hasBaseline = baselineScore !== undefined;
+  const selfX = hasBaseline ? 100 - baselineScore : 0; // ▼ の x（自己申告）
+  // 自己申告(点線) ↔ 実測(黒ピン) の差。2本の線の中間にこの数字を置く。
+  // 符号は「色付き極（優勢側）の方向」基準。＋＝自己申告より実測が極寄り。
+  const signedGap = hasBaseline
+    ? isRight
+      ? score - baselineScore
+      : baselineScore - score
+    : 0;
+  const gap = Math.abs(signedGap);
+  const gapLabel = `${signedGap > 0 ? '+' : signedGap < 0 ? '−' : '±'}${gap}`;
+  const gapMidX = (selfX + boundary) / 2; // 点線(selfX) と 黒ピン(boundary) の中点
+
   return (
     <div className="mbti-slider-row-new">
       <div className="mbti-slider-track-new">
@@ -94,18 +109,20 @@ export default function BipolarSlider({
             <div className="slider-pin-point" style={{ left: pinLeft }} />
           </div>
 
-          {/* ▼ ベースラインマーカー（baselineScore が渡されたときのみ）
-              NOTE: ピンの座標系は `left: (100 - score)%` なので、
-              ▼ も同じ座標系に合わせるため `(100 - baselineScore)%` とする。
-              `baselineScore%` では左右が反転した誤位置になる。 */}
-          {baselineScore !== undefined && (
-            <div className="average-marker-wrapper">
-              <div
-                className="average-marker"
-                style={{ left: `${100 - baselineScore}%` }}
-              >
+          {/* 実測▼（黒）＋ 自己申告▼（赤）＋ グレー点線（baselineScore があるときのみ）
+              座標は pin と同じ (100 - 値)% 系で揃える。 */}
+          {hasBaseline && (
+            <div className="gap-arrow-band">
+              <div className="actual-tri" style={{ left: pinLeft }}>▼</div>
+              <div className="self-tri" style={{ left: `${selfX}%` }}>
                 ▼
               </div>
+              <div className="self-guide-line" style={{ left: `${selfX}%` }} />
+              {gap >= 5 && (
+                <span className="gap-diff" style={{ left: `${gapMidX}%` }}>
+                  {gapLabel}
+                </span>
+              )}
             </div>
           )}
         </div>
