@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { ResultResponse } from '../types';
 import BipolarSlider, { AXIS_POLES } from './BipolarSlider';
-import { DEV_COMMENT_SAMPLES } from '../data/devCommentSamples';
+import { DEV_COMMENT_SAMPLES, type DevCommentSample } from '../data/devCommentSamples';
 
 type OverviewTabProps = {
   data: ResultResponse;
@@ -128,10 +128,9 @@ function renderParagraphWithBreaks(text: string): React.ReactNode {
 
 export default function OverviewTab({ data }: OverviewTabProps) {
   const isDev = process.env.NODE_ENV === 'development';
-  const [devSampleIdx, setDevSampleIdx] = useState<number | null>(null);
+  const [devSample, setDevSample] = useState<DevCommentSample | null>(null);
 
-  // dev モード時は選択中のサンプルで feedback.description を上書き
-  const devSample = isDev && devSampleIdx !== null ? DEV_COMMENT_SAMPLES[devSampleIdx] : null;
+  // dev モード時は選択中のサンプルで feedback を上書き
   const feedback = devSample
     ? { ...data.feedback, description: devSample.description }
     : data.feedback;
@@ -177,17 +176,17 @@ export default function OverviewTab({ data }: OverviewTabProps) {
           }}>
             <button
               type="button"
-              onClick={() => setDevSampleIdx(null)}
-              style={devSampleIdx === null ? devTabActiveStyle : devTabStyle}
+              onClick={() => setDevSample(null)}
+              style={devSample === null ? devTabActiveStyle : devTabStyle}
             >
               実データ
             </button>
-            {DEV_COMMENT_SAMPLES.map((s, i) => (
+            {DEV_COMMENT_SAMPLES.map((s) => (
               <button
-                key={i}
+                key={s.label}
                 type="button"
-                onClick={() => setDevSampleIdx(i)}
-                style={devSampleIdx === i ? devTabActiveStyle : devTabStyle}
+                onClick={() => setDevSample(s)}
+                style={devSample?.label === s.label ? devTabActiveStyle : devTabStyle}
               >
                 {s.label}
               </button>
