@@ -1,51 +1,52 @@
 'use client';
 
 import type { JSX } from 'react';
+import Image from 'next/image';
 
 export const howToPlaySlides: JSX.Element[] = [
   <div key="page1" className="flex flex-col items-center mt-0">
-    <img
+    <Image
       src="/images/fukidashi.png"
       alt=""
       className="pointer-events-none absolute inset-4 m-auto w-auto max-h-[90%] object-contain -z-10"
     />
 
-    <img
+    <Image
       src="/images/mbti/INFP.png"
       alt=""
       className="absolute top-10 right-28 w-23"
     />
-    <img
+    <Image
       src="/images/mbti/ISFJ.png"
       alt=""
       className="absolute top-1 right-60 w-23"
     />
-    <img
+    <Image
       src="/images/mbti/ESFP.png"
       alt=""
       className="absolute top-2 left-63 w-23"
     />
-    <img
+    <Image
       src="/images/mbti/INTJ.png"
       alt=""
       className="absolute top-12 left-25 w-23"
     />
-    <img
+    <Image
       src="/images/mbti/ENTP.png"
       alt=""
       className="absolute bottom-20 right-20 w-23"
     />
-    <img
+    <Image
       src="/images/mbti/ISFP.png"
       alt=""
       className="absolute bottom-5 right-50 w-23"
     />
-    <img
+    <Image
       src="/images/mbti/ESTJ.png"
       alt=""
       className="absolute bottom-4 left-45 w-23"
     />
-    <img
+    <Image
       src="/images/mbti/ENFP.png"
       alt=""
       className="absolute bottom-20 left-20 w-25"
@@ -68,28 +69,28 @@ export const howToPlaySlides: JSX.Element[] = [
   </div>,
 
   <div key="page2" className="flex flex-col items-center mt-4">
-    <img
+    <Image
       src="/images/fukidashi.png"
       alt=""
       className="pointer-events-none absolute inset-4 m-auto w-auto max-h-[90%] object-contain -z-10"
     />
 
-    <img
+    <Image
       src="/images/heart.png"
       alt=""
       className="absolute top-4 right-10 w-25 rotate-[25deg]"
     />
-    <img
+    <Image
       src="/images/light.png"
       alt=""
       className="absolute top-1 left-5 w-30 rotate-[-25deg] "
     />
-    <img
+    <Image
       src="/images/PC.png"
       alt=""
       className="absolute bottom-1 right-5 w-30"
     />
-    <img
+    <Image
       src="/images/tunes.png"
       alt=""
       className="absolute bottom-4 left-4 w-28"
@@ -116,48 +117,48 @@ export const howToPlaySlides: JSX.Element[] = [
     key="page3"
     className="flex flex-col items-center justify-center text-center"
   >
-    <img
+    <Image
       src="/images/fukidashi.png"
       alt=""
       className="pointer-events-none absolute inset-4 m-auto w-auto max-h-[90%] object-contain -z-10"
     />
 
-    <img
+    <Image
       src="/images/mbti/ISTP.png"
       alt=""
       className="absolute top-10 right-20 w-25"
     />
-    <img
+    <Image
       src="/images/mbti/INFJ.png"
       alt=""
       className="absolute top-1 right-80 w-25"
     />
-    <img
+    <Image
       src="/images/mbti/ESFJ.png"
       alt=""
       className="absolute top-1 left-75 w-25"
     />
-    <img
+    <Image
       src="/images/mbti/INTP.png"
       alt=""
       className="absolute top-9 left-20 w-25"
     />
-    <img
+    <Image
       src="/images/mbti/ENTJ.png"
       alt=""
       className="absolute bottom-10 right-20 w-25"
     />
-    <img
+    <Image
       src="/images/mbti/ISTJ.png"
       alt=""
       className="absolute bottom-2 right-75 w-25"
     />
-    <img
+    <Image
       src="/images/mbti/ESTP.png"
       alt=""
       className="absolute bottom-2 left-75 w-25"
     />
-    <img
+    <Image
       src="/images/mbti/ENFJ.png"
       alt=""
       className="absolute bottom-12 left-18 w-25"
