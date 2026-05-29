@@ -84,7 +84,7 @@ export default function OverviewTab({ data }: OverviewTabProps) {
           あなたの５軸ポジション（本能＝実測）
         </span>
         <span className="five-axis-headline">
-          あなたのMBTIの目安
+          あなたの自己申告の目安
           <span className="average-icon">▼</span>
         </span>
 
