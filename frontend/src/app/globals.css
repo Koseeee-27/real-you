@@ -282,39 +282,7 @@
   margin-bottom: 8px;
 }
 
-/* 解析コメント切替タブナビ */
-.comment-tab-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.comment-tab-btn {
-  font-size: 12px;
-  font-weight: 800;
-  padding: 3px 10px;
-  border-radius: 20px;
-  border: 2px solid #d1d5db;
-  background: #fff;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.15s;
-  line-height: 1.6;
-}
-
-.comment-tab-btn:hover {
-  border-color: #9ca3af;
-  color: #374151;
-}
-
-.comment-tab-btn.active {
-  background: #f87171;
-  border-color: #f87171;
-  color: #fff;
-}
-
-/* 総合コメント・ゲーム別コメント共通段落 */
+/* 解析コメント段落 */
 .comment-sentence-block {
   margin: 0 0 8px;
   word-break: break-all;

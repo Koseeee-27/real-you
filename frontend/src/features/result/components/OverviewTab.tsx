@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
 import type { ResultResponse } from '../types';
-import { GAME_META } from '../data/gameMeta';
 import BipolarSlider, { AXIS_POLES } from './BipolarSlider';
 
 type OverviewTabProps = {
@@ -109,18 +107,8 @@ function renderParagraphWithBreaks(text: string): React.ReactNode {
 }
 
 export default function OverviewTab({ data }: OverviewTabProps) {
-  const { feedback, scores, baseline_scores, details } = data;
+  const { feedback, scores, baseline_scores } = data;
   const gap = computeBiggestGap(scores, baseline_scores);
-
-  // -1 = 総合コメント, 0〜 = details[n].analysis_comment
-  const [activeTab, setActiveTab] = useState<number>(-1);
-
-  // details から表示可能なゲームタブを生成
-  const gameTabs = details.flatMap((detail) => {
-    const meta = GAME_META[detail.game_id];
-    if (!meta) return [];
-    return [{ gameId: detail.game_id, meta, detail }];
-  });
 
   return (
     <div className="total-layout-reconstructed">
@@ -143,73 +131,40 @@ export default function OverviewTab({ data }: OverviewTabProps) {
 
         {/* 解析コメントボックス */}
         <div className="comment-container-new">
-          {/* ===== コメントタブナビ ===== */}
-          <div className="comment-tab-nav">
-            <button
-              type="button"
-              className={`comment-tab-btn${activeTab === -1 ? ' active' : ''}`}
-              onClick={() => setActiveTab(-1)}
-            >
-              総合
-            </button>
-            {gameTabs.map(({ gameId, meta }, idx) => (
-              <button
-                key={gameId}
-                type="button"
-                className={`comment-tab-btn${activeTab === idx ? ' active' : ''}`}
-                style={activeTab === idx ? { background: meta.color, borderColor: meta.color, color: '#fff' } : {}}
-                onClick={() => setActiveTab(idx)}
-              >
-                {meta.label}
-              </button>
-            ))}
-          </div>
+          <div className="comment-header-tag">解析コメント</div>
 
-          {activeTab === -1 ? (
-            /* 総合コメント */
-            <>
-              {gap && (
-                <div className="gap-callout">
-                  <span className="gap-callout-tag">最大のギャップ</span>
-                  {gap.gap < 10 ? (
-                    <p className="gap-callout-body">
-                      自己認識と行動は
-                      <span className="gap-actual">ほぼ一致</span>！
-                    </p>
-                  ) : gap.sameSide ? (
-                    <p className="gap-callout-body">
-                      自覚以上に
-                      <span className="gap-actual">「{gap.actualLabel}」</span>
-                      でした！
-                    </p>
-                  ) : (
-                    <p className="gap-callout-body">
-                      自分では
-                      <span className="gap-self">「{gap.selfLabel}」</span>
-                      のつもり、でも実際は
-                      <span className="gap-actual">「{gap.actualLabel}」</span>！
-                    </p>
-                  )}
-                </div>
-              )}
-              <div className="comment-body-text">
-                {feedback.description.split('\n').map((line, i) => (
-                  <p key={i} className="comment-sentence-block">
-                    {renderParagraphWithBreaks(line)}
-                  </p>
-                ))}
-              </div>
-            </>
-          ) : (
-            /* ゲーム別解析コメント */
-            <div className="comment-body-text">
-              {gameTabs[activeTab]?.detail.analysis_comment.map((line, i) => (
-                <p key={i} className="comment-sentence-block">
-                  {renderParagraphWithBreaks(line)}
+          {gap && (
+            <div className="gap-callout">
+              <span className="gap-callout-tag">最大のギャップ</span>
+              {gap.gap < 10 ? (
+                <p className="gap-callout-body">
+                  自己認識と行動は
+                  <span className="gap-actual">ほぼ一致</span>！
                 </p>
-              ))}
+              ) : gap.sameSide ? (
+                <p className="gap-callout-body">
+                  自覚以上に
+                  <span className="gap-actual">「{gap.actualLabel}」</span>
+                  でした！
+                </p>
+              ) : (
+                <p className="gap-callout-body">
+                  自分では
+                  <span className="gap-self">「{gap.selfLabel}」</span>
+                  のつもり、でも実際は
+                  <span className="gap-actual">「{gap.actualLabel}」</span>！
+                </p>
+              )}
             </div>
           )}
+
+          <div className="comment-body-text">
+            {feedback.description.split('\n').map((line, i) => (
+              <p key={i} className="comment-sentence-block">
+                {renderParagraphWithBreaks(line)}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
 
