@@ -8,47 +8,65 @@ export const howToPlaySlides: JSX.Element[] = [
     <Image
       src="/images/fukidashi.png"
       alt=""
+      width={1000}
+      height={1000}
       className="pointer-events-none absolute inset-4 m-auto w-auto max-h-[90%] object-contain -z-10"
     />
 
     <Image
       src="/images/mbti/INFP.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute top-10 right-28 w-23"
     />
     <Image
       src="/images/mbti/ISFJ.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute top-1 right-60 w-23"
     />
     <Image
       src="/images/mbti/ESFP.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute top-2 left-63 w-23"
     />
     <Image
       src="/images/mbti/INTJ.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute top-12 left-25 w-23"
     />
     <Image
       src="/images/mbti/ENTP.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute bottom-20 right-20 w-23"
     />
     <Image
       src="/images/mbti/ISFP.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute bottom-5 right-50 w-23"
     />
     <Image
       src="/images/mbti/ESTJ.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute bottom-4 left-45 w-23"
     />
     <Image
       src="/images/mbti/ENFP.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute bottom-20 left-20 w-25"
     />
 
@@ -72,27 +90,37 @@ export const howToPlaySlides: JSX.Element[] = [
     <Image
       src="/images/fukidashi.png"
       alt=""
+      width={1000}
+      height={1000}
       className="pointer-events-none absolute inset-4 m-auto w-auto max-h-[90%] object-contain -z-10"
     />
 
     <Image
       src="/images/heart.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute top-4 right-10 w-25 rotate-[25deg]"
     />
     <Image
       src="/images/light.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute top-1 left-5 w-30 rotate-[-25deg] "
     />
     <Image
       src="/images/PC.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute bottom-1 right-5 w-30"
     />
     <Image
       src="/images/tunes.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute bottom-4 left-4 w-28"
     />
 
@@ -120,47 +148,65 @@ export const howToPlaySlides: JSX.Element[] = [
     <Image
       src="/images/fukidashi.png"
       alt=""
+      width={1000}
+      height={1000}
       className="pointer-events-none absolute inset-4 m-auto w-auto max-h-[90%] object-contain -z-10"
     />
 
     <Image
       src="/images/mbti/ISTP.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute top-10 right-20 w-25"
     />
     <Image
       src="/images/mbti/INFJ.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute top-1 right-80 w-25"
     />
     <Image
       src="/images/mbti/ESFJ.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute top-1 left-75 w-25"
     />
     <Image
       src="/images/mbti/INTP.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute top-9 left-20 w-25"
     />
     <Image
       src="/images/mbti/ENTJ.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute bottom-10 right-20 w-25"
     />
     <Image
       src="/images/mbti/ISTJ.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute bottom-2 right-75 w-25"
     />
     <Image
       src="/images/mbti/ESTP.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute bottom-2 left-75 w-25"
     />
     <Image
       src="/images/mbti/ENFJ.png"
       alt=""
+      width={92}
+      height={92}
       className="absolute bottom-12 left-18 w-25"
     />
 
