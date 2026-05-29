@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { unstable_cache } from 'next/cache';
 import { getResult } from '@/lib/api';
@@ -7,6 +7,12 @@ import type { ResultResponse } from '@/features/result/types';
 import ShareResultView from '@/features/result/components/ShareResultView';
 
 export const revalidate = 3600;
+
+// 共有ページはスマホでピンチズームできるようにする（グローバルの maximumScale: 1 を上書き）
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
 
 type Props = {
   params: Promise<{ userId: string }>;

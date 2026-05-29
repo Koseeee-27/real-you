@@ -109,6 +109,9 @@ export default function SharePanel({ title, userId }: SharePanelProps) {
           onClick={() => setOpen(false)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="qr-modal-title"
             style={{
               background: '#fff',
               border: '5px solid #000',
@@ -145,6 +148,7 @@ export default function SharePanel({ title, userId }: SharePanelProps) {
             </button>
 
             <div
+              id="qr-modal-title"
               style={{
                 fontWeight: 900,
                 fontSize: 18,
