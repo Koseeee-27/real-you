@@ -511,6 +511,69 @@
   transition: left 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* B'': ▼ の横に表示するΔ数値バッジ */
+.gap-number-badge {
+  position: absolute;
+  top: -2px;
+  left: calc(100% + 4px);
+  font-size: 10px;
+  font-weight: 900;
+  color: #f97316;
+  background: #fff7ed;
+  border: 1.5px solid #f97316;
+  border-radius: 6px;
+  padding: 1px 5px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* デバッグ切替バー（ギャップ可視化モード） */
+.debug-viz-toolbar {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 999px;
+  z-index: 9999;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(6px);
+}
+
+.debug-viz-label {
+  opacity: 0.6;
+  margin-right: 4px;
+}
+
+.debug-viz-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.debug-viz-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.debug-viz-btn.active {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
 /* Detail page */
 .detail-layout-reconstructed {
   display: flex;

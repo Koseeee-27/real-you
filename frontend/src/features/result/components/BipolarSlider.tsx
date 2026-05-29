@@ -11,6 +11,12 @@ export const AXIS_POLES: Record<string, { left: string; right: string }> = {
   positivity: { left: '消極的', right: '積極的' },
 };
 
+/** ギャップ可視化モード（デバッグ切替用） */
+export type VizMode =
+  | 'band' // B : 黄色帯でズレを塗りつぶす
+  | 'legend' // B': 凡例のみ・帯なし
+  | 'numbers'; // B'': 各軸にΔ数値バッジを表示
+
 type BipolarSliderProps = {
   /** スコア軸のキー（AXIS_POLES のキー） */
   axis: string;
@@ -22,6 +28,8 @@ type BipolarSliderProps = {
    * 詳細画面では渡さない（マーカー非表示）。
    */
   baselineScore?: number;
+  /** ギャップ可視化モード */
+  vizMode?: VizMode;
 };
 
 /**
@@ -35,6 +43,7 @@ export default function BipolarSlider({
   axis,
   score,
   baselineScore,
+  vizMode = 'band',
 }: BipolarSliderProps) {
   const poles = AXIS_POLES[axis] ?? { left: axis, right: axis };
   const isRight = score >= 50;
@@ -70,6 +79,15 @@ export default function BipolarSlider({
         width: animated ? `${boundary}%` : '0%',
       };
 
+  const gapAbs =
+    baselineScore !== undefined
+      ? Math.round(Math.abs(score - baselineScore))
+      : 0;
+  const showGapBand =
+    vizMode === 'band' && baselineScore !== undefined && gapAbs > 5;
+  const showGapNumber =
+    vizMode === 'numbers' && baselineScore !== undefined && gapAbs > 0;
+
   return (
     <div className="mbti-slider-row-new">
       <div className="mbti-slider-track-new">
@@ -91,18 +109,17 @@ export default function BipolarSlider({
         <div className="slider-wrapper">
           <div className="slider-line-track">
             <div className="slider-color-fill" style={fillStyle} />
-            {/* ギャップ帯：自己認識(▼)と実測(●)の間を黄色帯で可視化 */}
-            {baselineScore !== undefined &&
-              Math.abs(score - baselineScore) > 5 && (
-                <div
-                  className="slider-gap-zone"
-                  style={{
-                    left: `${Math.min(boundary, 100 - baselineScore)}%`,
-                    width: `${Math.abs(boundary - (100 - baselineScore))}%`,
-                    opacity: animated ? 1 : 0,
-                  }}
-                />
-              )}
+            {/* B: 黄色帯でギャップを可視化 */}
+            {showGapBand && (
+              <div
+                className="slider-gap-zone"
+                style={{
+                  left: `${Math.min(boundary, 100 - baselineScore!)}%`,
+                  width: `${Math.abs(boundary - (100 - baselineScore!))}%`,
+                  opacity: animated ? 1 : 0,
+                }}
+              />
+            )}
             <div className="slider-pin-point" style={{ left: pinLeft }} />
           </div>
 
@@ -116,7 +133,10 @@ export default function BipolarSlider({
                 className="average-marker"
                 style={{ left: `${100 - baselineScore}%` }}
               >
-                ▼
+                ▼{/* B'': Δ数値バッジを ▼ の横に表示 */}
+                {showGapNumber && (
+                  <span className="gap-number-badge">Δ{gapAbs}</span>
+                )}
               </div>
             </div>
           )}
