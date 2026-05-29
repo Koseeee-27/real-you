@@ -321,7 +321,7 @@ export default function TermsGameFlow() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[#F0F380]">
+    <div className="bg-page-pattern flex h-screen flex-col">
       <div className="flex-1" />
 
       {showPopup && (
