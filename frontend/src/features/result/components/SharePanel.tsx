@@ -52,11 +52,13 @@ export default function SharePanel({ title, userId }: SharePanelProps) {
       el.style.opacity = '0';
       document.body.appendChild(el);
       el.select();
-      document.execCommand('copy');
+      const success = document.execCommand('copy');
       document.body.removeChild(el);
-      setCopied(true);
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+      if (success) {
+        setCopied(true);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+      }
     }
   }, [shareUrl]);
 
