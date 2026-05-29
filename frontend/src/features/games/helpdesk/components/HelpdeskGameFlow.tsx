@@ -13,6 +13,7 @@ import { useHelpdeskGame } from '../hooks/useHelpdeskGame';
 import Spinner from '@/components/ui/Spinner';
 import ErrorScreen from '@/components/common/ErrorScreen';
 import { useBgmOverride } from '@/components/audio/useBgmOverride';
+import { useSe } from '@/components/audio/useSe';
 import type { BgmKey } from '@/components/audio/audioManifest';
 import { GAME_TOPIC } from '../data/supportResponses';
 
@@ -43,12 +44,8 @@ export default function HelpdeskGameFlow() {
   // 走って意図しない遷移を引き起こす可能性があるため明示的に管理する。
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // --- SE 再生ヘルパー（BGM は共通基盤が管理） ---
-  const playSE = useCallback((path: string) => {
-    const audio = new Audio(path);
-    audio.volume = 0.5;
-    audio.play().catch(() => {});
-  }, []);
+  // SE は共通基盤（useSe）で再生。BGM も共通基盤が管理する。
+  const playSe = useSe();
 
   // 次画面への遷移を 2 秒後にスケジュールする。前回のタイマーが残っていれば
   // クリアしてから新しいタイマーを設定する。
@@ -177,49 +174,49 @@ export default function HelpdeskGameFlow() {
 
   // --- アクションをラップしてSEを追加 ---
   const startInstruction = useCallback(() => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     originalStartInstruction();
-  }, [originalStartInstruction, playSE]);
+  }, [originalStartInstruction, playSe]);
 
   const startGame = useCallback(() => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     originalStartGame();
-  }, [originalStartGame, playSE]);
+  }, [originalStartGame, playSe]);
 
   const handleTextSubmit = useCallback(() => {
     if (!textInput.trim()) return;
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     submitTextTurn(textInput);
     setTextInput('');
     resetTyping();
-  }, [textInput, submitTextTurn, resetTyping, playSE]);
+  }, [textInput, submitTextTurn, resetTyping, playSe]);
 
   const endVoiceTurnManually = useCallback(() => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     originalEndVoiceTurnManually();
-  }, [originalEndVoiceTurnManually, playSE]);
+  }, [originalEndVoiceTurnManually, playSe]);
 
   const switchToText = useCallback(() => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     originalSwitchToText();
-  }, [originalSwitchToText, playSE]);
+  }, [originalSwitchToText, playSe]);
 
   const retryVoiceApi = useCallback(() => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     originalRetryVoiceApi();
-  }, [originalRetryVoiceApi, playSE]);
+  }, [originalRetryVoiceApi, playSe]);
 
   const handleRetry = useCallback(async () => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     const data = pendingDataRef.current;
     if (!data) return;
     retryCountRef.current += 1;
     setSubmitStatus('loading');
     await submitHelpdeskGame(data);
-  }, [submitHelpdeskGame, playSE]);
+  }, [submitHelpdeskGame, playSe]);
 
   const handleGoTop = useCallback(() => {
-    playSE('/sounds/general-button-se.mp3');
+    playSe('buttonClick');
     // RESTART_CODES（user_not_found / invalid_user_id 等）でトップに戻すケースでは、
     // 古い user_id を握ったまま再開しても同じエラーで詰むため localStorage を掃除する。
     // ResultPage.tsx / BaselineSurvey.tsx の handleGoTop と挙動を揃えている。
@@ -227,7 +224,7 @@ export default function HelpdeskGameFlow() {
       localStorage.removeItem('user_id');
     }
     router.push('/');
-  }, [playSE, router]);
+  }, [playSe, router]);
 
   const [hintIndex, setHintIndex] = useState(0);
   const [prevHints, setPrevHints] = useState(hints);
@@ -420,7 +417,7 @@ export default function HelpdeskGameFlow() {
                       <button
                         type="button"
                         onClick={() => {
-                          playSE('/sounds/general-button-se.mp3');
+                          playSe('buttonClick');
                           setHintIndex((prev) => (prev + 1) % hints.length);
                         }}
                         className="mt-0.5 shrink-0 rounded-full border-2 border-black bg-gray-100 p-1 hover:bg-gray-200 transition-colors"

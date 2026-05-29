@@ -11,8 +11,9 @@ import {
   isRestartCode,
 } from '@/lib/api/error';
 import { useBgmOverride } from '@/components/audio/useBgmOverride';
+import { useSe } from '@/components/audio/useSe';
 import type { BgmKey } from '@/components/audio/audioManifest';
-import { SORTER_AUDIO_PATHS, SORTER_UI_COLORS } from '../data/sorterConstants';
+import { SORTER_UI_COLORS } from '../data/sorterConstants';
 import { useSorterGame } from '../hooks/useSorterGame';
 import Belt from './Belt';
 import BinTray from './BinTray';
@@ -107,11 +108,7 @@ export default function SorterGameFlow() {
     setHoveredBinType((prev) => (prev === binType ? prev : binType));
   };
 
-  function playSE(path: string) {
-    const audio = new Audio(path);
-    audio.volume = 0.5;
-    audio.play().catch(() => {});
-  }
+  const playSe = useSe();
 
   // ベルトコンテナの幅を ResizeObserver で実測
   useEffect(() => {
@@ -176,7 +173,7 @@ export default function SorterGameFlow() {
   }
 
   async function handleRetry() {
-    playSE(SORTER_AUDIO_PATHS.generalSE);
+    playSe('buttonClick');
     if (!pendingData) return;
     retryCountRef.current += 1;
     setSubmitStatus('loading');
@@ -184,7 +181,7 @@ export default function SorterGameFlow() {
   }
 
   function handleGoTop() {
-    playSE(SORTER_AUDIO_PATHS.generalSE);
+    playSe('buttonClick');
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user_id');
     }
@@ -193,7 +190,7 @@ export default function SorterGameFlow() {
 
   /** 結果画面の「次のゲームへ ▶」ボタンで次ゲーム（空気読み）に手動遷移する */
   function handleProceedToNext() {
-    playSE(SORTER_AUDIO_PATHS.generalSE);
+    playSe('buttonClick');
     router.push('/games/group-chat');
   }
 
@@ -255,7 +252,7 @@ export default function SorterGameFlow() {
   // 戻る / 次へボタンは共通 `SlideModal` 側の実装に乗せたため、現状 SE は鳴らない
   // （`SlideModal` に SE フックの口が無いため、意図的な regression として受け入れる）。
   const onStart = () => {
-    playSE(SORTER_AUDIO_PATHS.generalSE);
+    playSe('buttonClick');
     handleOnboardingStart();
   };
 
@@ -265,7 +262,7 @@ export default function SorterGameFlow() {
   const onPackageClick = (id: number) => {
     // 新しく選択するときだけ SE。再クリック（解除）・凍結中は鳴らさない。
     if (!isFrozen && selectedPackageId !== id) {
-      playSE(SORTER_AUDIO_PATHS.generalSE);
+      playSe('buttonClick');
     }
     handlePackageClick(id);
   };
@@ -273,7 +270,7 @@ export default function SorterGameFlow() {
     // 荷物を選択した状態で仕分けが実行されるときだけ SE。
     // bin の空打ち（未選択）・凍結中は鳴らさない。
     if (!isFrozen && selectedPackageId != null) {
-      playSE(SORTER_AUDIO_PATHS.generalSE);
+      playSe('buttonClick');
     }
     handleBinClick(binType);
   };
@@ -282,7 +279,7 @@ export default function SorterGameFlow() {
   // 掴んだとき（新規選択）に SE。凍結中・既に同じ荷物を掴んでいる場合は鳴らさない。
   const onPackageGrab = (id: number) => {
     if (!isFrozen && selectedPackageId !== id) {
-      playSE(SORTER_AUDIO_PATHS.generalSE);
+      playSe('buttonClick');
     }
     handlePackageGrab(id);
   };
@@ -292,7 +289,7 @@ export default function SorterGameFlow() {
   // 握り潰すと PackageItem 側で「未除去なら流れに戻す」判定ができず取り残しが起きるため、必ず return する。
   const onPackageDrop = (id: number, binType: PackageType | null): boolean => {
     if (!isFrozen && binType != null) {
-      playSE(SORTER_AUDIO_PATHS.generalSE);
+      playSe('buttonClick');
     }
     return handlePackageDrop(id, binType);
   };

@@ -326,17 +326,3 @@ export const RULE_CHANGE_PAIRS: ReadonlyArray<{
 }> = PACKAGE_TYPES.filter(
   (type) => RULE_CHANGED_CORRECT_BIN[type] !== type
 ).map((type) => ({ from: type, to: RULE_CHANGED_CORRECT_BIN[type] }));
-
-// ========================================
-// 音声
-// ========================================
-
-/**
- * SE のパス。
- *
- * BGM は共通基盤（audioManifest の sorterNormal / sorterSpeedUp / sorterFreeze / start）で
- * 管理するため、ここでは扱わない。
- */
-export const SORTER_AUDIO_PATHS = {
-  generalSE: '/sounds/general-button-se.mp3',
-} as const;

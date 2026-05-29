@@ -5,16 +5,12 @@ import { useCallback, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import type { GameId, ResultResponse } from '../types';
 import { GAME_META } from '../data/gameMeta';
+import { useSe } from '@/components/audio/useSe';
 import GameDetailTab from './GameDetailTab';
 import OverviewTab from './OverviewTab';
 import SharePanel from './SharePanel';
 
 type Mode = 'overview' | 'detail';
-
-const SOUNDS = {
-  TAB_CLICK: '/sounds/general-button-se.mp3',
-  RETAKE: '/sounds/start-se.mp3',
-};
 
 /** ゲーム色 → CSS クラス名のマッピング */
 const COLOR_TO_BTN_CLASS: Record<string, string> = {
@@ -35,45 +31,37 @@ export default function ResultReport({ data }: ResultReportProps) {
   const [activeGameId, setActiveGameId] = useState<GameId | null>(
     data.details[0]?.game_id ?? null
   );
-
-  // SE 再生ヘルパー
-  const playSE = (path: string) => {
-    const audio = new Audio(path);
-    audio.volume = 0.5;
-    audio.play().catch(() => {
-      /* 自動再生制限は無視 */
-    });
-  };
+  const playSe = useSe();
 
   // 詳細モードへ遷移
   const handleGoDetail = () => {
-    playSE(SOUNDS.TAB_CLICK);
+    playSe('buttonClick');
     setMode('detail');
     setActiveGameId(data.details[0]?.game_id ?? null);
   };
 
   // 総合モードへ戻る
   const handleGoOverview = () => {
-    playSE(SOUNDS.TAB_CLICK);
+    playSe('buttonClick');
     setMode('overview');
   };
 
   // ゲームタブ切り替え
   const handleGameTab = (gameId: GameId) => {
-    playSE(SOUNDS.TAB_CLICK);
+    playSe('buttonClick');
     setActiveGameId(gameId);
   };
 
   // リトライ
   const handleRetake = useCallback(() => {
-    playSE(SOUNDS.RETAKE);
+    playSe('start');
     setTimeout(() => {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('user_id');
       }
       router.push('/');
     }, 500);
-  }, [router]);
+  }, [router, playSe]);
 
   // ゲームタブリスト（details 配列の順序に従う）
   const gameTabs = data.details.flatMap((detail) => {
