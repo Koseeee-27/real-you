@@ -34,7 +34,7 @@ export const QUESTIONS: Question[] = [
     label: '初めての街でランチ。お店選びは？',
     options: [
       { value: 'A', label: '口コミを熟読して予約する' },
-      { value: 'B', label: '歩きながらスマホで比較する' },
+      { value: 'B', label: 'その場でサッと調べる' },
       { value: 'C', label: '外観の雰囲気で決める' },
       { value: 'D', label: '直感でパッと飛び込む' },
     ],
