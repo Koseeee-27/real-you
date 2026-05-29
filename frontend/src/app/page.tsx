@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
+import { howToPlaySlides } from '@/features/top/components/HowToPlayModal';
+import SlideModal from '@/components/common/SlideModal';
 
 // --- まる爆発アニメーションコンポーネント ---
 const SparklesExplosion = () => {
@@ -60,6 +62,7 @@ const SparklesExplosion = () => {
 export default function TopPage() {
   const router = useRouter();
   const [showExplosion, setShowExplosion] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   // BGMを保持するための Ref
   const bgmRef = useRef<HTMLAudioElement | null>(null);
@@ -110,6 +113,14 @@ export default function TopPage() {
     }, 800);
   };
 
+  const openHowToPlay = () => {
+    setShowHowToPlay(true);
+  };
+
+  const closeHowToPlay = () => {
+    setShowHowToPlay(false);
+  };
+
   return (
     <div
       className="flex h-dvh w-full flex-col items-center justify-center overflow-hidden bg-top-pattern"
@@ -129,10 +140,10 @@ export default function TopPage() {
           alt="Real You -本当の私じゃだめですか？-"
           width={800}
           height={500}
-          className="max-h-[65vh] w-auto object-contain drop-shadow-2xl"
+          className="max-h-[65vh] w-auto object-contain drop-shadow-2xl animate-[fadeInUp_0.5s_ease-out]"
         />
 
-        <div className="relative">
+        <div className="relative flex flex-col items-center gap-4">
           <button
             onClick={handleStartClick}
             className="transition-all duration-100 ease-out hover:scale-110 active:scale-95 active:opacity-50"
@@ -146,8 +157,29 @@ export default function TopPage() {
             />
           </button>
 
+          <button
+            onClick={openHowToPlay}
+            className="rounded-full border border-black bg-white/90 px-6 py-3 text-sm font-bold text-black shadow-md transition hover:bg-white active:scale-95"
+          >
+            あそびかた
+          </button>
+
           {showExplosion && <SparklesExplosion />}
         </div>
+
+        {/* SlideModal に children 配列を渡す（SlideModal が children 配列を受け取る実装の前提） */}
+        <SlideModal
+          open={showHowToPlay}
+          onComplete={closeHowToPlay}
+          completeLabel="完了！"
+          ariaLabel="あそびかた 説明"
+          classNames={{
+            // 背景画像をカード内に収める（切れないように contain 指定、真ん中に）
+            card: 'relative bg-white overflow-hidden [&>*]:relative [&>*]:z-10',
+          }}
+        >
+          {howToPlaySlides}
+        </SlideModal>
       </div>
     </div>
   );
