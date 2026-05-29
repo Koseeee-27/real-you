@@ -45,6 +45,8 @@ export function AudioController() {
     audio.loop = true;
     audio.volume = def.baseVolume * bgmVolumeRef.current;
     audioRef.current = audio;
+    // アンロック済みなら即再生。未アンロックの間に生成された Audio は、
+    // 後続の unlock ハンドラ（下の useEffect）が audioRef を見て再生を拾う。
     if (unlockedRef.current) {
       audio.play().catch(() => {
         // 自動再生制限がかかった場合はアンロック後に再生される。

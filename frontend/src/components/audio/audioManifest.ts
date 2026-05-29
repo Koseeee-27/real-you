@@ -30,7 +30,7 @@ export type BgmKey = keyof typeof BGM_MANIFEST;
  * - 未定義のルート（共有ページや、共通基盤に未移行のゲーム）は null 扱いとなり、
  *   そのルートに入ると基盤 BGM は停止する（ゲーム側の独自 BGM と二重再生しない）。
  */
-export const BGM_BY_ROUTE: Record<string, BgmKey> = {
+export const BGM_BY_ROUTE: Record<string, BgmKey | undefined> = {
   '/': 'start',
   '/games/terms': 'start',
   '/diagnosis': 'start',
