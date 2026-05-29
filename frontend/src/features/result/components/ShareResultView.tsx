@@ -5,37 +5,12 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { ResultResponse } from '../types';
 import { GAME_META } from '../data/gameMeta';
-import BipolarSlider, { AXIS_POLES } from './BipolarSlider';
+import BipolarSlider from './BipolarSlider';
+import { renderComment, computeBiggestGap } from '../utils/commentUtils';
 
 type ShareResultViewProps = {
   data: ResultResponse;
 };
-
-const COMBINED_RE =
-  /(『[^』]+』|「[^」]+」|\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分))/g;
-const NUM_RE = /^\d+\.?\d*(?:秒|%|回|px|ms|個|点|倍|分)$/;
-const QUOTE_RE = /^(?:『[^』]+』|「[^」]+」)$/;
-
-function renderComment(text: string): React.ReactNode {
-  const parts = text.split(COMBINED_RE);
-  return parts.map((part, i) => {
-    if (NUM_RE.test(part)) {
-      return (
-        <span key={i} className="highlight-magenta">
-          {part}
-        </span>
-      );
-    }
-    if (QUOTE_RE.test(part)) {
-      return (
-        <span key={i} className="highlight-blue">
-          {part}
-        </span>
-      );
-    }
-    return part;
-  });
-}
 
 const AXES = [
   'caution',
@@ -44,43 +19,6 @@ const AXES = [
   'cooperativeness',
   'positivity',
 ] as const;
-
-function sideLabel(axis: string, score: number): string {
-  const poles = AXIS_POLES[axis] ?? { left: axis, right: axis };
-  return score >= 50 ? poles.right : poles.left;
-}
-
-type GapHighlight = {
-  gap: number;
-  selfLabel: string;
-  actualLabel: string;
-  sameSide: boolean;
-};
-
-function computeBiggestGap(
-  scores: Record<string, number>,
-  baseline: Record<string, number>
-): GapHighlight | null {
-  let best: (GapHighlight & { axis: string }) | null = null;
-  for (const axis of AXES) {
-    const actual = scores[axis];
-    const self = baseline[axis];
-    if (actual == null || self == null) continue;
-    const gap = Math.abs(actual - self);
-    if (!best || gap > best.gap) {
-      const selfLabel = sideLabel(axis, self);
-      const actualLabel = sideLabel(axis, actual);
-      best = {
-        axis,
-        gap,
-        selfLabel,
-        actualLabel,
-        sameSide: selfLabel === actualLabel,
-      };
-    }
-  }
-  return best;
-}
 
 export default function ShareResultView({ data }: ShareResultViewProps) {
   const { feedback, scores, baseline_scores, details } = data;
@@ -193,6 +131,8 @@ export default function ShareResultView({ data }: ShareResultViewProps) {
                 className="share-accordion-header"
                 style={{ borderLeftColor: meta.color }}
                 onClick={() => toggleGame(detail.game_id)}
+                aria-expanded={isOpen}
+                aria-controls={`accordion-body-${detail.game_id}`}
               >
                 <div className="share-accordion-title">
                   <Icon
@@ -224,7 +164,10 @@ export default function ShareResultView({ data }: ShareResultViewProps) {
               </button>
 
               {isOpen && (
-                <div className="share-accordion-body">
+                <div
+                  id={`accordion-body-${detail.game_id}`}
+                  className="share-accordion-body"
+                >
                   {/* PC では2カラム: スライダー | コメント */}
                   <div className="share-accordion-inner-grid">
                     <div>
