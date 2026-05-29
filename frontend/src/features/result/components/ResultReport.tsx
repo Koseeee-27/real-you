@@ -8,7 +8,6 @@ import { GAME_META } from '../data/gameMeta';
 import GameDetailTab from './GameDetailTab';
 import OverviewTab from './OverviewTab';
 import SharePanel from './SharePanel';
-import DebugCommentPanel from './DebugCommentPanel';
 
 type Mode = 'overview' | 'detail';
 
@@ -197,9 +196,6 @@ export default function ResultReport({ data }: ResultReportProps) {
             )}
           </div>
         </div>
-
-        {/* dev only: BEコメント確認パネル */}
-        <DebugCommentPanel data={data} />
 
         {/* ===== フッターボタン ===== */}
         <div className="footer-actions-reconstructed">
