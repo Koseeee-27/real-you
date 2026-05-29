@@ -228,17 +228,17 @@
   display: inline-block;
   background: #000;
   color: #fff;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 900;
   letter-spacing: 0.08em;
-  padding: 3px 10px;
+  padding: 3px 12px;
   border-radius: 999px;
   margin-bottom: 8px;
 }
 
 .gap-callout-body {
   margin: 0;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 900;
   line-height: 1.5;
   color: #333;
@@ -255,7 +255,7 @@
 /* 実測ラベル：黒フチ付きで強調（タイトルと同じポップ調） */
 .gap-callout-body .gap-actual {
   color: #f87171;
-  font-size: 22px;
+  font-size: 16px;
   margin: 0 2px;
   text-shadow:
     -2px -2px 0 #000,
