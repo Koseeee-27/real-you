@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import type { ResultResponse } from '../types';
-import BipolarSlider, { AXIS_POLES, type VizMode } from './BipolarSlider';
+import BipolarSlider, { AXIS_POLES } from './BipolarSlider';
 
 type OverviewTabProps = {
   data: ResultResponse;
@@ -90,16 +89,9 @@ function computeBiggestGap(
   return best;
 }
 
-const VIZ_MODES: { mode: VizMode; label: string }[] = [
-  { mode: 'band', label: 'B  帯' },
-  { mode: 'legend', label: "B' 凡例のみ" },
-  { mode: 'numbers', label: "B'' 数値" },
-];
-
 export default function OverviewTab({ data }: OverviewTabProps) {
   const { feedback, scores, baseline_scores } = data;
   const gap = computeBiggestGap(scores, baseline_scores);
-  const [vizMode, setVizMode] = useState<VizMode>('band');
 
   return (
     <div className="total-layout-reconstructed">
@@ -165,10 +157,10 @@ export default function OverviewTab({ data }: OverviewTabProps) {
         <span className="five-axis-headline">
           あなたの５軸ポジション（本能＝実測）
         </span>
-        <div className="slider-legend-row">
-          <span className="legend-actual">● 実際の行動</span>
-          <span className="legend-baseline">▼ 自己認識の目安</span>
-        </div>
+        <span className="five-axis-headline">
+          あなたの自己申告の目安
+          <span className="average-icon">▼</span>
+        </span>
 
         {/* スライダー群 */}
         {AXES.map((axis) => (
@@ -177,23 +169,7 @@ export default function OverviewTab({ data }: OverviewTabProps) {
             axis={axis}
             score={scores[axis]}
             baselineScore={baseline_scores[axis]}
-            vizMode={vizMode}
           />
-        ))}
-      </div>
-
-      {/* デバッグ切替バー（ギャップ可視化モード） */}
-      <div className="debug-viz-toolbar">
-        <span className="debug-viz-label">ギャップ表示：</span>
-        {VIZ_MODES.map(({ mode, label }) => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => setVizMode(mode)}
-            className={`debug-viz-btn${vizMode === mode ? ' active' : ''}`}
-          >
-            {label}
-          </button>
         ))}
       </div>
     </div>
