@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import type { GameId, ResultResponse } from '../types';
 import { GAME_META } from '../data/gameMeta';
@@ -12,7 +12,6 @@ import SharePanel from './SharePanel';
 type Mode = 'overview' | 'detail';
 
 const SOUNDS = {
-  BGM: '/sounds/result-bgm.mp3',
   TAB_CLICK: '/sounds/general-button-se.mp3',
   RETAKE: '/sounds/start-se.mp3',
 };
@@ -36,7 +35,6 @@ export default function ResultReport({ data }: ResultReportProps) {
   const [activeGameId, setActiveGameId] = useState<GameId | null>(
     data.details[0]?.game_id ?? null
   );
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
 
   // SE 再生ヘルパー
   const playSE = (path: string) => {
@@ -46,29 +44,6 @@ export default function ResultReport({ data }: ResultReportProps) {
       /* 自動再生制限は無視 */
     });
   };
-
-  // BGM 管理
-  useEffect(() => {
-    const bgm = new Audio(SOUNDS.BGM);
-    bgm.loop = true;
-    bgm.volume = 0.3;
-    bgmRef.current = bgm;
-
-    const startBGM = () => {
-      bgm.play().catch(() => {
-        /* 自動再生制限は無視 */
-      });
-      window.removeEventListener('click', startBGM);
-    };
-
-    window.addEventListener('click', startBGM);
-    startBGM();
-
-    return () => {
-      bgm.pause();
-      bgmRef.current = null;
-    };
-  }, []);
 
   // 詳細モードへ遷移
   const handleGoDetail = () => {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { SITE_URL } from '@/constants/site';
+import { AudioController } from '@/components/audio/AudioController';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -24,7 +25,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        <AudioController />
+        {children}
+      </body>
     </html>
   );
 }

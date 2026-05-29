@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSetAtom } from 'jotai';
 import { mbtiAtom, diagnosisStepAtom } from '@/stores/diagnosis';
@@ -33,34 +33,11 @@ export default function MbtiSelect() {
   const [groupIndex, setGroupIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
 
   const playSE = useCallback((path: string) => {
     const audio = new Audio(path);
     audio.volume = 0.5;
     audio.play().catch(() => {});
-  }, []);
-
-  // BGM の初期化と再生管理（TopPage と同じ start-bgm を使用）
-  useEffect(() => {
-    const bgm = new Audio('/sounds/start-bgm.mp3');
-    bgm.loop = true;
-    bgm.volume = 0.4;
-    bgmRef.current = bgm;
-
-    const playBGM = () => {
-      bgm.play().catch(() => {});
-      window.removeEventListener('click', playBGM);
-    };
-
-    window.addEventListener('click', playBGM);
-    // すでに他のページでインタラクションがあれば即再生される
-    playBGM();
-
-    return () => {
-      bgm.pause();
-      window.removeEventListener('click', playBGM);
-    };
   }, []);
 
   const currentGroup = MBTI_GROUPS[groupIndex];

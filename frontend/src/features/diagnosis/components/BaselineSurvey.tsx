@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { mbtiAtom } from '@/stores/diagnosis';
@@ -35,33 +35,10 @@ export default function BaselineSurvey() {
   const mbti = useAtomValue(mbtiAtom);
   const termsGameData = useAtomValue(termsGameDataAtom);
 
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
-
   const playSE = useCallback((path: string) => {
     const audio = new Audio(path);
     audio.volume = 0.5;
     audio.play().catch(() => {});
-  }, []);
-
-  // BGMの初期化と再生管理
-  useEffect(() => {
-    const bgm = new Audio('/sounds/start-bgm.mp3');
-    bgm.loop = true;
-    bgm.volume = 0.4;
-    bgmRef.current = bgm;
-
-    const playBGM = () => {
-      bgm.play().catch(() => {});
-      window.removeEventListener('click', playBGM);
-    };
-
-    window.addEventListener('click', playBGM);
-    playBGM();
-
-    return () => {
-      bgm.pause();
-      window.removeEventListener('click', playBGM);
-    };
   }, []);
 
   const [currentIndex, setCurrentIndex] = useState(0);
