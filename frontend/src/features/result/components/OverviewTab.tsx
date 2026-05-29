@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import type { ResultResponse } from '../types';
 import BipolarSlider, { AXIS_POLES } from './BipolarSlider';
+import { DEV_COMMENT_SAMPLES } from '../data/devCommentSamples';
 
 type OverviewTabProps = {
   data: ResultResponse;
@@ -89,6 +91,24 @@ function computeBiggestGap(
   return best;
 }
 
+const devTabStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  padding: '2px 9px',
+  borderRadius: 20,
+  border: '1.5px solid #94a3b8',
+  background: '#fff',
+  color: '#64748b',
+  cursor: 'pointer',
+};
+
+const devTabActiveStyle: React.CSSProperties = {
+  ...devTabStyle,
+  background: '#334155',
+  borderColor: '#334155',
+  color: '#fff',
+};
+
 /** 1つの文字列を文末記号で区切り、文ごとに改行する */
 function renderParagraphWithBreaks(text: string): React.ReactNode {
   const sentences = text
@@ -107,7 +127,16 @@ function renderParagraphWithBreaks(text: string): React.ReactNode {
 }
 
 export default function OverviewTab({ data }: OverviewTabProps) {
-  const { feedback, scores, baseline_scores } = data;
+  const isDev = process.env.NODE_ENV === 'development';
+  const [devSampleIdx, setDevSampleIdx] = useState<number | null>(null);
+
+  // dev モード時は選択中のサンプルで feedback.description を上書き
+  const devSample = isDev && devSampleIdx !== null ? DEV_COMMENT_SAMPLES[devSampleIdx] : null;
+  const feedback = devSample
+    ? { ...data.feedback, description: devSample.description }
+    : data.feedback;
+
+  const { scores, baseline_scores } = data;
   const gap = computeBiggestGap(scores, baseline_scores);
 
   return (
@@ -128,6 +157,43 @@ export default function OverviewTab({ data }: OverviewTabProps) {
             <div className="type-intro-label">{feedback.subtitle}</div>
           )}
         </div>
+
+        {/* dev only: コメントパターン切替（画面左上固定・カード外） */}
+        {isDev && (
+          <div style={{
+            position: 'fixed',
+            top: 12,
+            left: 12,
+            zIndex: 9999,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 5,
+            background: 'rgba(15,23,42,0.85)',
+            backdropFilter: 'blur(6px)',
+            padding: '7px 10px',
+            borderRadius: 10,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+            maxWidth: 320,
+          }}>
+            <button
+              type="button"
+              onClick={() => setDevSampleIdx(null)}
+              style={devSampleIdx === null ? devTabActiveStyle : devTabStyle}
+            >
+              実データ
+            </button>
+            {DEV_COMMENT_SAMPLES.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setDevSampleIdx(i)}
+                style={devSampleIdx === i ? devTabActiveStyle : devTabStyle}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* 解析コメントボックス */}
         <div className="comment-container-new">
