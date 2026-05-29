@@ -337,21 +337,13 @@ export const RULE_CHANGE_PAIRS: ReadonlyArray<{
 // ========================================
 
 /**
- * BGM / SE のパス。
+ * SE のパス。
  *
- * BGM はいずれも空文字列なら SorterGameFlow 側で `new Audio()` を生成せず再生もしない
- * （404 ノイズを出さない graceful degrade）。差し替え時はファイルを置いてパスを入れるだけ。
- *
- * - `bgmCommon` … オンボーディング〜カウントダウン中に流す RealYou 全体共通 BGM
- *                 （トップページ等と同じ start-bgm）。プレイ開始（phase==='playing'）でゲーム BGM へ切替。
- * - `bgmNormal`  … 仕分けゲーム通常時 BGM。
- * - `bgmSpeedUp` … 速度2倍イベント発火後に切り替える BGM。空なら速度2倍でも通常 BGM を継続。
- * - `bgmFreeze`  … 機械停止（frozen）中に流す BGM。空なら停止中も base BGM を継続。
+ * BGM は共通基盤（audioManifest）で管理するため、ここでは扱わない。
+ * 仕分けゲーム専用の曲は sorterNormal / sorterSpeedUp / sorterFreeze。
+ * オンボーディング中はトップ / MBTI 選択 / 規約画面と共通の `start` キーを使う
+ * （`start` は仕分け固有ではなく全画面共通のキー）。
  */
 export const SORTER_AUDIO_PATHS = {
-  bgmCommon: '/sounds/start-bgm.mp3',
-  bgmNormal: '/sounds/sorter-game-bgm.mp3',
-  bgmSpeedUp: '/sounds/sorter-game-bgm-speedup.mp3',
-  bgmFreeze: '/sounds/sorter-game-bgm-freeze.mp3',
   generalSE: '/sounds/general-button-se.mp3',
 } as const;
