@@ -115,6 +115,33 @@ export default function OverviewTab({ data }: OverviewTabProps) {
         {/* 解析コメントボックス */}
         <div className="comment-container-new">
           <div className="comment-header-tag">解析コメント</div>
+
+          {/* ギャップ・ハイライト：思っていた自分 → 本能の自分 */}
+          {gap && (
+            <div className="gap-callout">
+              <span className="gap-callout-tag">最大のギャップ</span>
+              {gap.gap < 10 ? (
+                <p className="gap-callout-body">
+                  自己認識と行動は
+                  <span className="gap-actual">ほぼ一致</span>！
+                </p>
+              ) : gap.sameSide ? (
+                <p className="gap-callout-body">
+                  自覚以上に
+                  <span className="gap-actual">「{gap.actualLabel}」</span>
+                  でした！
+                </p>
+              ) : (
+                <p className="gap-callout-body">
+                  自分では
+                  <span className="gap-self">「{gap.selfLabel}」</span>
+                  のつもり、でも実際は
+                  <span className="gap-actual">「{gap.actualLabel}」</span>！
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="comment-body-text">
             {feedback.description.split('\n').map((line, i) => (
               <p key={i} style={{ margin: '0 0 6px' }}>
@@ -127,31 +154,6 @@ export default function OverviewTab({ data }: OverviewTabProps) {
 
       {/* ===== 右カラム：5 軸両極スライダー ===== */}
       <div className="total-right-panel">
-        {/* ギャップ・ハイライト：思っていた自分 → 本能の自分（スライダーの直上） */}
-        {gap && (
-          <div className="gap-callout">
-            <span className="gap-callout-tag">最大のギャップ</span>
-            {gap.gap < 10 ? (
-              <p className="gap-callout-body">
-                自己認識と行動は
-                <span className="gap-actual">ほぼ一致</span>！
-              </p>
-            ) : gap.sameSide ? (
-              <p className="gap-callout-body">
-                自覚以上に
-                <span className="gap-actual">「{gap.actualLabel}」</span>
-                でした！
-              </p>
-            ) : (
-              <p className="gap-callout-body">
-                自分では
-                <span className="gap-self">「{gap.selfLabel}」</span>
-                のつもり、でも実際は
-                <span className="gap-actual">「{gap.actualLabel}」</span>！
-              </p>
-            )}
-          </div>
-        )}
         <span className="five-axis-headline">
           あなたの５軸ポジション（本能＝実測）
         </span>
