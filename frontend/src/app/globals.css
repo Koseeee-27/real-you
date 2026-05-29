@@ -304,21 +304,23 @@
 }
 
 .comment-body-text span.highlight-blue {
-  font-size: 1em;
+  font-size: 1.25em;
   color: #4d85ff;
   background: #eff6ff;
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 3px;
   font-weight: 900;
+  vertical-align: baseline;
 }
 
 .comment-body-text span.highlight-magenta {
-  font-size: 1em;
+  font-size: 1.25em;
   color: #db2777;
   background: #fdf2f8;
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 3px;
   font-weight: 900;
+  vertical-align: baseline;
 }
 
 /* 詳細画面のコメントは固定高さ内に収まるよう小さめに */
