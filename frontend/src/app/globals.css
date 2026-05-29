@@ -210,6 +210,62 @@
   margin-left: 2px;
 }
 
+/* ギャップ・ハイライトカード（総合結果の左パネル・解析コメント下）
+   「思っていた自分 → 本能の自分」のズレを断言調で見せる */
+.gap-callout {
+  margin-top: 8px;
+  margin-bottom: 12px;
+  width: 100%;
+  background: #fff;
+  border: 4px solid #000;
+  border-radius: 16px;
+  padding: 12px 18px 14px;
+  box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.18);
+  position: relative;
+}
+
+.gap-callout-tag {
+  display: inline-block;
+  background: #000;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 3px 12px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.gap-callout-body {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.5;
+  color: #333;
+}
+
+/* 自己申告ラベル：取り消し線で「思い込み」を表現 */
+.gap-callout-body .gap-self,
+.share-gap-body .gap-self {
+  color: #888;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  margin: 0 2px;
+}
+
+/* 実測ラベル：黒フチ付きで強調（タイトルと同じポップ調） */
+.gap-callout-body .gap-actual,
+.share-gap-body .gap-actual {
+  color: #f87171;
+  font-size: 16px;
+  margin: 0 2px;
+  text-shadow:
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000,
+    2px 2px 0 #000;
+}
+
 .comment-container-detail {
   background: #fffce8;
   padding: 16px 20px;
@@ -228,6 +284,13 @@
   margin-bottom: 8px;
 }
 
+/* 解析コメント段落 */
+.comment-sentence-block {
+  margin: 0 0 8px;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
 .comment-header-tag-detail {
   font-size: 14px;
   font-weight: 900;
@@ -236,28 +299,30 @@
 }
 
 .comment-body-text {
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
   color: #333;
-  line-height: 1.8;
+  line-height: 1.85;
 }
 
 .comment-body-text span.highlight-blue {
-  font-size: 30px;
+  font-size: 1.3em;
   color: #4d85ff;
   background: #eff6ff;
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 3px;
   font-weight: 900;
+  vertical-align: baseline;
 }
 
 .comment-body-text span.highlight-magenta {
-  font-size: 30px;
+  font-size: 1.3em;
   color: #db2777;
   background: #fdf2f8;
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 3px;
   font-weight: 900;
+  vertical-align: baseline;
 }
 
 /* 詳細画面のコメントは固定高さ内に収まるよう小さめに */
@@ -267,11 +332,11 @@
 }
 
 .comment-container-detail .comment-body-text span.highlight-blue {
-  font-size: 20px;
+  font-size: 1em;
 }
 
 .comment-container-detail .comment-body-text span.highlight-magenta {
-  font-size: 20px;
+  font-size: 1em;
 }
 
 .total-right-panel {
@@ -281,7 +346,7 @@
   justify-content: flex-start;
   gap: 8px;
   padding-left: 25px;
-  padding-top: 35px;
+  padding-top: 50px;
   padding-bottom: 10px;
   position: relative;
 }
@@ -290,25 +355,32 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 100px;
+  top: 150px;
   bottom: 0;
   border-left: 3px dashed #e2e8f0;
 }
 
-.five-axis-headline {
+.slider-legend-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.legend-item {
   font-size: 11.5px;
   font-weight: 900;
   color: #777;
-  margin-bottom: 5px;
-  text-align: right;
 }
 
-.average-icon {
+.legend-tri-actual {
   color: #ef4444;
-  font-size: 0.8em;
-  margin-left: 6px;
-  display: inline-block;
-  vertical-align: middle;
+  font-size: 0.85em;
+}
+
+.legend-tri-self {
+  color: #94a3b8;
+  font-size: 0.85em;
 }
 
 .mbti-slider-row-new {
@@ -341,20 +413,64 @@
   margin-top: -20px;
 }
 
-.average-marker-wrapper {
+/* 自己申告 ▼ ＋ %ラベル ＋ トラックへ伸びるグレー点線
+   バンドはトラックより十分上に置き、▼・% がトラックに被らないようにする。 */
+.gap-arrow-band {
   position: absolute;
-  top: -35px;
+  top: -48px;
   left: 0;
   right: 0;
   height: 0;
   overflow: visible;
 }
 
-.average-marker {
+/* ▼（実測マーカー本体）。座標 boundary に中央寄せ。 */
+.actual-tri {
   position: absolute;
-  font-size: 14px;
+  top: 14px;
+  font-size: 16px;
   color: #ef4444;
   transform: translateX(-50%);
+  line-height: 1;
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ▼（自己申告マーカー本体）。座標 selfX に中央寄せ。 */
+.self-tri {
+  position: absolute;
+  top: 16px;
+  font-size: 13px;
+  color: #94a3b8;
+  transform: translateX(-50%);
+  line-height: 1;
+}
+
+/* ▼ の下端からトラックの中まで貫くグレー点線（自己申告位置） */
+.self-guide-line {
+  position: absolute;
+  top: 28px;
+  height: 17px; /* ▼下端(≈22) → トラック下端まで貫通 */
+  border-left: 2px dashed #94a3b8;
+  transform: translateX(-50%);
+  z-index: 5; /* トラックの塗りより前面 */
+}
+
+/* 点線(自己申告) と 黒ピン(実測) の中間に置く「差」の数字（濃いめ） */
+.gap-diff {
+  position: absolute;
+  top: 36px; /* トラックの上下中央あたり */
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: 900;
+  color: #0f172a;
+  /* 塗りの上でも読めるよう白フチ */
+  text-shadow:
+    0 0 3px #fff,
+    0 0 3px #fff,
+    0 0 3px #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
 }
 
 .badge-pct-container {
@@ -770,4 +886,347 @@
   padding: 13px 52px;
   font-size: 18px;
   box-shadow: 6px 6px 0px #000;
+}
+
+/* ============================================================
+   共有リンク（/share/[userId]）レスポンシブレイアウト
+   Mobile-first: 1カラム → PC (≥768px): 2カラム
+   ============================================================ */
+
+.share-page {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.8) 1px, transparent 4px),
+    url('/images/bg-pattern.svg');
+  background-size:
+    16px 16px,
+    cover;
+  background-position:
+    0 0,
+    center;
+  background-repeat: repeat, no-repeat;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 48px;
+  gap: 16px;
+}
+
+/* スマホ: 全要素を最大幅 480px に制限 */
+.share-page > * {
+  width: 100%;
+  max-width: 480px;
+}
+
+.share-app-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: #888;
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding-top: 8px;
+}
+
+/* ===== 2カラムグリッド（スマホ: 1列、PC: 2列） ===== */
+.share-main-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.share-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ===== タイトルカード ===== */
+.share-title-card {
+  background: #fef08a;
+  border: 4px solid #000;
+  border-radius: 20px;
+  padding: 20px 20px 24px;
+  box-shadow: 6px 6px 0 #000;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-preface {
+  font-size: 11px;
+  font-weight: 900;
+  color: #666;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.share-title {
+  font-size: 40px;
+  font-weight: 950;
+  color: #000;
+  line-height: 1.1;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.share-subtitle {
+  font-size: 15px;
+  font-weight: 900;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ===== 汎用カード ===== */
+.share-card {
+  background: #fff;
+  border: 3.5px solid #000;
+  border-radius: 18px;
+  padding: 18px 18px 20px;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== タグ（コールアウトラベル） ===== */
+.share-tag {
+  display: inline-block;
+  background: #000;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 2px 10px;
+  border-radius: 20px;
+  align-self: flex-start;
+}
+
+.share-gap-body {
+  font-size: 18px;
+  font-weight: 900;
+  color: #000;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ===== ゲーム別アコーディオン ===== */
+.share-games-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.share-section-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: #888;
+  letter-spacing: 0.06em;
+  padding: 0 2px;
+  margin: 0;
+}
+
+.share-accordion {
+  background: #fff;
+  border: 3.5px solid #000;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+.share-accordion-header {
+  width: 100%;
+  background: #fff;
+  border: none;
+  border-left: 6px solid;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  gap: 8px;
+  transition: background 0.15s;
+}
+
+.share-accordion-header:active {
+  background: #f8fafc;
+}
+
+.share-accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  text-align: left;
+}
+
+.share-accordion-body {
+  border-top: 2px solid #e2e8f0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* アコーディオン内：スマホ1列、PC2列 */
+.share-accordion-inner-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.share-subsection-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: #94a3b8;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+
+.share-data-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.share-data-item {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== フッター ===== */
+.share-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+}
+
+.share-footer-copy {
+  font-size: 14px;
+  font-weight: 700;
+  color: #555;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.share-cta-btn {
+  display: block;
+  width: 100%;
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  color: #fff;
+  border: 4px solid #000;
+  border-radius: 50px;
+  padding: 16px 40px;
+  font-size: 18px;
+  font-weight: 950;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 5px 5px 0 #000;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+  letter-spacing: 0.03em;
+}
+
+.share-cta-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0 #000;
+}
+
+.share-footer-brand {
+  font-size: 11px;
+  font-weight: 900;
+  color: #aaa;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+/* ============================================================
+   PC レイアウト (≥768px): 2カラムに拡張
+   ============================================================ */
+@media (min-width: 768px) {
+  .share-page {
+    padding: 28px 40px 56px;
+  }
+
+  /* PC では全要素を最大幅 1100px に拡張 */
+  .share-page > * {
+    max-width: 1100px;
+  }
+
+  /* 左右2カラムグリッド */
+  .share-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+    max-width: 1100px;
+  }
+
+  /* タイトル文字を PC でやや拡大 */
+  .share-title {
+    font-size: 52px;
+  }
+
+  .share-subtitle {
+    font-size: 17px;
+  }
+
+  .share-gap-body {
+    font-size: 20px;
+  }
+
+  /* ゲームアコーディオン全幅 */
+  .share-games-section {
+    max-width: 1100px;
+  }
+
+  /* アコーディオン内も2カラム */
+  .share-accordion-inner-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  /* フッター全幅 */
+  .share-footer {
+    max-width: 1100px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+  }
+
+  .share-footer-copy {
+    text-align: left;
+    font-size: 15px;
+  }
+
+  .share-cta-btn {
+    width: auto;
+    white-space: nowrap;
+    padding: 16px 48px;
+  }
+
+  .share-footer-brand {
+    text-align: right;
+  }
 }
