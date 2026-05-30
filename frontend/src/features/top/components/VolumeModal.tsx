@@ -1,7 +1,9 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { Volume2, VolumeX } from 'lucide-react';
 import { VolumeControl } from '@/components/audio/VolumeControl';
+import { useVolumeMute } from '@/components/audio/useVolumeMute';
 
 type VolumeModalProps = {
   open: boolean;
@@ -13,6 +15,8 @@ type VolumeModalProps = {
  * オーバーレイのクリック / 「とじる」で閉じる。中身は共通の VolumeControl。
  */
 export default function VolumeModal({ open, onClose }: VolumeModalProps) {
+  const { muted, toggleMute } = useVolumeMute();
+
   return (
     <AnimatePresence>
       {open && (
@@ -35,13 +39,32 @@ export default function VolumeModal({ open, onClose }: VolumeModalProps) {
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* タイトル pill（カード上端にかぶせる） */}
             <div className="absolute -top-6 left-1/2 -translate-x-1/2">
               <div className="rounded-full border-4 border-gray-800 bg-[#FFD77B] px-8 py-2 shadow-[0_4px_0_#1f2937]">
                 <p className="text-xl font-black whitespace-nowrap text-gray-900">
                   おとのせってい
                 </p>
               </div>
+            </div>
+
+            <div className="mb-4 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={toggleMute}
+                aria-pressed={muted}
+                className={`flex items-center gap-1.5 rounded-full border-[3px] border-gray-800 px-3 py-1.5 text-sm font-black shadow-[2px_2px_0_#1f2937] transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none ${
+                  muted
+                    ? 'bg-rose-400 text-white'
+                    : 'bg-white text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                {muted ? (
+                  <VolumeX size={16} aria-hidden />
+                ) : (
+                  <Volume2 size={16} aria-hidden />
+                )}
+                {muted ? 'ミュート中' : 'ミュート'}
+              </button>
             </div>
 
             <div className="mb-7">
