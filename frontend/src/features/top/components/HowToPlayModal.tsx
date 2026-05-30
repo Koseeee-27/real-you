@@ -22,7 +22,9 @@ function EmphasisText({
 
 /** 数字など単体の強調 */
 function AccentText({ children }: { children: ReactNode }) {
-  return <span className="text-[1.15em] font-black text-rose-500">{children}</span>;
+  return (
+    <span className="text-[1.15em] font-black text-rose-500">{children}</span>
+  );
 }
 
 export const howToPlaySlides: JSX.Element[] = [
