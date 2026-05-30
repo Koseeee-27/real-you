@@ -3,28 +3,44 @@
 import type { JSX, ReactNode } from 'react';
 import Image from 'next/image';
 
-/** 他画面と揃えた強調テキスト（黒フチ＋ローズ） */
-function AccentText({ children }: { children: ReactNode }) {
+const TEXT_OUTLINE = {
+  textShadow:
+    '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000',
+} as const;
+
+/** 黄背景ステッカー（結果画面の一言タイトルに近い、読みやすい強調） */
+function StickerAccent({ children }: { children: ReactNode }) {
   return (
-    <span
-      className="font-black text-rose-500"
-      style={{
-        textShadow:
-          '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000',
-      }}
-    >
+    <span className="inline-block rounded-md border-2 border-black bg-[#ffe175] px-2 py-0.5 font-black text-[#0e7490] shadow-[2px_2px_0_0_#000]">
       {children}
     </span>
   );
 }
 
-/** マーカー風の黄色ハイライト */
-function HighlightMarker({ className }: { className?: string }) {
+/** 数字など単体の強調（ローズ＋黒フチ） */
+function AccentText({ children }: { children: ReactNode }) {
   return (
-    <div
-      className={`absolute rounded-full bg-[#f1cf44] opacity-40 [-z-10] ${className ?? ''}`}
-      aria-hidden
-    />
+    <span className="font-black text-rose-500" style={TEXT_OUTLINE}>
+      {children}
+    </span>
+  );
+}
+
+/**
+ * 下から少しだけ隠して強調（3枚目用）。
+ * 黄色バーが文字の下半分をかぶせ、見える部分が目立つ。
+ */
+function PeekEmphasis({ children }: { children: ReactNode }) {
+  return (
+    <span className="relative mx-0.5 inline-block align-baseline">
+      <span className="relative z-10 font-black text-rose-500" style={TEXT_OUTLINE}>
+        {children}
+      </span>
+      <span
+        className="pointer-events-none absolute -bottom-1 left-[-0.12em] right-[-0.12em] z-20 h-[0.52em] rounded-sm border-2 border-black bg-[#f1cf44] shadow-[2px_2px_0_0_#000]"
+        aria-hidden
+      />
+    </span>
   );
 }
 
@@ -98,13 +114,10 @@ export const howToPlaySlides: JSX.Element[] = [
     <h2 className="mb-1 text-5xl font-black tracking-wide text-gray-900 sm:text-6xl">
       Real Youとは？
     </h2>
-    <div className="relative mb-2 text-xl font-bold leading-relaxed text-gray-800 sm:text-2xl">
-      <span className="relative z-10">
-        <AccentText>「本当のあなた」</AccentText>
-        が分かる、新しい性格診断アプリ。
-      </span>
-      <HighlightMarker className="left-1/2 top-1/2 h-7 w-[min(555px,90%)] -translate-x-1/2 -translate-y-1/2" />
-    </div>
+    <p className="mb-2 text-center text-xl font-bold leading-relaxed text-gray-800 sm:text-2xl">
+      <StickerAccent>「本当のあなた」</StickerAccent>
+      が分かる、新しい性格診断アプリ。
+    </p>
     <div className="mt-5 space-y-1 text-base font-bold leading-relaxed text-gray-800">
       <p>直感のままにプレイするだけ。</p>
       <p>あなたらしさが、自然とあらわれます。</p>
@@ -149,11 +162,10 @@ export const howToPlaySlides: JSX.Element[] = [
       className="absolute bottom-4 left-4 w-28"
     />
 
-    <h2 className="relative mb-1 text-4xl font-black tracking-wide text-gray-900 sm:text-5xl">
+    <h2 className="mb-1 text-4xl font-black tracking-wide text-gray-900 sm:text-5xl">
       プレイ時間は約
       <AccentText>5</AccentText>
       分！
-      <HighlightMarker className="right-[17.5%] top-1/3 h-15 w-[175px] -translate-x-1/2 -translate-y-1/4" />
     </h2>
     <p className="mb-5 text-xl font-bold leading-relaxed text-gray-800 sm:text-2xl">
       ゲームでサクッと、診断完了！
@@ -233,11 +245,10 @@ export const howToPlaySlides: JSX.Element[] = [
       className="absolute bottom-12 left-18 w-25"
     />
 
-    <h2 className="relative text-3xl font-black leading-relaxed tracking-wide text-gray-900 sm:text-4xl">
+    <h2 className="text-3xl font-black leading-relaxed tracking-wide text-gray-900 sm:text-4xl">
       さあ！
-      <AccentText>「本当の自分」</AccentText>
+      <PeekEmphasis>「本当の自分」</PeekEmphasis>
       に会いに行こう！
-      <HighlightMarker className="left-[38%] top-1/2 h-15 w-[300px] -translate-x-1/2 -translate-y-1/2" />
     </h2>
   </div>,
 ];
