@@ -90,14 +90,12 @@ export default function TopMenu() {
         {showExplosion && <SparklesExplosion />}
       </div>
 
-      {/* SlideModal に children 配列を渡す（SlideModal が children 配列を受け取る実装の前提） */}
       <SlideModal
         open={showHowToPlay}
         onComplete={() => setShowHowToPlay(false)}
         completeLabel="完了！"
         ariaLabel="あそびかた 説明"
         classNames={{
-          // 背景画像をカード内に収める（切れないように contain 指定、真ん中に）
           card: 'relative bg-white overflow-hidden [&>*]:relative [&>*]:z-10',
         }}
       >
