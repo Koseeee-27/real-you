@@ -64,10 +64,10 @@ export default function TopMenu() {
             aria-label="あそびかた"
             className="flex flex-col items-center gap-1.5"
           >
-            <span className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-gray-800 bg-[#f1cf44] text-gray-900 shadow-[0_5px_0_#1f2937] transition-transform active:translate-y-[3px] active:shadow-[0_2px_0_#1f2937]">
-              <HelpCircle size={28} strokeWidth={2.25} aria-hidden />
+            <span className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-gray-800 bg-[#8EE3FA] text-white shadow-[0_5px_0_#1f2937] transition-transform active:translate-y-[3px] active:shadow-[0_2px_0_#1f2937]">
+              <HelpCircle size={28} strokeWidth={2.5} aria-hidden />
             </span>
-            <span className="rounded-full border-2 border-gray-800 bg-[#fff8dc] px-3 py-0.5 text-[13px] font-extrabold tracking-wide text-gray-800">
+            <span className="rounded-full border-2 border-gray-800 bg-white px-2.5 py-px text-[13px] font-black text-gray-900">
               あそびかた
             </span>
           </button>
