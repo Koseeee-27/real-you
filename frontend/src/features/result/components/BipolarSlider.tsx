@@ -128,11 +128,11 @@ export default function BipolarSlider({
                 ▼
               </div>
               <div className="self-guide-line" style={{ left: `${selfX}%` }} />
-              {gap >= 5 && (
-                <span className="gap-diff" style={{ left: `${gapMidX}%` }}>
-                  {gapLabel}
-                </span>
-              )}
+              {/* 差が小さく（旧 gap>=5 ガード）±が消えていたため常に表示。
+                  ±0 も含めて自己申告と実測の差を必ず明示する。 */}
+              <span className="gap-diff" style={{ left: `${gapMidX}%` }}>
+                {gapLabel}
+              </span>
             </div>
           )}
         </div>

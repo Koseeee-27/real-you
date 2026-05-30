@@ -58,9 +58,8 @@ export default function OverviewTab({ data }: OverviewTabProps) {
                 </p>
               ) : (
                 <p className="gap-callout-body">
-                  自分では
                   <span className="gap-self">「{gap.selfLabel}」</span>
-                  のつもり、でも実際は
+                  と思いきや、実は
                   <span className="gap-actual">「{gap.actualLabel}」</span>！
                 </p>
               )}
