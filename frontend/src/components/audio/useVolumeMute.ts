@@ -19,19 +19,20 @@ export function useVolumeMute() {
 
   const toggleMute = () => {
     if (muted) {
-      let restore = { bgm: FALLBACK_VOLUME, se: FALLBACK_VOLUME };
+      let bgm = FALLBACK_VOLUME;
+      let se = FALLBACK_VOLUME;
       try {
         const raw = localStorage.getItem(MUTE_BACKUP_KEY);
         if (raw) {
           const parsed = JSON.parse(raw) as { bgm?: number; se?: number };
-          if (typeof parsed.bgm === 'number') restore.bgm = parsed.bgm;
-          if (typeof parsed.se === 'number') restore.se = parsed.se;
+          if (typeof parsed.bgm === 'number') bgm = parsed.bgm;
+          if (typeof parsed.se === 'number') se = parsed.se;
         }
       } catch {
         // 読み込み失敗時は既定値で復元
       }
-      setBgmVolume(restore.bgm > 0 ? restore.bgm : FALLBACK_VOLUME);
-      setSeVolume(restore.se > 0 ? restore.se : FALLBACK_VOLUME);
+      setBgmVolume(bgm > 0 ? bgm : FALLBACK_VOLUME);
+      setSeVolume(se > 0 ? se : FALLBACK_VOLUME);
     } else {
       try {
         localStorage.setItem(
