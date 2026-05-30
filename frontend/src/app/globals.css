@@ -110,7 +110,9 @@
 .type-main-title-sticker {
   position: relative;
   z-index: 2;
-  background: #fef08a;
+  /* 一言タイトルの背景。カラー調整ツールで検討した結果、
+     黄色(#ffe175)地＋シアン文字(#75fffd)＋黒フチの配色を採用。 */
+  background: #ffe175;
   border: 5px solid #000;
   border-radius: 18px;
   padding: 8px 24px 16px;
@@ -162,7 +164,7 @@ body.share-qr-modal-open .type-main-title-sticker {
 }
 
 .type-main-title span.orange-highlight {
-  color: #f87171;
+  color: #75fffd;
   text-shadow:
     -2.5px -2.5px 0px #000,
     2.5px -2.5px 0px #000,
@@ -266,8 +268,21 @@ body.share-qr-modal-open .type-main-title-sticker {
   margin: 0 2px;
 }
 
-/* 実測ラベル：黒フチ付きで強調（タイトルと同じポップ調） */
-.gap-callout-body .gap-actual,
+/* 実測ラベル（結果画面）：黒フチ付きで強調。
+   太い2pxフチ＋明るい赤(#f87171)だと小サイズで文字が潰れて読みにくかったため、
+   濃いめのローズ赤(#e11d48)＋細い1pxフチに変更し視認性を確保。 */
+.gap-callout-body .gap-actual {
+  color: #e11d48;
+  font-size: 16px;
+  margin: 0 2px;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
+}
+
+/* 実測ラベル（共有カード）：従来の太フチ・明るい赤のまま維持 */
 .share-gap-body .gap-actual {
   color: #f87171;
   font-size: 16px;

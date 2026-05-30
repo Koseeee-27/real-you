@@ -6,6 +6,7 @@ import { RefreshCw } from 'lucide-react';
 import type { GameId, ResultResponse } from '../types';
 import { GAME_META } from '../data/gameMeta';
 import { useSe } from '@/components/audio/useSe';
+import DebugColorTuner from './DebugColorTuner';
 import GameDetailTab from './GameDetailTab';
 import OverviewTab from './OverviewTab';
 import SharePanel from './SharePanel';
@@ -209,6 +210,11 @@ export default function ResultReport({ data }: ResultReportProps) {
           )}
         </div>
       </div>
+
+      {/* 【開発用】一言タイトルのカラー調整パネル（本番では非表示・総合モードのみ） */}
+      {process.env.NODE_ENV !== 'production' && mode === 'overview' && (
+        <DebugColorTuner />
+      )}
     </div>
   );
 }
