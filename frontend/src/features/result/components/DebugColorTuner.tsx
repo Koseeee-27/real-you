@@ -25,6 +25,16 @@ const DEFAULTS = {
   outline: '#000000', // orange-highlight の text-shadow 色
 };
 
+const HEX_RE = /^#([0-9a-fA-F]{6})$/;
+
+function isValidHex(value: string): boolean {
+  return HEX_RE.test(value);
+}
+
+function safeHex(value: string, fallback: string): string {
+  return isValidHex(value) ? value : fallback;
+}
+
 function buildCss(font: string, bg: string, outline: string): string {
   return `
 .type-main-title-sticker { background: ${bg} !important; }
@@ -56,7 +66,11 @@ export default function DebugColorTuner() {
       el.id = 'debug-title-tuner';
       document.head.appendChild(el);
     }
-    el.textContent = buildCss(font, bg, outline);
+    el.textContent = buildCss(
+      safeHex(font, DEFAULTS.font),
+      safeHex(bg, DEFAULTS.bg),
+      safeHex(outline, DEFAULTS.outline)
+    );
     return () => {
       // アンマウント時に除去
       document.getElementById('debug-title-tuner')?.remove();
@@ -98,10 +112,16 @@ export default function DebugColorTuner() {
     label: string;
     value: string;
     set: (v: string) => void;
+    defaultHex: string;
   }[] = [
-    { label: '文字色', value: font, set: setFont },
-    { label: '背景色', value: bg, set: setBg },
-    { label: 'フチ色', value: outline, set: setOutline },
+    { label: '文字色', value: font, set: setFont, defaultHex: DEFAULTS.font },
+    { label: '背景色', value: bg, set: setBg, defaultHex: DEFAULTS.bg },
+    {
+      label: 'フチ色',
+      value: outline,
+      set: setOutline,
+      defaultHex: DEFAULTS.outline,
+    },
   ];
 
   return (
@@ -163,7 +183,7 @@ export default function DebugColorTuner() {
           </span>
           <input
             type="color"
-            value={r.value}
+            value={isValidHex(r.value) ? r.value : r.defaultHex}
             onChange={(e) => r.set(e.target.value)}
             style={{
               width: 34,
