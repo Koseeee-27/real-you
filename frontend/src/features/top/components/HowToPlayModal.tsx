@@ -1,16 +1,41 @@
 'use client';
 
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 import Image from 'next/image';
 
+/** 他画面と揃えた強調テキスト（黒フチ＋ローズ） */
+function AccentText({ children }: { children: ReactNode }) {
+  return (
+    <span
+      className="font-black text-rose-500"
+      style={{
+        textShadow:
+          '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000',
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** マーカー風の黄色ハイライト */
+function HighlightMarker({ className }: { className?: string }) {
+  return (
+    <div
+      className={`absolute rounded-full bg-[#f1cf44] opacity-40 [-z-10] ${className ?? ''}`}
+      aria-hidden
+    />
+  );
+}
+
 export const howToPlaySlides: JSX.Element[] = [
-  <div key="page1" className="flex flex-col items-center mt-0">
+  <div key="page1" className="mt-0 flex flex-col items-center">
     <Image
       src="/images/fukidashi.png"
       alt=""
       width={1000}
       height={1000}
-      className="pointer-events-none absolute inset-4 m-auto w-auto max-h-[90%] object-contain -z-10"
+      className="pointer-events-none absolute inset-4 -z-10 m-auto max-h-[90%] w-auto object-contain"
     />
 
     <Image
@@ -70,29 +95,29 @@ export const howToPlaySlides: JSX.Element[] = [
       className="absolute bottom-20 left-20 w-25"
     />
 
-    <h2 className="mb-1 text-7xl font-bold leading-relaxed">Real Youとは？</h2>
-    <div className="mb-2 text-2xl leading-relaxed relative">
+    <h2 className="mb-1 text-5xl font-black tracking-wide text-gray-900 sm:text-6xl">
+      Real Youとは？
+    </h2>
+    <div className="relative mb-2 text-xl font-bold leading-relaxed text-gray-800 sm:text-2xl">
       <span className="relative z-10">
-        <span className="text-blue-500 font-extrabold  [-webkit-text-stroke:1px_#000] [-webkit-text-fill-color:#ff00ff]">
-          「本当のあなた」
-        </span>
+        <AccentText>「本当のあなた」</AccentText>
         が分かる、新しい性格診断アプリ。
       </span>
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-7 w-[555px] bg-yellow-500 rounded-full opacity-30 [-z-10]" />
+      <HighlightMarker className="left-1/2 top-1/2 h-7 w-[min(555px,90%)] -translate-x-1/2 -translate-y-1/2" />
     </div>
-    <div className="space-y-1 text-base font-bold leading-relaxed text-[#111] mt-5">
+    <div className="mt-5 space-y-1 text-base font-bold leading-relaxed text-gray-800">
       <p>直感のままにプレイするだけ。</p>
       <p>あなたらしさが、自然とあらわれます。</p>
     </div>
   </div>,
 
-  <div key="page2" className="flex flex-col items-center mt-4">
+  <div key="page2" className="mt-4 flex flex-col items-center">
     <Image
       src="/images/fukidashi.png"
       alt=""
       width={1000}
       height={1000}
-      className="pointer-events-none absolute inset-4 m-auto w-auto max-h-[90%] object-contain -z-10"
+      className="pointer-events-none absolute inset-4 -z-10 m-auto max-h-[90%] w-auto object-contain"
     />
 
     <Image
@@ -107,7 +132,7 @@ export const howToPlaySlides: JSX.Element[] = [
       alt=""
       width={92}
       height={92}
-      className="absolute top-1 left-5 w-30 rotate-[-25deg] "
+      className="absolute top-1 left-5 w-30 rotate-[-25deg]"
     />
     <Image
       src="/images/PC.png"
@@ -124,18 +149,16 @@ export const howToPlaySlides: JSX.Element[] = [
       className="absolute bottom-4 left-4 w-28"
     />
 
-    <h2 className="mb-1 text-6xl font-bold leading-relaxed">
+    <h2 className="relative mb-1 text-4xl font-black tracking-wide text-gray-900 sm:text-5xl">
       プレイ時間は約
-      <span className="text-blue-500 font-extrabold  [-webkit-text-stroke:2px_#000] [-webkit-text-fill-color:#ff00ff]">
-        5
-      </span>
+      <AccentText>5</AccentText>
       分！
-      <div className="absolute right-[17.5%] top-1/3 -translate-x-1/2 -translate-y-1/4 h-15 w-[175px] bg-yellow-500 rounded-full opacity-30 [-z-10]" />
+      <HighlightMarker className="right-[17.5%] top-1/3 h-15 w-[175px] -translate-x-1/2 -translate-y-1/4" />
     </h2>
-    <p className="mb-5 text-2xl leading-relaxed">
+    <p className="mb-5 text-xl font-bold leading-relaxed text-gray-800 sm:text-2xl">
       ゲームでサクッと、診断完了！
     </p>
-    <div className="space-y-1 text-base leading-relaxed text-[#111] text-left text-gray-600">
+    <div className="space-y-1 text-left text-base font-bold leading-relaxed text-gray-800">
       <p>※PCでのプレイをおすすめします</p>
       <p>※ゲーム中、BGMや効果音が流れます</p>
     </div>
@@ -150,7 +173,7 @@ export const howToPlaySlides: JSX.Element[] = [
       alt=""
       width={1000}
       height={1000}
-      className="pointer-events-none absolute inset-4 m-auto w-auto max-h-[90%] object-contain -z-10"
+      className="pointer-events-none absolute inset-4 -z-10 m-auto max-h-[90%] w-auto object-contain"
     />
 
     <Image
@@ -210,13 +233,11 @@ export const howToPlaySlides: JSX.Element[] = [
       className="absolute bottom-12 left-18 w-25"
     />
 
-    <h2 className="text-5xl font-bold leading-relaxed">
+    <h2 className="relative text-3xl font-black leading-relaxed tracking-wide text-gray-900 sm:text-4xl">
       さあ！
-      <span className="text-yellow-500 font-extrabold [-webkit-text-stroke:2px_#000] [-webkit-text-fill-color:#ff00ff]">
-        「本当の自分」
-      </span>
+      <AccentText>「本当の自分」</AccentText>
       に会いに行こう！
+      <HighlightMarker className="left-[38%] top-1/2 h-15 w-[300px] -translate-x-1/2 -translate-y-1/2" />
     </h2>
-    <div className="absolute left-[38%] top-1/2 -translate-x-1/2 -translate-y-1/2 h-15 w-[300px] bg-yellow-500 rounded-full opacity-30 [-z-10]" />
   </div>,
 ];
