@@ -3,45 +3,26 @@
 import type { JSX, ReactNode } from 'react';
 import Image from 'next/image';
 
-const TEXT_OUTLINE = {
-  textShadow:
-    '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000',
-} as const;
-
-/** 黄背景ステッカー（結果画面の一言タイトルに近い、読みやすい強調） */
-function StickerAccent({ children }: { children: ReactNode }) {
+/** 背景なしで文字サイズだけ大きくして強調 */
+function EmphasisText({
+  children,
+  size = 'md',
+}: {
+  children: ReactNode;
+  size?: 'md' | 'lg';
+}) {
+  const sizeClass =
+    size === 'lg'
+      ? 'text-[1.45em] sm:text-[1.55em]'
+      : 'text-[1.3em] sm:text-[1.35em]';
   return (
-    <span className="inline-block rounded-md border-2 border-black bg-[#ffe175] px-2 py-0.5 font-black text-[#0e7490] shadow-[2px_2px_0_0_#000]">
-      {children}
-    </span>
+    <span className={`font-black text-rose-500 ${sizeClass}`}>{children}</span>
   );
 }
 
-/** 数字など単体の強調（ローズ＋黒フチ） */
+/** 数字など単体の強調 */
 function AccentText({ children }: { children: ReactNode }) {
-  return (
-    <span className="font-black text-rose-500" style={TEXT_OUTLINE}>
-      {children}
-    </span>
-  );
-}
-
-/**
- * 下から少しだけ隠して強調（3枚目用）。
- * 黄色バーが文字の下半分をかぶせ、見える部分が目立つ。
- */
-function PeekEmphasis({ children }: { children: ReactNode }) {
-  return (
-    <span className="relative mx-0.5 inline-block align-baseline">
-      <span className="relative z-10 font-black text-rose-500" style={TEXT_OUTLINE}>
-        {children}
-      </span>
-      <span
-        className="pointer-events-none absolute -bottom-1 left-[-0.12em] right-[-0.12em] z-20 h-[0.52em] rounded-sm border-2 border-black bg-[#f1cf44] shadow-[2px_2px_0_0_#000]"
-        aria-hidden
-      />
-    </span>
-  );
+  return <span className="text-[1.15em] font-black text-rose-500">{children}</span>;
 }
 
 export const howToPlaySlides: JSX.Element[] = [
@@ -115,7 +96,7 @@ export const howToPlaySlides: JSX.Element[] = [
       Real Youとは？
     </h2>
     <p className="mb-2 text-center text-xl font-bold leading-relaxed text-gray-800 sm:text-2xl">
-      <StickerAccent>「本当のあなた」</StickerAccent>
+      <EmphasisText>「本当のあなた」</EmphasisText>
       が分かる、新しい性格診断アプリ。
     </p>
     <div className="mt-5 space-y-1 text-base font-bold leading-relaxed text-gray-800">
@@ -247,7 +228,7 @@ export const howToPlaySlides: JSX.Element[] = [
 
     <h2 className="text-3xl font-black leading-relaxed tracking-wide text-gray-900 sm:text-4xl">
       さあ！
-      <PeekEmphasis>「本当の自分」</PeekEmphasis>
+      <EmphasisText size="lg">「本当の自分」</EmphasisText>
       に会いに行こう！
     </h2>
   </div>,
