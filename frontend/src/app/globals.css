@@ -110,10 +110,9 @@
 .type-main-title-sticker {
   position: relative;
   z-index: 2;
-  /* 結果画面の背景（黄色）と被って目立たないため無彩色グレー地に変更。
-     白だと黄背景に馴染んで弱く、青系だと赤いタイトル文字と色がぶつかるため、
-     赤を喧嘩させずに引き立てつつ黄色からしっかり分離するグレーを採用。 */
-  background: #e5e7eb;
+  /* 一言タイトルの背景。カラー調整ツールで検討した結果、
+     黄色(#ffe175)地＋シアン文字(#75fffd)＋黒フチの配色を採用。 */
+  background: #ffe175;
   border: 5px solid #000;
   border-radius: 18px;
   padding: 8px 24px 16px;
@@ -165,7 +164,7 @@ body.share-qr-modal-open .type-main-title-sticker {
 }
 
 .type-main-title span.orange-highlight {
-  color: #f87171;
+  color: #75fffd;
   text-shadow:
     -2.5px -2.5px 0px #000,
     2.5px -2.5px 0px #000,
